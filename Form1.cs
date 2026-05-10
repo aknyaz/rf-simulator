@@ -16,6 +16,8 @@ public partial class Form1 : Form
     private readonly ComboBox _presetCombo = new();
     private readonly TextBox _structureInput = new();
     private readonly Button _simulateButton = new();
+    private readonly Button _saveJsonButton = new();
+    private readonly Button _loadJsonButton = new();
     private readonly Label _statusLabel = new();
 
     private readonly PlotView _smithPlot = new();
@@ -58,7 +60,7 @@ public partial class Form1 : Form
         var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Top,
-            ColumnCount = 10,
+            ColumnCount = 12,
             RowCount = 3,
             AutoSize = true,
             Padding = new Padding(0, 0, 0, 8)
@@ -72,6 +74,8 @@ public partial class Form1 : Form
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -94,6 +98,14 @@ public partial class Form1 : Form
         _simulateButton.AutoSize = true;
         _simulateButton.Click += (_, _) => RunSimulation();
 
+        _saveJsonButton.Text = "Save JSON";
+        _saveJsonButton.AutoSize = true;
+        _saveJsonButton.Click += (_, _) => SaveConfiguration();
+
+        _loadJsonButton.Text = "Load JSON";
+        _loadJsonButton.AutoSize = true;
+        _loadJsonButton.Click += (_, _) => LoadConfiguration();
+
         _statusLabel.AutoSize = true;
         _statusLabel.Text = "Ready";
 
@@ -114,7 +126,9 @@ public partial class Form1 : Form
         panel.Controls.Add(new Label { Text = "Z0 (Ohm)", AutoSize = true, Anchor = AnchorStyles.Left }, 6, 0);
         panel.Controls.Add(_z0Input, 7, 0);
         panel.Controls.Add(_simulateButton, 8, 0);
-        panel.Controls.Add(_statusLabel, 9, 0);
+        panel.Controls.Add(_saveJsonButton, 9, 0);
+        panel.Controls.Add(_loadJsonButton, 10, 0);
+        panel.Controls.Add(_statusLabel, 11, 0);
 
         panel.Controls.Add(new Label { Text = "Preset", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 1);
         panel.Controls.Add(_presetCombo, 1, 1);
@@ -227,6 +241,89 @@ public partial class Form1 : Form
         }
     }
 
+    private void SaveConfiguration()
+    {
+        try
+        {
+            var structure = ParseStructure(_structureInput.Text);
+            var config = new SimulationConfig
+            {
+                StartMHz = (double)_startMHzInput.Value,
+                StopMHz = (double)_stopMHzInput.Value,
+                Points = (int)_pointsInput.Value,
+                Z0 = (double)_z0Input.Value,
+                Structure = structure
+            };
+
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                DefaultExt = "json",
+                AddExtension = true,
+                FileName = "rf-simulation-config.json"
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(dialog.FileName, json);
+            _statusLabel.Text = $"Saved: {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"Save error: {ex.Message}";
+        }
+    }
+
+    private void LoadConfiguration()
+    {
+        try
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                DefaultExt = "json",
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            var json = File.ReadAllText(dialog.FileName);
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var config = JsonSerializer.Deserialize<SimulationConfig>(json, options)
+                         ?? throw new InvalidOperationException("Configuration JSON is empty.");
+
+            config.Structure ??= new List<RfElement>();
+            ValidateStructure(config.Structure);
+
+            SetNumericValue(_startMHzInput, (decimal)config.StartMHz);
+            SetNumericValue(_stopMHzInput, (decimal)config.StopMHz);
+            SetNumericValue(_pointsInput, config.Points);
+            SetNumericValue(_z0Input, (decimal)config.Z0);
+
+            _presetCombo.SelectedIndex = -1;
+            _structureInput.Text = JsonSerializer.Serialize(config.Structure, new JsonSerializerOptions { WriteIndented = true });
+            RunSimulation();
+            _statusLabel.Text = $"Loaded: {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"Load error: {ex.Message}";
+        }
+    }
+
+    private static void SetNumericValue(NumericUpDown input, decimal value)
+    {
+        input.Value = Math.Min(input.Maximum, Math.Max(input.Minimum, value));
+    }
+
     private static List<RfElement> ParseStructure(string json)
     {
         var options = new JsonSerializerOptions
@@ -236,6 +333,18 @@ public partial class Form1 : Form
 
         var elements = JsonSerializer.Deserialize<List<RfElement>>(json, options)
                        ?? throw new InvalidOperationException("Structure JSON is empty.");
+
+        ValidateStructure(elements);
+
+        return elements;
+    }
+
+    private static void ValidateStructure(IReadOnlyCollection<RfElement> elements)
+    {
+        if (elements.Count == 0)
+        {
+            throw new InvalidOperationException("Structure must contain at least one element.");
+        }
 
         foreach (var element in elements)
         {
@@ -248,8 +357,6 @@ public partial class Form1 : Form
                 throw new InvalidOperationException("Element values must be positive.");
             }
         }
-
-        return elements;
     }
 
     private static List<SweepPoint> Simulate(double startHz, double stopHz, int points, double z0, IReadOnlyList<RfElement> structure)
@@ -552,6 +659,15 @@ public partial class Form1 : Form
     {
         public string Type { get; set; } = string.Empty;
         public double Value { get; set; }
+    }
+
+    private sealed class SimulationConfig
+    {
+        public double StartMHz { get; set; }
+        public double StopMHz { get; set; }
+        public int Points { get; set; }
+        public double Z0 { get; set; }
+        public List<RfElement> Structure { get; set; } = new();
     }
 
     private readonly record struct SweepPoint(double FrequencyHz, Complex S11, Complex S21);
