@@ -25,6 +25,29 @@ public partial class Form1 : Form
     private readonly PlotView _s21PolarPlot = new();
     private readonly PlotView _s21DbPlot = new();
 
+    // Optimizer controls
+    private readonly NumericUpDown _optStartMHzInput = new();
+    private readonly NumericUpDown _optStopMHzInput = new();
+    private readonly NumericUpDown _optPointsInput = new();
+    private readonly NumericUpDown _targetS11DbInput = new();
+    private readonly NumericUpDown _minS21DbInput = new();
+    private readonly ComboBox _structureLengthCombo = new();
+    private readonly ComboBox _optimizationMethodCombo = new();
+    private readonly NumericUpDown _randomRestartsInput = new();
+    private readonly NumericUpDown _maxIterationsInput = new();
+    private readonly Button _optimizeCurrentButton = new();
+    private readonly Button _randomSearchButton = new();
+    private readonly Button _stopOptimizationButton = new();
+    private readonly Button _applyBestButton = new();
+    private readonly Button _exportJsonButton = new();
+    private readonly Button _exportCsvButton = new();
+    private readonly DataGridView _resultsGrid = new();
+    private readonly Label _optimizerStatusLabel = new();
+
+    private List<OptimizerEngine.CandidateResult> _candidateResults = new();
+    private bool _optimizationRunning = false;
+    private CancellationTokenSource _optimizationCancellation = new();
+
     public Form1()
     {
         InitializeComponent();
@@ -34,24 +57,46 @@ public partial class Form1 : Form
 
     private void BuildUi()
     {
-        Text = "RF LC Structure Simulator";
+        Text = "RF LC Structure Simulator & Optimizer";
         WindowState = FormWindowState.Maximized;
 
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 2,
+            RowCount = 1,
             Padding = new Padding(8)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var tabs = new TabControl { Dock = DockStyle.Fill };
+
+        var simulatorTab = new TabPage("Simulator");
+        var optimizerTab = new TabPage("Optimizer");
+
+        var simulatorRoot = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(0)
+        };
+        simulatorRoot.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        simulatorRoot.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var controlsPanel = BuildControlsPanel();
         var plotsGrid = BuildPlotsGrid();
 
-        root.Controls.Add(controlsPanel, 0, 0);
-        root.Controls.Add(plotsGrid, 0, 1);
+        simulatorRoot.Controls.Add(controlsPanel, 0, 0);
+        simulatorRoot.Controls.Add(plotsGrid, 0, 1);
+        simulatorTab.Controls.Add(simulatorRoot);
+
+        optimizerTab.Controls.Add(BuildOptimizerPanel());
+
+        tabs.TabPages.Add(simulatorTab);
+        tabs.TabPages.Add(optimizerTab);
+
+        root.Controls.Add(tabs, 0, 0);
         Controls.Add(root);
     }
 
@@ -178,6 +223,210 @@ public partial class Form1 : Form
         plots.Controls.Add(_s21DbPlot, 1, 1);
 
         return plots;
+    }
+
+    private Control BuildOptimizerPanel()
+    {
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Padding = new Padding(8)
+        };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 400));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var controlsPanel = BuildOptimizerControls();
+        var resultsPanel = BuildResultsPanel();
+
+        panel.Controls.Add(controlsPanel, 0, 0);
+        panel.Controls.Add(resultsPanel, 1, 0);
+
+        return panel;
+    }
+
+    private Control BuildOptimizerControls()
+    {
+        var panel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            Padding = new Padding(8)
+        };
+
+        Action<string, Control> AddFieldRow = (label, control) =>
+        {
+            var row = new Panel { Size = new Size(380, 50), Margin = new Padding(0, 0, 0, 5) };
+            var lbl = new Label { Text = label, Location = new Point(0, 0), Size = new Size(150, 25), AutoSize = false };
+            control.Location = new Point(155, 0);
+            control.Size = new Size(220, 25);
+            row.Controls.Add(lbl);
+            row.Controls.Add(control);
+            panel.Controls.Add(row);
+        };
+
+        AddFieldRow("Opt. Start MHz", _optStartMHzInput);
+        _optStartMHzInput.Minimum = 1;
+        _optStartMHzInput.Maximum = 500;
+        _optStartMHzInput.Value = 5;
+
+        AddFieldRow("Opt. Stop MHz", _optStopMHzInput);
+        _optStopMHzInput.Minimum = 1;
+        _optStopMHzInput.Maximum = 500;
+        _optStopMHzInput.Value = 50;
+
+        AddFieldRow("Sweep Points", _optPointsInput);
+        _optPointsInput.Minimum = 11;
+        _optPointsInput.Maximum = 5001;
+        _optPointsInput.DecimalPlaces = 0;
+        _optPointsInput.Value = 401;
+
+        AddFieldRow("Target S11 (dB)", _targetS11DbInput);
+        _targetS11DbInput.Minimum = -40;
+        _targetS11DbInput.Maximum = 0;
+        _targetS11DbInput.DecimalPlaces = 1;
+        _targetS11DbInput.Increment = 0.5m;
+        _targetS11DbInput.Value = -15;
+
+        AddFieldRow("Min S21 (dB)", _minS21DbInput);
+        _minS21DbInput.Minimum = -40;
+        _minS21DbInput.Maximum = 0;
+        _minS21DbInput.DecimalPlaces = 1;
+        _minS21DbInput.Increment = 0.5m;
+        _minS21DbInput.Value = -3;
+
+        AddFieldRow("Structure Length", _structureLengthCombo);
+        _structureLengthCombo.Items.AddRange(new object[] { "3L/2C (5 elem)", "5L/4C (9 elem)", "7L/6C (13 elem)", "9L/8C (17 elem)" });
+        _structureLengthCombo.SelectedIndex = 0;
+        _structureLengthCombo.DropDownStyle = ComboBoxStyle.DropDownList;
+
+        AddFieldRow("Optimization Method", _optimizationMethodCombo);
+        _optimizationMethodCombo.Items.AddRange(new object[] { "Sequential Local Search", "Random Restart" });
+        _optimizationMethodCombo.SelectedIndex = 0;
+        _optimizationMethodCombo.DropDownStyle = ComboBoxStyle.DropDownList;
+
+        AddFieldRow("Max Iterations", _maxIterationsInput);
+        _maxIterationsInput.Minimum = 1;
+        _maxIterationsInput.Maximum = 1000;
+        _maxIterationsInput.DecimalPlaces = 0;
+        _maxIterationsInput.Value = 50;
+
+        AddFieldRow("Random Restarts", _randomRestartsInput);
+        _randomRestartsInput.Minimum = 1;
+        _randomRestartsInput.Maximum = 10000;
+        _randomRestartsInput.DecimalPlaces = 0;
+        _randomRestartsInput.Value = 100;
+
+        _optimizeCurrentButton.Text = "Optimize Current";
+        _optimizeCurrentButton.Size = new Size(380, 30);
+        _optimizeCurrentButton.Click += (_, _) => OptimizeCurrentStructure();
+        panel.Controls.Add(_optimizeCurrentButton);
+
+        _randomSearchButton.Text = "Random Search";
+        _randomSearchButton.Size = new Size(380, 30);
+        _randomSearchButton.Click += (_, _) => RunRandomRestartSearch();
+        panel.Controls.Add(_randomSearchButton);
+
+        _stopOptimizationButton.Text = "Stop Optimization";
+        _stopOptimizationButton.Size = new Size(380, 30);
+        _stopOptimizationButton.Enabled = false;
+        _stopOptimizationButton.Click += (_, _) => StopOptimization();
+        panel.Controls.Add(_stopOptimizationButton);
+
+        var spacer1 = new Panel { Size = new Size(380, 10) };
+        panel.Controls.Add(spacer1);
+
+        var buttonRow = new Panel { Size = new Size(380, 35), Margin = new Padding(0, 5, 0, 5) };
+        _applyBestButton.Text = "Apply Best";
+        _applyBestButton.Location = new Point(0, 0);
+        _applyBestButton.Size = new Size(180, 30);
+        _applyBestButton.Click += (_, _) => ApplyBestResult();
+        buttonRow.Controls.Add(_applyBestButton);
+
+        _exportJsonButton.Text = "Export JSON";
+        _exportJsonButton.Location = new Point(190, 0);
+        _exportJsonButton.Size = new Size(190, 30);
+        _exportJsonButton.Click += (_, _) => ExportBestJson();
+        buttonRow.Controls.Add(_exportJsonButton);
+        panel.Controls.Add(buttonRow);
+
+        _exportCsvButton.Text = "Export CSV";
+        _exportCsvButton.Size = new Size(380, 30);
+        _exportCsvButton.Click += (_, _) => ExportCandidatesCsv();
+        panel.Controls.Add(_exportCsvButton);
+
+        var spacer2 = new Panel { Size = new Size(380, 10) };
+        panel.Controls.Add(spacer2);
+
+        _optimizerStatusLabel.Size = new Size(380, 60);
+        _optimizerStatusLabel.AutoSize = false;
+        _optimizerStatusLabel.Text = "Ready";
+        _optimizerStatusLabel.BorderStyle = BorderStyle.FixedSingle;
+        panel.Controls.Add(_optimizerStatusLabel);
+
+        return panel;
+    }
+
+    private Control BuildResultsPanel()
+    {
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        _resultsGrid.Dock = DockStyle.Fill;
+        _resultsGrid.AllowUserToAddRows = false;
+        _resultsGrid.AllowUserToDeleteRows = false;
+        _resultsGrid.RowHeadersVisible = false;
+        _resultsGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        _resultsGrid.MultiSelect = false;
+        _resultsGrid.CellClick += (_, e) => OnResultsGridCellClick(e);
+
+        _resultsGrid.Columns.Add("Rank", "Rank");
+        _resultsGrid.Columns.Add("Score", "Score");
+        _resultsGrid.Columns.Add("WorstS11dB", "Worst S11 (dB)");
+        _resultsGrid.Columns.Add("AvgS11dB", "Avg S11 (dB)");
+        _resultsGrid.Columns.Add("WorstS21dB", "Worst S21 (dB)");
+        _resultsGrid.Columns.Add("RippleDb", "Ripple (dB)");
+        _resultsGrid.Columns.Add("Structure", "Structure");
+
+        foreach (DataGridViewColumn col in _resultsGrid.Columns)
+        {
+            col.SortMode = DataGridViewColumnSortMode.NotSortable;
+            col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+        }
+
+        panel.Controls.Add(_resultsGrid, 0, 0);
+
+        var statusPanel = new Label
+        {
+            Text = "Select a candidate to view its plots",
+            Dock = DockStyle.Bottom,
+            Height = 30,
+            TextAlign = ContentAlignment.MiddleLeft,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = SystemColors.ControlLight
+        };
+        panel.Controls.Add(statusPanel, 0, 1);
+
+        return panel;
+    }
+
+    private void OnResultsGridCellClick(DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex >= 0 && e.RowIndex < _candidateResults.Count)
+        {
+            var candidate = _candidateResults[e.RowIndex];
+            DisplayCandidate(candidate);
+        }
     }
 
     private static void ConfigurePlotView(PlotView view)
@@ -316,6 +565,302 @@ public partial class Form1 : Form
         catch (Exception ex)
         {
             _statusLabel.Text = $"Load error: {ex.Message}";
+        }
+    }
+
+    // Optimizer methods
+    private OptimizerEngine.OptimizerConfig GetOptimizerConfig()
+    {
+        var lengthIndex = _structureLengthCombo.SelectedIndex;
+        var numInductors = lengthIndex switch
+        {
+            0 => 3,
+            1 => 5,
+            2 => 7,
+            3 => 9,
+            _ => 3
+        };
+
+        return new OptimizerEngine.OptimizerConfig
+        {
+            StartHz = (double)_optStartMHzInput.Value * 1e6,
+            StopHz = (double)_optStopMHzInput.Value * 1e6,
+            Points = (int)_optPointsInput.Value,
+            Z0 = 50,
+            TargetS11Db = (double)_targetS11DbInput.Value,
+            MinAcceptableS21Db = (double)_minS21DbInput.Value,
+            StructureLength = numInductors,
+            MaxIterations = (int)_maxIterationsInput.Value,
+            RandomRestarts = (int)_randomRestartsInput.Value
+        };
+    }
+
+    private void OptimizeCurrentStructure()
+    {
+        if (_optimizationRunning)
+            return;
+
+        try
+        {
+            var structure = ParseStructure(_structureInput.Text);
+            if (structure.Count == 0)
+            {
+                _optimizerStatusLabel.Text = "Error: Empty structure";
+                return;
+            }
+
+            var config = GetOptimizerConfig();
+            _optimizationRunning = true;
+            _optimizeCurrentButton.Enabled = false;
+            _randomSearchButton.Enabled = false;
+            _stopOptimizationButton.Enabled = true;
+            _optimizationCancellation = new CancellationTokenSource();
+
+            var task = Task.Run(() =>
+            {
+                try
+                {
+                    UpdateStatus("Starting sequential search...");
+                    var result = OptimizerEngine.SequentialLocalSearch(
+                        structure,
+                        s => Simulate(
+                            config.StartHz,
+                            config.StopHz,
+                            config.Points,
+                            config.Z0,
+                            s),
+                        config,
+                        UpdateStatus);
+
+                    _candidateResults = new List<OptimizerEngine.CandidateResult> { result };
+                    UpdateResultsGrid();
+                    DisplayCandidate(result);
+                    UpdateStatus($"Optimization complete. Score: {result.Score:F6}");
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Error: {ex.Message}");
+                }
+                finally
+                {
+                    _optimizationRunning = false;
+                    Invoke(() =>
+                    {
+                        _optimizeCurrentButton.Enabled = true;
+                        _randomSearchButton.Enabled = true;
+                        _stopOptimizationButton.Enabled = false;
+                    });
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _optimizerStatusLabel.Text = $"Error: {ex.Message}";
+        }
+    }
+
+    private void RunRandomRestartSearch()
+    {
+        if (_optimizationRunning)
+            return;
+
+        try
+        {
+            var config = GetOptimizerConfig();
+            _optimizationRunning = true;
+            _optimizeCurrentButton.Enabled = false;
+            _randomSearchButton.Enabled = false;
+            _stopOptimizationButton.Enabled = true;
+            _optimizationCancellation = new CancellationTokenSource();
+
+            var task = Task.Run(() =>
+            {
+                try
+                {
+                    UpdateStatus($"Starting random restart search with {config.RandomRestarts} restarts...");
+                    var results = OptimizerEngine.RandomRestartLocalSearch(
+                        s => Simulate(
+                            config.StartHz,
+                            config.StopHz,
+                            config.Points,
+                            config.Z0,
+                            s),
+                        config,
+                        UpdateStatus);
+
+                    _candidateResults = results;
+                    UpdateResultsGrid();
+                    if (results.Count > 0)
+                    {
+                        DisplayCandidate(results[0]);
+                        UpdateStatus($"Search complete. Best score: {results[0].Score:F6}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Error: {ex.Message}");
+                }
+                finally
+                {
+                    _optimizationRunning = false;
+                    Invoke(() =>
+                    {
+                        _optimizeCurrentButton.Enabled = true;
+                        _randomSearchButton.Enabled = true;
+                        _stopOptimizationButton.Enabled = false;
+                    });
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _optimizerStatusLabel.Text = $"Error: {ex.Message}";
+        }
+    }
+
+    private void StopOptimization()
+    {
+        _optimizationCancellation?.Cancel();
+        _optimizerStatusLabel.Text = "Optimization stopped by user.";
+    }
+
+    private void UpdateStatus(string message)
+    {
+        Invoke(() => { _optimizerStatusLabel.Text = message; });
+    }
+
+    private void UpdateResultsGrid()
+    {
+        Invoke(() =>
+        {
+            _resultsGrid.Rows.Clear();
+            for (int i = 0; i < _candidateResults.Count; i++)
+            {
+                var candidate = _candidateResults[i];
+                var structure = string.Join(" - ", candidate.Structure.Select(e =>
+                    $"{e.Type}({e.Value:E1})"));
+
+                _resultsGrid.Rows.Add(
+                    i + 1,
+                    candidate.Score.ToString("F6"),
+                    candidate.WorstS11Db.ToString("F2"),
+                    candidate.AverageS11Db.ToString("F2"),
+                    candidate.WorstS21Db.ToString("F2"),
+                    candidate.RippleDb.ToString("F2"),
+                    structure);
+            }
+
+            if (_resultsGrid.Rows.Count > 0)
+                _resultsGrid.Rows[0].Selected = true;
+        });
+    }
+
+    private void DisplayCandidate(OptimizerEngine.CandidateResult candidate)
+    {
+        if (candidate.SweepCache.Count == 0)
+        {
+            var config = GetOptimizerConfig();
+            candidate.SweepCache = Simulate(config.StartHz, config.StopHz, config.Points, config.Z0, candidate.Structure);
+        }
+
+        var sweep = candidate.SweepCache;
+        _smithPlot.Model = BuildSmithModel(sweep);
+        _s11DbPlot.Model = BuildS11DbModel(sweep);
+        _s21PolarPlot.Model = BuildS21PolarModel(sweep);
+        _s21DbPlot.Model = BuildS21DbModel(sweep);
+
+        _statusLabel.Text =
+            $"Candidate | S11: {candidate.WorstS11Db:F2} dB | S21: {candidate.WorstS21Db:F2} dB | Score: {candidate.Score:F6}";
+    }
+
+    private void ApplyBestResult()
+    {
+        if (_candidateResults.Count == 0)
+        {
+            _optimizerStatusLabel.Text = "No candidates available.";
+            return;
+        }
+
+        var best = _candidateResults[0];
+        _structureInput.Text = JsonSerializer.Serialize(best.Structure, new JsonSerializerOptions { WriteIndented = true });
+        _presetCombo.SelectedIndex = -1;
+        RunSimulation();
+        _optimizerStatusLabel.Text = "Best result applied to simulator.";
+    }
+
+    private void ExportBestJson()
+    {
+        if (_candidateResults.Count == 0)
+        {
+            _optimizerStatusLabel.Text = "No candidates to export.";
+            return;
+        }
+
+        try
+        {
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json",
+                DefaultExt = "json",
+                FileName = "optimized-structure.json"
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            var json = JsonSerializer.Serialize(_candidateResults[0].Structure, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(dialog.FileName, json);
+            _optimizerStatusLabel.Text = $"Exported: {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            _optimizerStatusLabel.Text = $"Export error: {ex.Message}";
+        }
+    }
+
+    private void ExportCandidatesCsv()
+    {
+        if (_candidateResults.Count == 0)
+        {
+            _optimizerStatusLabel.Text = "No candidates to export.";
+            return;
+        }
+
+        try
+        {
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv",
+                DefaultExt = "csv",
+                FileName = "optimizer-candidates.csv"
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            using var writer = new StreamWriter(dialog.FileName);
+            writer.WriteLine("Rank,Score,WorstS11dB,AverageS11dB,WorstS21dB,RippleDb,StructureJson");
+
+            for (int i = 0; i < _candidateResults.Count; i++)
+            {
+                var candidate = _candidateResults[i];
+                var structureJson = JsonSerializer.Serialize(candidate.Structure);
+                writer.WriteLine(
+                    $"{i + 1}," +
+                    $"{candidate.Score}," +
+                    $"{candidate.WorstS11Db}," +
+                    $"{candidate.AverageS11Db}," +
+                    $"{candidate.WorstS21Db}," +
+                    $"{candidate.RippleDb}," +
+                    $"\"{structureJson}\"");
+            }
+
+            writer.Close();
+            _optimizerStatusLabel.Text = $"Exported: {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            _optimizerStatusLabel.Text = $"Export error: {ex.Message}";
         }
     }
 
@@ -655,12 +1200,6 @@ public partial class Form1 : Form
         return 20.0 * Math.Log10(mag);
     }
 
-    private sealed class RfElement
-    {
-        public string Type { get; set; } = string.Empty;
-        public double Value { get; set; }
-    }
-
     private sealed class SimulationConfig
     {
         public double StartMHz { get; set; }
@@ -669,8 +1208,6 @@ public partial class Form1 : Form
         public double Z0 { get; set; }
         public List<RfElement> Structure { get; set; } = new();
     }
-
-    private readonly record struct SweepPoint(double FrequencyHz, Complex S11, Complex S21);
 
     private readonly record struct AbcdMatrix(Complex A, Complex B, Complex C, Complex D)
     {
