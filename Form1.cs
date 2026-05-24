@@ -50,6 +50,7 @@ public partial class Form1 : Form
     private readonly Label _optimizerStatusLabel = new();
 
     private List<OptimizerEngine.CandidateResult> _candidateResults = new();
+    private int _displayedCandidateIndex = -1;
     private bool _optimizationRunning = false;
     private CancellationTokenSource _optimizationCancellation = new();
 
@@ -448,7 +449,15 @@ public partial class Form1 : Form
         _resultsGrid.RowHeadersVisible = false;
         _resultsGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _resultsGrid.MultiSelect = false;
+        _resultsGrid.ReadOnly = true;
+        _resultsGrid.EditMode = DataGridViewEditMode.EditProgrammatically;
         _resultsGrid.CellClick += (_, e) => OnResultsGridCellClick(e);
+        _resultsGrid.CellEnter += (_, e) => OnResultsGridCellClick(e);
+        _resultsGrid.RowEnter += (_, e) => DisplayCandidateAt(e.RowIndex);
+        _resultsGrid.CurrentCellChanged += (_, _) => DisplaySelectedCandidate();
+        _resultsGrid.SelectionChanged += (_, _) => DisplaySelectedCandidate();
+        _resultsGrid.MouseUp += (_, _) => DisplaySelectedCandidate();
+        _resultsGrid.KeyUp += (_, _) => DisplaySelectedCandidate();
 
         _resultsGrid.Columns.Add("Rank", "Rank");
         _resultsGrid.Columns.Add("Score", "Score");
@@ -486,8 +495,7 @@ public partial class Form1 : Form
     {
         if (e.RowIndex >= 0 && e.RowIndex < _candidateResults.Count)
         {
-            var candidate = _candidateResults[e.RowIndex];
-            DisplayCandidate(candidate);
+            DisplayCandidateAt(e.RowIndex);
         }
     }
 
@@ -801,6 +809,7 @@ public partial class Form1 : Form
         Invoke(() =>
         {
             _resultsGrid.Rows.Clear();
+            _displayedCandidateIndex = -1;
             for (int i = 0; i < _candidateResults.Count; i++)
             {
                 var candidate = _candidateResults[i];
@@ -824,20 +833,44 @@ public partial class Form1 : Form
         });
     }
 
+    private void DisplaySelectedCandidate()
+    {
+        var rowIndex = _resultsGrid.CurrentRow?.Index ?? -1;
+        if (rowIndex < 0 && _resultsGrid.CurrentCell != null)
+            rowIndex = _resultsGrid.CurrentCell.RowIndex;
+
+        if (rowIndex < 0 && _resultsGrid.SelectedCells.Count > 0)
+            rowIndex = _resultsGrid.SelectedCells[0].RowIndex;
+
+        if (rowIndex < 0 && _resultsGrid.SelectedRows.Count > 0)
+            rowIndex = _resultsGrid.SelectedRows[0].Index;
+
+        if (rowIndex < 0)
+            return;
+
+        DisplayCandidateAt(rowIndex);
+    }
+
+    private void DisplayCandidateAt(int rowIndex)
+    {
+        if (rowIndex < 0 || rowIndex >= _candidateResults.Count)
+            return;
+
+        _displayedCandidateIndex = rowIndex;
+        DisplayCandidate(_candidateResults[rowIndex]);
+    }
+
     private void DisplayCandidate(OptimizerEngine.CandidateResult candidate)
     {
-        if (candidate.SweepCache.Count == 0)
+        if (InvokeRequired)
         {
-            var config = GetOptimizerConfig();
-            candidate.SweepCache = Simulate(config.StartHz, config.StopHz, config.Points, config.Z0, candidate.Structure);
+            Invoke(() => DisplayCandidate(candidate));
+            return;
         }
 
-        var sweep = candidate.SweepCache;
-        _smithPlot.Model = BuildSmithModel(sweep);
-        _s11DbPlot.Model = BuildS11DbModel(sweep);
-        _s21PolarPlot.Model = BuildS21PolarModel(sweep);
-        _s21DbPlot.Model = BuildS21DbModel(sweep);
-
+        _structureInput.Text = JsonSerializer.Serialize(candidate.Structure, new JsonSerializerOptions { WriteIndented = true });
+        _presetCombo.SelectedIndex = -1;
+        RunSimulation();
         _statusLabel.Text =
             $"Candidate | S11: {candidate.WorstS11Db:F2} dB | S21: {candidate.WorstS21Db:F2} dB | Phase: {candidate.TotalPhaseRotationDeg:F1} deg | GD: {candidate.AverageGroupDelayNs:F2} ns | Score: {candidate.Score:F6}";
     }
