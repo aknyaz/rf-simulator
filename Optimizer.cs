@@ -28,6 +28,11 @@ public class OptimizerEngine
         public int StructureLength { get; set; } = 3; // 3, 5, 7, or 9 inductors
         public int MaxIterations { get; set; } = 50;
         public int RandomRestarts { get; set; } = 100;
+        public bool EnablePhaseObjective { get; set; } = true;
+        public bool EnableGroupDelayObjective { get; set; } = true;
+        public double TargetPhaseRotationDeg { get; set; } = 180;
+        public double PhaseObjectiveWeight { get; set; } = 1;
+        public double GroupDelayObjectiveWeight { get; set; } = 1;
     }
 
     public class CandidateResult
@@ -37,6 +42,9 @@ public class OptimizerEngine
         public double AverageS11Db { get; set; }
         public double WorstS21Db { get; set; }
         public double RippleDb { get; set; }
+        public double TotalPhaseRotationDeg { get; set; }
+        public double AverageGroupDelayNs { get; set; }
+        public double MaxGroupDelayNs { get; set; }
         public List<RfElement> Structure { get; set; } = new();
 
         [JsonIgnore]
@@ -46,15 +54,22 @@ public class OptimizerEngine
     public static double CalculateScore(
         List<SweepPoint> sweep,
         OptimizerConfig config,
+        IReadOnlyList<RfElement> structure,
         out double worstS11Db,
         out double avgS11Db,
         out double worstS21Db,
-        out double rippleDb)
+        out double rippleDb,
+        out double totalPhaseRotationDeg,
+        out double averageGroupDelayNs,
+        out double maxGroupDelayNs)
     {
         worstS11Db = double.NegativeInfinity;
         avgS11Db = 0;
-        worstS21Db = double.NegativeInfinity;
+        worstS21Db = double.PositiveInfinity;
         rippleDb = 0;
+        totalPhaseRotationDeg = 0;
+        averageGroupDelayNs = 0;
+        maxGroupDelayNs = 0;
 
         if (sweep.Count == 0)
             return double.MaxValue;
@@ -71,13 +86,17 @@ public class OptimizerEngine
             s21Values.Add(s21Db);
 
             worstS11Db = Math.Max(worstS11Db, s11Db);
-            worstS21Db = Math.Max(worstS21Db, s21Db);
+            worstS21Db = Math.Min(worstS21Db, s21Db);
         }
 
         avgS11Db = s11Values.Average();
         var minS21Db = s21Values.Min();
         var maxS21Db = s21Values.Max();
         rippleDb = maxS21Db - minS21Db;
+        var phaseMetrics = CalculatePhaseMetrics(sweep);
+        totalPhaseRotationDeg = phaseMetrics.TotalPhaseRotationDeg;
+        averageGroupDelayNs = phaseMetrics.AverageGroupDelayNs;
+        maxGroupDelayNs = phaseMetrics.MaxGroupDelayNs;
 
         double score = 0;
 
@@ -105,13 +124,79 @@ public class OptimizerEngine
         // Ripple penalty
         score += 1.0 * rippleDb * rippleDb;
 
+        if (config.EnablePhaseObjective && totalPhaseRotationDeg < config.TargetPhaseRotationDeg)
+        {
+            var phaseError = (config.TargetPhaseRotationDeg - totalPhaseRotationDeg) / 90.0;
+            score += config.PhaseObjectiveWeight * 25.0 * phaseError * phaseError;
+        }
+
+        var withinSParameterLimits =
+            worstS11Db <= config.TargetS11Db &&
+            worstS21Db >= config.MinAcceptableS21Db;
+
+        if (config.EnableGroupDelayObjective && withinSParameterLimits && averageGroupDelayNs > 0)
+        {
+            score -= config.GroupDelayObjectiveWeight * Math.Log(1.0 + averageGroupDelayNs);
+        }
+
         // Non-smooth gradient penalty (prefer smooth component profiles)
-        score += 0.5 * CalculateGradientPenalty(new List<RfElement>());
+        score += 0.5 * CalculateGradientPenalty(structure);
 
         return score;
     }
 
-    private static double CalculateGradientPenalty(List<RfElement> structure)
+    private static PhaseMetrics CalculatePhaseMetrics(IReadOnlyList<SweepPoint> sweep)
+    {
+        if (sweep.Count < 2)
+            return new PhaseMetrics(0, 0, 0);
+
+        var unwrappedPhase = UnwrapPhase(sweep.Select(p => Math.Atan2(p.S21.Imaginary, p.S21.Real)).ToList());
+        var totalPhaseRotationDeg = Math.Abs(unwrappedPhase[^1] - unwrappedPhase[0]) * 180.0 / Math.PI;
+        var groupDelaysNs = new List<double>(sweep.Count - 1);
+
+        for (int i = 1; i < sweep.Count; i++)
+        {
+            var deltaPhase = unwrappedPhase[i] - unwrappedPhase[i - 1];
+            var deltaOmega = 2.0 * Math.PI * (sweep[i].FrequencyHz - sweep[i - 1].FrequencyHz);
+
+            if (deltaOmega <= 0)
+                continue;
+
+            var groupDelaySeconds = -deltaPhase / deltaOmega;
+            if (double.IsFinite(groupDelaySeconds) && groupDelaySeconds > 0)
+                groupDelaysNs.Add(groupDelaySeconds * 1e9);
+        }
+
+        if (groupDelaysNs.Count == 0)
+            return new PhaseMetrics(totalPhaseRotationDeg, 0, 0);
+
+        return new PhaseMetrics(totalPhaseRotationDeg, groupDelaysNs.Average(), groupDelaysNs.Max());
+    }
+
+    private static List<double> UnwrapPhase(IReadOnlyList<double> phaseRadians)
+    {
+        var unwrapped = new List<double>(phaseRadians.Count);
+        if (phaseRadians.Count == 0)
+            return unwrapped;
+
+        unwrapped.Add(phaseRadians[0]);
+        var offset = 0.0;
+
+        for (int i = 1; i < phaseRadians.Count; i++)
+        {
+            var delta = phaseRadians[i] - phaseRadians[i - 1];
+            if (delta > Math.PI)
+                offset -= 2.0 * Math.PI;
+            else if (delta < -Math.PI)
+                offset += 2.0 * Math.PI;
+
+            unwrapped.Add(phaseRadians[i] + offset);
+        }
+
+        return unwrapped;
+    }
+
+    private static double CalculateGradientPenalty(IReadOnlyList<RfElement> structure)
     {
         if (structure.Count < 2)
             return 0;
@@ -168,7 +253,17 @@ public class OptimizerEngine
         try
         {
             var sweep = simulator(structure);
-            var score = CalculateScore(sweep, config, out var worstS11, out var avgS11, out var worstS21, out var ripple);
+            var score = CalculateScore(
+                sweep,
+                config,
+                structure,
+                out var worstS11,
+                out var avgS11,
+                out var worstS21,
+                out var ripple,
+                out var totalPhaseRotation,
+                out var averageGroupDelay,
+                out var maxGroupDelay);
 
             return new CandidateResult
             {
@@ -177,6 +272,9 @@ public class OptimizerEngine
                 AverageS11Db = avgS11,
                 WorstS21Db = worstS21,
                 RippleDb = ripple,
+                TotalPhaseRotationDeg = totalPhaseRotation,
+                AverageGroupDelayNs = averageGroupDelay,
+                MaxGroupDelayNs = maxGroupDelay,
                 Structure = CloneStructure(structure),
                 SweepCache = sweep
             };
@@ -191,7 +289,7 @@ public class OptimizerEngine
         List<RfElement> initialStructure,
         Func<List<RfElement>, List<SweepPoint>> simulator,
         OptimizerConfig config,
-        Action<string> statusCallback = null)
+        Action<string>? statusCallback = null)
     {
         var current = CloneStructure(initialStructure);
         var currentResult = EvaluateStructure(current, simulator, config);
@@ -241,7 +339,7 @@ public class OptimizerEngine
     public static List<CandidateResult> RandomRestartLocalSearch(
         Func<List<RfElement>, List<SweepPoint>> simulator,
         OptimizerConfig config,
-        Action<string> statusCallback = null)
+        Action<string>? statusCallback = null)
     {
         var candidates = new List<CandidateResult>();
         int numInductors = config.StructureLength;
@@ -258,6 +356,11 @@ public class OptimizerEngine
         return candidates.OrderBy(c => c.Score).Take(20).ToList();
     }
 }
+
+public readonly record struct PhaseMetrics(
+    double TotalPhaseRotationDeg,
+    double AverageGroupDelayNs,
+    double MaxGroupDelayNs);
 
 public class RfElement
 {

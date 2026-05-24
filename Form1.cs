@@ -31,6 +31,11 @@ public partial class Form1 : Form
     private readonly NumericUpDown _optPointsInput = new();
     private readonly NumericUpDown _targetS11DbInput = new();
     private readonly NumericUpDown _minS21DbInput = new();
+    private readonly NumericUpDown _targetPhaseRotationDegInput = new();
+    private readonly CheckBox _enablePhaseObjectiveInput = new();
+    private readonly CheckBox _enableGroupDelayObjectiveInput = new();
+    private readonly NumericUpDown _phaseObjectiveWeightInput = new();
+    private readonly NumericUpDown _groupDelayObjectiveWeightInput = new();
     private readonly ComboBox _structureLengthCombo = new();
     private readonly ComboBox _optimizationMethodCombo = new();
     private readonly NumericUpDown _randomRestartsInput = new();
@@ -299,6 +304,37 @@ public partial class Form1 : Form
         _minS21DbInput.Increment = 0.5m;
         _minS21DbInput.Value = -3;
 
+        AddFieldRow("Target Phase (deg)", _targetPhaseRotationDegInput);
+        _targetPhaseRotationDegInput.Minimum = 0;
+        _targetPhaseRotationDegInput.Maximum = 3600;
+        _targetPhaseRotationDegInput.DecimalPlaces = 0;
+        _targetPhaseRotationDegInput.Increment = 90;
+        _targetPhaseRotationDegInput.Value = 180;
+
+        _enablePhaseObjectiveInput.Text = "Enable phase objective";
+        _enablePhaseObjectiveInput.Checked = true;
+        _enablePhaseObjectiveInput.AutoSize = true;
+        AddFieldRow("Phase Objective", _enablePhaseObjectiveInput);
+
+        _enableGroupDelayObjectiveInput.Text = "Enable group delay objective";
+        _enableGroupDelayObjectiveInput.Checked = true;
+        _enableGroupDelayObjectiveInput.AutoSize = true;
+        AddFieldRow("Group Delay", _enableGroupDelayObjectiveInput);
+
+        AddFieldRow("Phase Weight", _phaseObjectiveWeightInput);
+        _phaseObjectiveWeightInput.Minimum = 0;
+        _phaseObjectiveWeightInput.Maximum = 100;
+        _phaseObjectiveWeightInput.DecimalPlaces = 2;
+        _phaseObjectiveWeightInput.Increment = 0.25m;
+        _phaseObjectiveWeightInput.Value = 1;
+
+        AddFieldRow("Delay Weight", _groupDelayObjectiveWeightInput);
+        _groupDelayObjectiveWeightInput.Minimum = 0;
+        _groupDelayObjectiveWeightInput.Maximum = 100;
+        _groupDelayObjectiveWeightInput.DecimalPlaces = 2;
+        _groupDelayObjectiveWeightInput.Increment = 0.25m;
+        _groupDelayObjectiveWeightInput.Value = 1;
+
         AddFieldRow("Structure Length", _structureLengthCombo);
         _structureLengthCombo.Items.AddRange(new object[] { "3L/2C (5 elem)", "5L/4C (9 elem)", "7L/6C (13 elem)", "9L/8C (17 elem)" });
         _structureLengthCombo.SelectedIndex = 0;
@@ -396,6 +432,8 @@ public partial class Form1 : Form
         _resultsGrid.Columns.Add("AvgS11dB", "Avg S11 (dB)");
         _resultsGrid.Columns.Add("WorstS21dB", "Worst S21 (dB)");
         _resultsGrid.Columns.Add("RippleDb", "Ripple (dB)");
+        _resultsGrid.Columns.Add("PhaseDeg", "Phase (deg)");
+        _resultsGrid.Columns.Add("AvgDelayNs", "Avg GD (ns)");
         _resultsGrid.Columns.Add("Structure", "Structure");
 
         foreach (DataGridViewColumn col in _resultsGrid.Columns)
@@ -591,7 +629,12 @@ public partial class Form1 : Form
             MinAcceptableS21Db = (double)_minS21DbInput.Value,
             StructureLength = numInductors,
             MaxIterations = (int)_maxIterationsInput.Value,
-            RandomRestarts = (int)_randomRestartsInput.Value
+            RandomRestarts = (int)_randomRestartsInput.Value,
+            TargetPhaseRotationDeg = (double)_targetPhaseRotationDegInput.Value,
+            EnablePhaseObjective = _enablePhaseObjectiveInput.Checked,
+            EnableGroupDelayObjective = _enableGroupDelayObjectiveInput.Checked,
+            PhaseObjectiveWeight = (double)_phaseObjectiveWeightInput.Value,
+            GroupDelayObjectiveWeight = (double)_groupDelayObjectiveWeightInput.Value
         };
     }
 
@@ -747,6 +790,8 @@ public partial class Form1 : Form
                     candidate.AverageS11Db.ToString("F2"),
                     candidate.WorstS21Db.ToString("F2"),
                     candidate.RippleDb.ToString("F2"),
+                    candidate.TotalPhaseRotationDeg.ToString("F1"),
+                    candidate.AverageGroupDelayNs.ToString("F2"),
                     structure);
             }
 
@@ -770,7 +815,7 @@ public partial class Form1 : Form
         _s21DbPlot.Model = BuildS21DbModel(sweep);
 
         _statusLabel.Text =
-            $"Candidate | S11: {candidate.WorstS11Db:F2} dB | S21: {candidate.WorstS21Db:F2} dB | Score: {candidate.Score:F6}";
+            $"Candidate | S11: {candidate.WorstS11Db:F2} dB | S21: {candidate.WorstS21Db:F2} dB | Phase: {candidate.TotalPhaseRotationDeg:F1} deg | GD: {candidate.AverageGroupDelayNs:F2} ns | Score: {candidate.Score:F6}";
     }
 
     private void ApplyBestResult()
@@ -839,7 +884,7 @@ public partial class Form1 : Form
                 return;
 
             using var writer = new StreamWriter(dialog.FileName);
-            writer.WriteLine("Rank,Score,WorstS11dB,AverageS11dB,WorstS21dB,RippleDb,StructureJson");
+            writer.WriteLine("Rank,Score,WorstS11dB,AverageS11dB,WorstS21dB,RippleDb,TotalPhaseRotationDeg,AverageGroupDelayNs,MaxGroupDelayNs,StructureJson");
 
             for (int i = 0; i < _candidateResults.Count; i++)
             {
@@ -852,6 +897,9 @@ public partial class Form1 : Form
                     $"{candidate.AverageS11Db}," +
                     $"{candidate.WorstS21Db}," +
                     $"{candidate.RippleDb}," +
+                    $"{candidate.TotalPhaseRotationDeg}," +
+                    $"{candidate.AverageGroupDelayNs}," +
+                    $"{candidate.MaxGroupDelayNs}," +
                     $"\"{structureJson}\"");
             }
 
