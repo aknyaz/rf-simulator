@@ -738,7 +738,7 @@ public partial class Form1 : Form
             {
                 var candidate = _candidateResults[i];
                 var structure = string.Join(" - ", candidate.Structure.Select(e =>
-                    $"{e.Type}({e.Value:E1})"));
+                    $"{GetElementDisplayName(e.Type)} {FormatElementValue(e)}"));
 
                 _resultsGrid.Rows.Add(
                     i + 1,
@@ -862,6 +862,28 @@ public partial class Form1 : Form
         {
             _optimizerStatusLabel.Text = $"Export error: {ex.Message}";
         }
+    }
+
+    private static string GetElementDisplayName(string type)
+    {
+        return type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase) ? "L" :
+            type.Equals("ShuntC", StringComparison.OrdinalIgnoreCase) ? "C" :
+            type;
+    }
+
+    private static string FormatElementValue(RfElement element)
+    {
+        if (element.Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{element.Value * 1e6:G4} uH";
+        }
+
+        if (element.Type.Equals("ShuntC", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{element.Value * 1e12:G4} pF";
+        }
+
+        return $"{element.Value:G4}";
     }
 
     private static void SetNumericValue(NumericUpDown input, decimal value)
