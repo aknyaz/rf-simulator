@@ -408,10 +408,10 @@ public partial class Form1 : Form
         _applyBestButton.Click += (_, _) => ApplyBestResult();
         buttonRow.Controls.Add(_applyBestButton);
 
-        _exportJsonButton.Text = "Export JSON";
+        _exportJsonButton.Text = "Export Results JSON";
         _exportJsonButton.Location = new Point(180, 0);
         _exportJsonButton.Size = new Size(180, 30);
-        _exportJsonButton.Click += (_, _) => ExportBestJson();
+        _exportJsonButton.Click += (_, _) => ExportResultsJson();
         buttonRow.Controls.Add(_exportJsonButton);
         panel.Controls.Add(buttonRow);
 
@@ -890,7 +890,7 @@ public partial class Form1 : Form
         _optimizerStatusLabel.Text = "Best result applied to simulator.";
     }
 
-    private void ExportBestJson()
+    private void ExportResultsJson()
     {
         if (_candidateResults.Count == 0)
         {
@@ -904,13 +904,27 @@ public partial class Form1 : Form
             {
                 Filter = "JSON files (*.json)|*.json",
                 DefaultExt = "json",
-                FileName = "optimized-structure.json"
+                FileName = "optimizer-results.json"
             };
 
             if (dialog.ShowDialog(this) != DialogResult.OK)
                 return;
 
-            var json = JsonSerializer.Serialize(_candidateResults[0].Structure, new JsonSerializerOptions { WriteIndented = true });
+            var export = _candidateResults.Select((candidate, index) => new
+            {
+                Rank = index + 1,
+                candidate.Score,
+                candidate.WorstS11Db,
+                candidate.AverageS11Db,
+                candidate.WorstS21Db,
+                candidate.RippleDb,
+                candidate.TotalPhaseRotationDeg,
+                candidate.AverageGroupDelayNs,
+                candidate.MaxGroupDelayNs,
+                candidate.Structure
+            }).ToList();
+
+            var json = JsonSerializer.Serialize(export, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(dialog.FileName, json);
             _optimizerStatusLabel.Text = $"Exported: {Path.GetFileName(dialog.FileName)}";
         }
