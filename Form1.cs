@@ -282,7 +282,7 @@ public partial class Form1 : Form
 
         Action<string, Control> AddFieldRow = (label, control) =>
         {
-            var row = new Panel { Size = new Size(380, 32), Margin = new Padding(0, 0, 0, 2) };
+            var row = new Panel { Size = new Size(360, 32), Margin = new Padding(0, 0, 0, 2) };
             var lbl = new Label
             {
                 Text = label,
@@ -292,7 +292,7 @@ public partial class Form1 : Form
                 TextAlign = ContentAlignment.MiddleLeft
             };
             control.Location = new Point(155, 2);
-            control.Size = new Size(220, 25);
+            control.Size = new Size(200, 25);
             row.Controls.Add(lbl);
             row.Controls.Add(control);
             panel.Controls.Add(row);
@@ -382,47 +382,47 @@ public partial class Form1 : Form
         _randomRestartsInput.Value = 100;
 
         _optimizeCurrentButton.Text = "Optimize Current";
-        _optimizeCurrentButton.Size = new Size(380, 30);
+        _optimizeCurrentButton.Size = new Size(360, 30);
         _optimizeCurrentButton.Click += (_, _) => OptimizeCurrentStructure();
         panel.Controls.Add(_optimizeCurrentButton);
 
         _randomSearchButton.Text = "Random Search";
-        _randomSearchButton.Size = new Size(380, 30);
+        _randomSearchButton.Size = new Size(360, 30);
         _randomSearchButton.Click += (_, _) => RunRandomRestartSearch();
         panel.Controls.Add(_randomSearchButton);
 
         _stopOptimizationButton.Text = "Stop Optimization";
-        _stopOptimizationButton.Size = new Size(380, 30);
+        _stopOptimizationButton.Size = new Size(360, 30);
         _stopOptimizationButton.Enabled = false;
         _stopOptimizationButton.Click += (_, _) => StopOptimization();
         panel.Controls.Add(_stopOptimizationButton);
 
-        var spacer1 = new Panel { Size = new Size(380, 4) };
+        var spacer1 = new Panel { Size = new Size(360, 4) };
         panel.Controls.Add(spacer1);
 
-        var buttonRow = new Panel { Size = new Size(380, 32), Margin = new Padding(0, 2, 0, 2) };
+        var buttonRow = new Panel { Size = new Size(360, 32), Margin = new Padding(0, 2, 0, 2) };
         _applyBestButton.Text = "Apply Best";
         _applyBestButton.Location = new Point(0, 0);
-        _applyBestButton.Size = new Size(180, 30);
+        _applyBestButton.Size = new Size(170, 30);
         _applyBestButton.Click += (_, _) => ApplyBestResult();
         buttonRow.Controls.Add(_applyBestButton);
 
         _exportJsonButton.Text = "Export JSON";
-        _exportJsonButton.Location = new Point(190, 0);
-        _exportJsonButton.Size = new Size(190, 30);
+        _exportJsonButton.Location = new Point(180, 0);
+        _exportJsonButton.Size = new Size(180, 30);
         _exportJsonButton.Click += (_, _) => ExportBestJson();
         buttonRow.Controls.Add(_exportJsonButton);
         panel.Controls.Add(buttonRow);
 
         _exportCsvButton.Text = "Export CSV";
-        _exportCsvButton.Size = new Size(380, 30);
+        _exportCsvButton.Size = new Size(360, 30);
         _exportCsvButton.Click += (_, _) => ExportCandidatesCsv();
         panel.Controls.Add(_exportCsvButton);
 
-        var spacer2 = new Panel { Size = new Size(380, 4) };
+        var spacer2 = new Panel { Size = new Size(360, 4) };
         panel.Controls.Add(spacer2);
 
-        _optimizerStatusLabel.Size = new Size(380, 60);
+        _optimizerStatusLabel.Size = new Size(360, 60);
         _optimizerStatusLabel.AutoSize = false;
         _optimizerStatusLabel.Text = "Ready";
         _optimizerStatusLabel.BorderStyle = BorderStyle.FixedSingle;
