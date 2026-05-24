@@ -72,19 +72,15 @@ public partial class Form1 : Form
             RowCount = 1,
             Padding = new Padding(8)
         };
+        root.BackColor = SystemColors.Control;
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var tabs = new TabControl { Dock = DockStyle.Fill };
-
-        var simulatorTab = new TabPage("Simulator");
-        var optimizerTab = new TabPage("Optimizer");
 
         var simulatorRoot = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Padding = new Padding(0)
+            Padding = new Padding(0, 0, 8, 0)
         };
         simulatorRoot.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         simulatorRoot.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -94,14 +90,30 @@ public partial class Form1 : Form
 
         simulatorRoot.Controls.Add(controlsPanel, 0, 0);
         simulatorRoot.Controls.Add(plotsGrid, 0, 1);
-        simulatorTab.Controls.Add(simulatorRoot);
 
-        optimizerTab.Controls.Add(BuildOptimizerPanel());
+        var split = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Vertical,
+            SplitterWidth = 10,
+            FixedPanel = FixedPanel.None
+        };
+        split.BackColor = SystemColors.Control;
+        split.Panel1.Controls.Add(simulatorRoot);
+        split.Panel2.Controls.Add(BuildOptimizerPanel());
+        Shown += (_, _) =>
+        {
+            split.Panel1MinSize = Math.Min(650, Math.Max(25, split.Width / 3));
+            split.Panel2MinSize = Math.Min(520, Math.Max(25, split.Width / 4));
+            var maxDistance = split.Width - split.Panel2MinSize - split.SplitterWidth;
+            if (maxDistance > split.Panel1MinSize)
+            {
+                var preferredDistance = (int)(split.Width * 0.62);
+                split.SplitterDistance = Math.Min(preferredDistance, maxDistance);
+            }
+        };
 
-        tabs.TabPages.Add(simulatorTab);
-        tabs.TabPages.Add(optimizerTab);
-
-        root.Controls.Add(tabs, 0, 0);
+        root.Controls.Add(split, 0, 0);
         Controls.Add(root);
     }
 
@@ -156,8 +168,11 @@ public partial class Form1 : Form
         _loadJsonButton.AutoSize = true;
         _loadJsonButton.Click += (_, _) => LoadConfiguration();
 
-        _statusLabel.AutoSize = true;
+        _statusLabel.AutoSize = false;
+        _statusLabel.Dock = DockStyle.Fill;
+        _statusLabel.AutoEllipsis = true;
         _statusLabel.Text = "Ready";
+        _statusLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         _structureInput.Multiline = true;
         _structureInput.ScrollBars = ScrollBars.Both;
@@ -226,6 +241,8 @@ public partial class Form1 : Form
         plots.Controls.Add(_s11DbPlot, 1, 0);
         plots.Controls.Add(_s21PolarPlot, 0, 1);
         plots.Controls.Add(_s21DbPlot, 1, 1);
+        plots.Margin = new Padding(0);
+        plots.Padding = new Padding(0);
 
         return plots;
     }
@@ -239,7 +256,7 @@ public partial class Form1 : Form
             RowCount = 1,
             Padding = new Padding(8)
         };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 400));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 390));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -265,9 +282,16 @@ public partial class Form1 : Form
 
         Action<string, Control> AddFieldRow = (label, control) =>
         {
-            var row = new Panel { Size = new Size(380, 50), Margin = new Padding(0, 0, 0, 5) };
-            var lbl = new Label { Text = label, Location = new Point(0, 0), Size = new Size(150, 25), AutoSize = false };
-            control.Location = new Point(155, 0);
+            var row = new Panel { Size = new Size(380, 32), Margin = new Padding(0, 0, 0, 2) };
+            var lbl = new Label
+            {
+                Text = label,
+                Location = new Point(0, 3),
+                Size = new Size(150, 22),
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            control.Location = new Point(155, 2);
             control.Size = new Size(220, 25);
             row.Controls.Add(lbl);
             row.Controls.Add(control);
@@ -373,10 +397,10 @@ public partial class Form1 : Form
         _stopOptimizationButton.Click += (_, _) => StopOptimization();
         panel.Controls.Add(_stopOptimizationButton);
 
-        var spacer1 = new Panel { Size = new Size(380, 10) };
+        var spacer1 = new Panel { Size = new Size(380, 4) };
         panel.Controls.Add(spacer1);
 
-        var buttonRow = new Panel { Size = new Size(380, 35), Margin = new Padding(0, 5, 0, 5) };
+        var buttonRow = new Panel { Size = new Size(380, 32), Margin = new Padding(0, 2, 0, 2) };
         _applyBestButton.Text = "Apply Best";
         _applyBestButton.Location = new Point(0, 0);
         _applyBestButton.Size = new Size(180, 30);
@@ -395,7 +419,7 @@ public partial class Form1 : Form
         _exportCsvButton.Click += (_, _) => ExportCandidatesCsv();
         panel.Controls.Add(_exportCsvButton);
 
-        var spacer2 = new Panel { Size = new Size(380, 10) };
+        var spacer2 = new Panel { Size = new Size(380, 4) };
         panel.Controls.Add(spacer2);
 
         _optimizerStatusLabel.Size = new Size(380, 60);
@@ -1075,10 +1099,15 @@ public partial class Form1 : Form
     private static PlotModel BuildDbModel(string title, IReadOnlyList<SweepPoint> sweep, Func<SweepPoint, double> selector)
     {
         var model = new PlotModel { Title = title, PlotAreaBorderColor = OxyColors.Gray };
+        var startMHz = sweep.Count > 0 ? sweep[0].FrequencyHz / 1e6 : 0;
+        var stopMHz = sweep.Count > 0 ? sweep[^1].FrequencyHz / 1e6 : 1;
+        var axisPadMHz = Math.Max((stopMHz - startMHz) * 0.025, 0.5);
         model.Axes.Add(new LinearAxis
         {
             Position = AxisPosition.Bottom,
             Title = "Frequency (MHz)",
+            Minimum = startMHz,
+            Maximum = stopMHz + axisPadMHz,
             MajorGridlineStyle = LineStyle.Solid,
             MinorGridlineStyle = LineStyle.Dot,
             MajorGridlineColor = OxyColor.FromAColor(80, OxyColors.Gray),
