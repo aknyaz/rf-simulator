@@ -22,6 +22,7 @@ public partial class Form1 : Form
     private readonly PlotView _s21PolarPlot = new();
     private readonly PlotView _s21DbPlot = new();
     private readonly PlotView _s21PhasePlot = new();
+    private readonly PlotView _groupDelayPlot = new();
 
     // Optimizer controls
     private readonly NumericUpDown _optStartMHzInput = new();
@@ -257,13 +258,14 @@ public partial class Form1 : Form
         ConfigurePlotView(_s21PolarPlot);
         ConfigurePlotView(_s21DbPlot);
         ConfigurePlotView(_s21PhasePlot);
+        ConfigurePlotView(_groupDelayPlot);
 
         plots.Controls.Add(_smithPlot, 0, 0);
         plots.Controls.Add(_s11DbPlot, 1, 0);
         plots.Controls.Add(_s21PolarPlot, 0, 1);
         plots.Controls.Add(_s21DbPlot, 1, 1);
         plots.Controls.Add(_s21PhasePlot, 0, 2);
-        plots.SetColumnSpan(_s21PhasePlot, 2);
+        plots.Controls.Add(_groupDelayPlot, 1, 2);
         plots.Margin = new Padding(0);
         plots.Padding = new Padding(0);
 
@@ -581,6 +583,7 @@ public partial class Form1 : Form
             _s21PolarPlot.Model = PlotFactory.BuildS21PolarModel(sweep);
             _s21DbPlot.Model = PlotFactory.BuildS21DbModel(sweep);
             _s21PhasePlot.Model = PlotFactory.BuildS21PhaseModel(sweep);
+            _groupDelayPlot.Model = PlotFactory.BuildGroupDelayModel(sweep);
 
             _statusLabel.Text = $"OK | {sweep.Count} points";
         }

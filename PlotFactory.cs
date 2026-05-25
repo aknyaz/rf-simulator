@@ -65,7 +65,7 @@ public static class PlotFactory
 
     public static PlotModel BuildS21PhaseModel(IReadOnlyList<SweepPoint> sweep)
     {
-        var phaseRadians = RfMath.UnwrapPhase(sweep.Select(p => Math.Atan2(p.S21.Imaginary, p.S21.Real)).ToList());
+        var phaseRadians = RfMath.GetUnwrappedS21PhaseRadians(sweep);
         var phaseDegrees = phaseRadians.Select(p => p * 180.0 / Math.PI).ToList();
         var model = BuildFrequencyModel("S21 Phase (degrees)", "deg", sweep, i => phaseDegrees[i]);
         var yAxis = model.Axes.FirstOrDefault(a => a.Position == AxisPosition.Left);
@@ -82,6 +82,33 @@ public static class PlotFactory
             yAxis.MajorStep = 30;
             yAxis.MinorStep = 10;
             yAxis.StringFormat = "0";
+        }
+
+        return model;
+    }
+
+    public static PlotModel BuildGroupDelayModel(IReadOnlyList<SweepPoint> sweep)
+    {
+        var groupDelayNs = RfMath.CalculateGroupDelayNs(sweep);
+        var model = BuildFrequencyModel("Group Delay (ns)", "ns", sweep, i => groupDelayNs[i]);
+        var yAxis = model.Axes.FirstOrDefault(a => a.Position == AxisPosition.Left);
+
+        if (groupDelayNs.Count > 0 && yAxis is not null)
+        {
+            var finiteDelays = groupDelayNs.Where(double.IsFinite).ToList();
+            if (finiteDelays.Count > 0)
+            {
+                var minDelay = finiteDelays.Min();
+                var maxDelay = finiteDelays.Max();
+                var delayRange = Math.Max(maxDelay - minDelay, 1.0);
+                var padding = Math.Max(delayRange * 0.10, 0.5);
+
+                yAxis.Minimum = Math.Floor((minDelay - padding) * 2.0) / 2.0;
+                yAxis.Maximum = Math.Ceiling((maxDelay + padding) * 2.0) / 2.0;
+                yAxis.MajorStep = ChooseGroupDelayMajorStep(yAxis.Maximum - yAxis.Minimum);
+                yAxis.MinorStep = yAxis.MajorStep / 2.0;
+                yAxis.StringFormat = "0.##";
+            }
         }
 
         return model;
@@ -133,6 +160,26 @@ public static class PlotFactory
 
         AddFrequencyMarkers(model, sweep, selector);
         return model;
+    }
+
+    private static double ChooseGroupDelayMajorStep(double rangeNs)
+    {
+        if (rangeNs <= 5)
+        {
+            return 1;
+        }
+
+        if (rangeNs <= 20)
+        {
+            return 5;
+        }
+
+        if (rangeNs <= 50)
+        {
+            return 10;
+        }
+
+        return 25;
     }
 
     private static void ConfigureComplexPlaneAxes(PlotModel model)

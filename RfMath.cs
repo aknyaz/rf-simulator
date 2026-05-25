@@ -38,6 +38,64 @@ public static class RfMath
         return unwrapped;
     }
 
+    public static List<double> GetUnwrappedS21PhaseRadians(IReadOnlyList<SweepPoint> sweep)
+    {
+        return UnwrapPhase(sweep.Select(p => Math.Atan2(p.S21.Imaginary, p.S21.Real)).ToList());
+    }
+
+    public static List<double> CalculateGroupDelayNs(IReadOnlyList<SweepPoint> sweep)
+    {
+        var groupDelayNs = new List<double>(sweep.Count);
+        if (sweep.Count == 0)
+        {
+            return groupDelayNs;
+        }
+
+        if (sweep.Count == 1)
+        {
+            groupDelayNs.Add(0);
+            return groupDelayNs;
+        }
+
+        var phase = GetUnwrappedS21PhaseRadians(sweep);
+
+        for (int i = 0; i < sweep.Count; i++)
+        {
+            int leftIndex;
+            int rightIndex;
+
+            if (i == 0)
+            {
+                leftIndex = 0;
+                rightIndex = 1;
+            }
+            else if (i == sweep.Count - 1)
+            {
+                leftIndex = sweep.Count - 2;
+                rightIndex = sweep.Count - 1;
+            }
+            else
+            {
+                leftIndex = i - 1;
+                rightIndex = i + 1;
+            }
+
+            var deltaPhase = phase[rightIndex] - phase[leftIndex];
+            var deltaOmega = 2.0 * Math.PI * (sweep[rightIndex].FrequencyHz - sweep[leftIndex].FrequencyHz);
+
+            if (deltaOmega <= 0)
+            {
+                groupDelayNs.Add(0);
+                continue;
+            }
+
+            var groupDelaySeconds = -deltaPhase / deltaOmega;
+            groupDelayNs.Add(double.IsFinite(groupDelaySeconds) ? groupDelaySeconds * 1e9 : 0);
+        }
+
+        return groupDelayNs;
+    }
+
     public static PhaseMetrics CalculatePhaseMetrics(IReadOnlyList<SweepPoint> sweep)
     {
         if (sweep.Count < 2)
@@ -45,26 +103,11 @@ public static class RfMath
             return new PhaseMetrics(0, 0, 0);
         }
 
-        var unwrappedPhase = UnwrapPhase(sweep.Select(p => Math.Atan2(p.S21.Imaginary, p.S21.Real)).ToList());
+        var unwrappedPhase = GetUnwrappedS21PhaseRadians(sweep);
         var totalPhaseRotationDeg = Math.Abs(unwrappedPhase[^1] - unwrappedPhase[0]) * 180.0 / Math.PI;
-        var groupDelaysNs = new List<double>(sweep.Count - 1);
-
-        for (int i = 1; i < sweep.Count; i++)
-        {
-            var deltaPhase = unwrappedPhase[i] - unwrappedPhase[i - 1];
-            var deltaOmega = 2.0 * Math.PI * (sweep[i].FrequencyHz - sweep[i - 1].FrequencyHz);
-
-            if (deltaOmega <= 0)
-            {
-                continue;
-            }
-
-            var groupDelaySeconds = -deltaPhase / deltaOmega;
-            if (double.IsFinite(groupDelaySeconds) && groupDelaySeconds > 0)
-            {
-                groupDelaysNs.Add(groupDelaySeconds * 1e9);
-            }
-        }
+        var groupDelaysNs = CalculateGroupDelayNs(sweep)
+            .Where(delay => double.IsFinite(delay) && delay > 0)
+            .ToList();
 
         if (groupDelaysNs.Count == 0)
         {
