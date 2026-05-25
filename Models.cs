@@ -19,6 +19,13 @@ public sealed class SimulationConfig
 
 public readonly record struct SweepPoint(double FrequencyHz, Complex S11, Complex S21);
 
+public readonly record struct SParameterPoint(
+    double FrequencyHz,
+    Complex S11,
+    Complex S21,
+    Complex S12,
+    Complex S22);
+
 public readonly record struct PhaseMetrics(
     double TotalPhaseRotationDeg,
     double AverageGroupDelayNs,

@@ -47,6 +47,18 @@ public static class SimulationEngine
         double z0,
         IReadOnlyList<RfElement> structure)
     {
+        return SimulateSParameters(startHz, stopHz, points, z0, structure)
+            .Select(p => new SweepPoint(p.FrequencyHz, p.S11, p.S21))
+            .ToList();
+    }
+
+    public static List<SParameterPoint> SimulateSParameters(
+        double startHz,
+        double stopHz,
+        int points,
+        double z0,
+        IReadOnlyList<RfElement> structure)
+    {
         if (points < 2)
         {
             throw new InvalidOperationException("Sweep points must be at least 2.");
@@ -56,7 +68,7 @@ public static class SimulationEngine
             throw new InvalidOperationException("Stop frequency must be greater than start frequency.");
         }
 
-        var result = new List<SweepPoint>(points);
+        var result = new List<SParameterPoint>(points);
         var step = (stopHz - startHz) / (points - 1);
 
         for (var i = 0; i < points; i++)
@@ -80,8 +92,11 @@ public static class SimulationEngine
             var denominator = total.A + total.B / z0 + total.C * z0 + total.D;
             var s11 = (total.A + total.B / z0 - total.C * z0 - total.D) / denominator;
             var s21 = 2.0 / denominator;
+            var determinant = total.A * total.D - total.B * total.C;
+            var s12 = 2.0 * determinant / denominator;
+            var s22 = (-total.A + total.B / z0 - total.C * z0 + total.D) / denominator;
 
-            result.Add(new SweepPoint(f, s11, s21));
+            result.Add(new SParameterPoint(f, s11, s21, s12, s22));
         }
 
         return result;

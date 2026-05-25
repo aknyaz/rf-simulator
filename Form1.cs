@@ -15,6 +15,7 @@ public partial class Form1 : Form
     private readonly Button _simulateButton = new();
     private readonly Button _saveJsonButton = new();
     private readonly Button _loadJsonButton = new();
+    private readonly Button _exportTouchstoneButton = new();
     private readonly Label _statusLabel = new();
 
     private readonly PlotView _smithPlot = new();
@@ -170,6 +171,10 @@ public partial class Form1 : Form
         _loadJsonButton.Text = "Load JSON";
         _loadJsonButton.AutoSize = true;
         _loadJsonButton.Click += (_, _) => LoadConfiguration();
+
+        _exportTouchstoneButton.Text = "Export Touchstone .s2p";
+        _exportTouchstoneButton.Size = new Size(360, 30);
+        _exportTouchstoneButton.Click += (_, _) => ExportTouchstone();
 
         var actionButtonsPanel = new FlowLayoutPanel
         {
@@ -444,6 +449,8 @@ public partial class Form1 : Form
         _exportCsvButton.Click += (_, _) => ExportCandidatesCsv();
         panel.Controls.Add(_exportCsvButton);
 
+        panel.Controls.Add(_exportTouchstoneButton);
+
         var spacer2 = new Panel { Size = new Size(360, 4) };
         panel.Controls.Add(spacer2);
 
@@ -669,6 +676,40 @@ public partial class Form1 : Form
         catch (Exception ex)
         {
             _statusLabel.Text = $"Load error: {ex.Message}";
+        }
+    }
+
+    private void ExportTouchstone()
+    {
+        try
+        {
+            var structure = SimulationEngine.ParseStructure(_structureInput.Text);
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "Touchstone 2-port files (*.s2p)|*.s2p",
+                DefaultExt = "s2p",
+                FileName = "rf-lc-simulation.s2p"
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            const double touchstoneZ0 = 50.0;
+            var sweep = SimulationEngine.SimulateSParameters(
+                (double)_startMHzInput.Value * 1e6,
+                (double)_stopMHzInput.Value * 1e6,
+                (int)_pointsInput.Value,
+                touchstoneZ0,
+                structure);
+
+            TouchstoneExporter.WriteS2P(dialog.FileName, sweep);
+            _statusLabel.Text = $"Exported S2P: {Path.GetFileName(dialog.FileName)} | {sweep.Count} points | R 50";
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"S2P export error: {ex.Message}";
         }
     }
 
