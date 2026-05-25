@@ -32,6 +32,8 @@ public class OptimizerEngine
         public double TargetPhaseRotationDeg { get; set; } = 180;
         public double PhaseObjectiveWeight { get; set; } = 1;
         public double GroupDelayObjectiveWeight { get; set; } = 1;
+        public int RandomSeed { get; set; } = 12345;
+        public int MaxDegreeOfParallelism { get; set; } = Math.Max(1, Environment.ProcessorCount - 1);
     }
 
     public class CandidateResult
@@ -44,6 +46,7 @@ public class OptimizerEngine
         public double TotalPhaseRotationDeg { get; set; }
         public double AverageGroupDelayNs { get; set; }
         public double MaxGroupDelayNs { get; set; }
+        public int RestartIndex { get; set; }
         public List<RfElement> Structure { get; set; } = new();
 
         [JsonIgnore]
@@ -170,8 +173,12 @@ public class OptimizerEngine
 
     public static List<RfElement> GenerateRandomStructure(int numInductors)
     {
+        return GenerateRandomStructure(numInductors, new Random());
+    }
+
+    private static List<RfElement> GenerateRandomStructure(int numInductors, Random random)
+    {
         var structure = new List<RfElement>();
-        var random = new Random();
 
         for (int i = 0; i < numInductors; i++)
         {
@@ -237,37 +244,36 @@ public class OptimizerEngine
         List<RfElement> initialStructure,
         Func<List<RfElement>, List<SweepPoint>> simulator,
         OptimizerConfig config,
-        Action<string>? statusCallback = null)
+        Action<string>? statusCallback = null,
+        CancellationToken cancellationToken = default,
+        bool useParallelCandidateEvaluation = true)
     {
         var current = CloneStructure(initialStructure);
         var currentResult = EvaluateStructure(current, simulator, config);
 
         for (int iter = 0; iter < config.MaxIterations; iter++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             statusCallback?.Invoke($"Sequential search iteration {iter + 1}/{config.MaxIterations}");
             bool improved = false;
 
             for (int idx = 0; idx < current.Count; idx++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var originalType = current[idx].Type;
-                var candidates = originalType.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
-                    ? AvailableInductors.Cast<object>().ToList()
-                    : AvailableCapacitors.Cast<object>().ToList();
+                var candidateValues = originalType.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
+                    ? AvailableInductors
+                    : AvailableCapacitors;
 
-                foreach (var candidateValue in candidates)
+                var improvement = useParallelCandidateEvaluation
+                    ? FindFirstParallelImprovement(current, idx, candidateValues, currentResult.Score, simulator, config, cancellationToken)
+                    : FindFirstSequentialImprovement(current, idx, candidateValues, currentResult.Score, simulator, config, cancellationToken);
+
+                if (improvement.HasValue)
                 {
-                    var test = CloneStructure(current);
-                    test[idx].Value = (double)candidateValue;
-
-                    var testResult = EvaluateStructure(test, simulator, config);
-
-                    if (testResult.Score < currentResult.Score)
-                    {
-                        current = test;
-                        currentResult = testResult;
-                        improved = true;
-                        break;
-                    }
+                    current = improvement.Value.Structure;
+                    currentResult = improvement.Value.Result;
+                    improved = true;
                 }
 
                 if (improved)
@@ -284,24 +290,141 @@ public class OptimizerEngine
         return currentResult;
     }
 
+    private static (List<RfElement> Structure, CandidateResult Result)? FindFirstSequentialImprovement(
+        IReadOnlyList<RfElement> current,
+        int elementIndex,
+        IReadOnlyList<double> candidateValues,
+        double currentScore,
+        Func<List<RfElement>, List<SweepPoint>> simulator,
+        OptimizerConfig config,
+        CancellationToken cancellationToken)
+    {
+        foreach (var candidateValue in candidateValues)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var test = CloneStructure(current);
+            test[elementIndex].Value = candidateValue;
+
+            var testResult = EvaluateStructure(test, simulator, config);
+            if (testResult.Score < currentScore)
+            {
+                return (test, testResult);
+            }
+        }
+
+        return null;
+    }
+
+    private static (List<RfElement> Structure, CandidateResult Result)? FindFirstParallelImprovement(
+        IReadOnlyList<RfElement> current,
+        int elementIndex,
+        IReadOnlyList<double> candidateValues,
+        double currentScore,
+        Func<List<RfElement>, List<SweepPoint>> simulator,
+        OptimizerConfig config,
+        CancellationToken cancellationToken)
+    {
+        var results = new (List<RfElement> Structure, CandidateResult Result)?[candidateValues.Count];
+        var parallelOptions = new ParallelOptions
+        {
+            CancellationToken = cancellationToken,
+            MaxDegreeOfParallelism = Math.Max(1, config.MaxDegreeOfParallelism)
+        };
+
+        Parallel.For(0, candidateValues.Count, parallelOptions, candidateIndex =>
+        {
+            var test = CloneStructure(current);
+            test[elementIndex].Value = candidateValues[candidateIndex];
+
+            var testResult = EvaluateStructure(test, simulator, config);
+            if (testResult.Score < currentScore)
+            {
+                results[candidateIndex] = (test, testResult);
+            }
+        });
+
+        for (int i = 0; i < results.Length; i++)
+        {
+            if (results[i].HasValue)
+            {
+                return results[i];
+            }
+        }
+
+        return null;
+    }
+
+    public static List<RfElement> CloneStructure(IReadOnlyList<RfElement> structure)
+    {
+        return structure.Select(e => new RfElement { Type = e.Type, Value = e.Value }).ToList();
+    }
+
     public static List<CandidateResult> RandomRestartLocalSearch(
         Func<List<RfElement>, List<SweepPoint>> simulator,
         OptimizerConfig config,
-        Action<string>? statusCallback = null)
+        Action<string>? statusCallback = null,
+        CancellationToken cancellationToken = default)
     {
-        var candidates = new List<CandidateResult>();
         int numInductors = config.StructureLength;
-
-        for (int restart = 0; restart < config.RandomRestarts; restart++)
+        var randomStructures = GenerateRestartStructures(numInductors, config.RandomRestarts, config.RandomSeed);
+        var results = new CandidateResult?[config.RandomRestarts];
+        var completed = 0;
+        var lastStatusTick = 0L;
+        var parallelOptions = new ParallelOptions
         {
-            statusCallback?.Invoke($"Random restart {restart + 1}/{config.RandomRestarts}");
+            CancellationToken = cancellationToken,
+            MaxDegreeOfParallelism = Math.Max(1, config.MaxDegreeOfParallelism)
+        };
 
-            var randomStructure = GenerateRandomStructure(numInductors);
-            var result = SequentialLocalSearch(randomStructure, simulator, config, statusCallback);
-            candidates.Add(result);
+        Parallel.For(0, config.RandomRestarts, parallelOptions, restart =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var result = SequentialLocalSearch(
+                randomStructures[restart],
+                simulator,
+                config,
+                statusCallback: null,
+                cancellationToken,
+                useParallelCandidateEvaluation: false);
+            result.RestartIndex = restart;
+            results[restart] = result;
+
+            var done = Interlocked.Increment(ref completed);
+            var now = Environment.TickCount64;
+            var previous = Interlocked.Read(ref lastStatusTick);
+            if (done == config.RandomRestarts || now - previous >= 500)
+            {
+                if (Interlocked.CompareExchange(ref lastStatusTick, now, previous) == previous)
+                {
+                    statusCallback?.Invoke($"Random restart progress: {done}/{config.RandomRestarts}");
+                }
+            }
+        });
+
+        var candidates = results
+            .Where(r => r is not null)
+            .Select(r => r!)
+            .ToList();
+
+        return candidates
+            .OrderBy(c => c.Score)
+            .ThenBy(c => c.RestartIndex)
+            .Take(20)
+            .ToList();
+    }
+
+    private static List<List<RfElement>> GenerateRestartStructures(int numInductors, int restarts, int randomSeed)
+    {
+        var random = new Random(randomSeed);
+        var structures = new List<List<RfElement>>(restarts);
+
+        for (int i = 0; i < restarts; i++)
+        {
+            structures.Add(GenerateRandomStructure(numInductors, random));
         }
 
-        return candidates.OrderBy(c => c.Score).Take(20).ToList();
+        return structures;
     }
 }
 

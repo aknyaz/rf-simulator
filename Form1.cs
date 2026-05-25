@@ -780,12 +780,17 @@ public partial class Form1 : Form
                             config.Z0,
                             s),
                         config,
-                        UpdateStatus);
+                        UpdateStatus,
+                        _optimizationCancellation.Token);
 
                     _candidateResults = new List<OptimizerEngine.CandidateResult> { result };
                     UpdateResultsGrid();
                     DisplayCandidate(result);
                     UpdateStatus($"Optimization complete. Score: {result.Score:F6}");
+                }
+                catch (OperationCanceledException)
+                {
+                    UpdateStatus("Optimization cancelled.");
                 }
                 catch (Exception ex)
                 {
@@ -836,7 +841,8 @@ public partial class Form1 : Form
                             config.Z0,
                             s),
                         config,
-                        UpdateStatus);
+                        UpdateStatus,
+                        _optimizationCancellation.Token);
 
                     _candidateResults = results;
                     UpdateResultsGrid();
@@ -845,6 +851,10 @@ public partial class Form1 : Form
                         DisplayCandidate(results[0]);
                         UpdateStatus($"Search complete. Best score: {results[0].Score:F6}");
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    UpdateStatus("Search cancelled.");
                 }
                 catch (Exception ex)
                 {

@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="artifacts\**\*.cs" />
+    <EmbeddedResource Remove="artifacts\**\*" />
+    <None Remove="artifacts\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="OxyPlot.WindowsForms" Version="2.1.2" />
   </ItemGroup>
 
