@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Text.Json.Serialization;
 
 namespace RfSimulator;
@@ -79,8 +78,8 @@ public class OptimizerEngine
 
         foreach (var p in sweep)
         {
-            var s11Db = 20.0 * Math.Log10(Math.Max(p.S11.Magnitude, 1e-15));
-            var s21Db = 20.0 * Math.Log10(Math.Max(p.S21.Magnitude, 1e-15));
+            var s11Db = RfMath.ToDbMagnitude(p.S11);
+            var s21Db = RfMath.ToDbMagnitude(p.S21);
 
             s11Values.Add(s11Db);
             s21Values.Add(s21Db);
@@ -93,7 +92,7 @@ public class OptimizerEngine
         var minS21Db = s21Values.Min();
         var maxS21Db = s21Values.Max();
         rippleDb = maxS21Db - minS21Db;
-        var phaseMetrics = CalculatePhaseMetrics(sweep);
+        var phaseMetrics = RfMath.CalculatePhaseMetrics(sweep);
         totalPhaseRotationDeg = phaseMetrics.TotalPhaseRotationDeg;
         averageGroupDelayNs = phaseMetrics.AverageGroupDelayNs;
         maxGroupDelayNs = phaseMetrics.MaxGroupDelayNs;
@@ -143,57 +142,6 @@ public class OptimizerEngine
         score += 0.5 * CalculateGradientPenalty(structure);
 
         return score;
-    }
-
-    private static PhaseMetrics CalculatePhaseMetrics(IReadOnlyList<SweepPoint> sweep)
-    {
-        if (sweep.Count < 2)
-            return new PhaseMetrics(0, 0, 0);
-
-        var unwrappedPhase = UnwrapPhase(sweep.Select(p => Math.Atan2(p.S21.Imaginary, p.S21.Real)).ToList());
-        var totalPhaseRotationDeg = Math.Abs(unwrappedPhase[^1] - unwrappedPhase[0]) * 180.0 / Math.PI;
-        var groupDelaysNs = new List<double>(sweep.Count - 1);
-
-        for (int i = 1; i < sweep.Count; i++)
-        {
-            var deltaPhase = unwrappedPhase[i] - unwrappedPhase[i - 1];
-            var deltaOmega = 2.0 * Math.PI * (sweep[i].FrequencyHz - sweep[i - 1].FrequencyHz);
-
-            if (deltaOmega <= 0)
-                continue;
-
-            var groupDelaySeconds = -deltaPhase / deltaOmega;
-            if (double.IsFinite(groupDelaySeconds) && groupDelaySeconds > 0)
-                groupDelaysNs.Add(groupDelaySeconds * 1e9);
-        }
-
-        if (groupDelaysNs.Count == 0)
-            return new PhaseMetrics(totalPhaseRotationDeg, 0, 0);
-
-        return new PhaseMetrics(totalPhaseRotationDeg, groupDelaysNs.Average(), groupDelaysNs.Max());
-    }
-
-    private static List<double> UnwrapPhase(IReadOnlyList<double> phaseRadians)
-    {
-        var unwrapped = new List<double>(phaseRadians.Count);
-        if (phaseRadians.Count == 0)
-            return unwrapped;
-
-        unwrapped.Add(phaseRadians[0]);
-        var offset = 0.0;
-
-        for (int i = 1; i < phaseRadians.Count; i++)
-        {
-            var delta = phaseRadians[i] - phaseRadians[i - 1];
-            if (delta > Math.PI)
-                offset -= 2.0 * Math.PI;
-            else if (delta < -Math.PI)
-                offset += 2.0 * Math.PI;
-
-            unwrapped.Add(phaseRadians[i] + offset);
-        }
-
-        return unwrapped;
     }
 
     private static double CalculateGradientPenalty(IReadOnlyList<RfElement> structure)
@@ -356,17 +304,4 @@ public class OptimizerEngine
         return candidates.OrderBy(c => c.Score).Take(20).ToList();
     }
 }
-
-public readonly record struct PhaseMetrics(
-    double TotalPhaseRotationDeg,
-    double AverageGroupDelayNs,
-    double MaxGroupDelayNs);
-
-public class RfElement
-{
-    public string Type { get; set; } = string.Empty;
-    public double Value { get; set; }
-}
-
-public readonly record struct SweepPoint(double FrequencyHz, Complex S11, Complex S21);
 
