@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Compile Remove="artifacts\**\*.cs" />
+    <Compile Remove="rf_sim_cli\**\*.cs" />
     <EmbeddedResource Remove="artifacts\**\*" />
     <None Remove="artifacts\**\*" />
   </ItemGroup>

@@ -1,0 +1,31 @@
+{
+  "name": "bad resonant match",
+  "mode": "compression",
+  "frequency_mhz": 27.5,
+  "spacing_mm": 5,
+  "expect_overall_pass": false,
+  "expected_metric_ranges": {
+    "max_slow_wave_factor": { "min": 100 },
+    "lc_smoothness_error": { "min": 10 },
+    "phase_smoothness_error": { "min": 10 }
+  },
+  "structure": [
+    { "type": "SeriesL", "value": 4.7e-7 },
+    { "type": "ShuntC", "value": 1.1e-10 },
+    { "type": "SeriesL", "value": 3.3e-7 },
+    { "type": "ShuntC", "value": 8.2e-12 },
+    { "type": "SeriesL", "value": 1e-7 },
+    { "type": "ShuntC", "value": 1.5e-11 },
+    { "type": "SeriesL", "value": 1e-8 },
+    { "type": "ShuntC", "value": 1.8e-11 },
+    { "type": "SeriesL", "value": 1e-8 },
+    { "type": "ShuntC", "value": 2e-11 },
+    { "type": "SeriesL", "value": 1e-8 },
+    { "type": "ShuntC", "value": 2.2e-11 },
+    { "type": "SeriesL", "value": 2.2e-7 },
+    { "type": "ShuntC", "value": 2.7e-11 },
+    { "type": "SeriesL", "value": 2.7e-7 },
+    { "type": "ShuntC", "value": 2e-11 },
+    { "type": "SeriesL", "value": 4.7e-7 }
+  ]
+}

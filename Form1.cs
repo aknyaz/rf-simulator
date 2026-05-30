@@ -48,9 +48,17 @@ public partial class Form1 : Form
     private readonly NumericUpDown _antennaTargetReturnLossInput = new();
     private readonly NumericUpDown _antennaMaxVoltageInput = new();
     private readonly NumericUpDown _antennaOptimizerIterationsInput = new();
+    private readonly CheckBox _antennaUseContinuousInput = new();
+    private readonly CheckBox _antennaSmoothGradientInput = new();
+    private readonly NumericUpDown _antennaLMinNhInput = new();
+    private readonly NumericUpDown _antennaLMaxNhInput = new();
+    private readonly NumericUpDown _antennaCMinPfInput = new();
+    private readonly NumericUpDown _antennaCMaxPfInput = new();
     private readonly Button _antennaSimulateButton = new();
     private readonly Button _antennaOptimizeButton = new();
+    private readonly Button _antennaOptimizeCompressionButton = new();
     private readonly Button _antennaApplyBestButton = new();
+    private readonly Button _antennaExportBestJsonButton = new();
     private readonly TextBox _antennaSummaryText = new();
     private readonly Label _antennaStatusLabel = new();
     private readonly PlotView _antennaReturnLossPlot = new();
@@ -91,6 +99,7 @@ public partial class Form1 : Form
     private List<SweepPoint> _lastSweep = new();
     private List<SmallAntennaPoint> _lastAntennaSweep = new();
     private SmallAntennaCandidate? _bestAntennaCandidate;
+    private SmallAntennaObjectiveMode _lastAntennaObjectiveMode = SmallAntennaObjectiveMode.AntennaMatch;
     private int _displayedCandidateIndex = -1;
     private bool _optimizationRunning = false;
     private CancellationTokenSource _optimizationCancellation = new();
@@ -516,6 +525,10 @@ public partial class Form1 : Form
         ConfigureNumeric(_antennaTargetReturnLossInput, -80, 0, -10, 1, 0.5m);
         ConfigureNumeric(_antennaMaxVoltageInput, 1, 1000000, 500, 1, 50);
         ConfigureNumeric(_antennaOptimizerIterationsInput, 1, 500, 35, 0, 5);
+        ConfigureNumeric(_antennaLMinNhInput, 0.001m, 1000000, 10, 3, 10);
+        ConfigureNumeric(_antennaLMaxNhInput, 0.001m, 1000000, 2000, 3, 10);
+        ConfigureNumeric(_antennaCMinPfInput, 0.001m, 1000000, 0.5m, 3, 1);
+        ConfigureNumeric(_antennaCMaxPfInput, 0.001m, 1000000, 470, 3, 1);
 
         AddCompactField(panel, "Rrad ohm", _antennaRradInput, 78);
         AddCompactField(panel, "Rloss ohm", _antennaRlossInput, 78);
@@ -527,22 +540,47 @@ public partial class Form1 : Form
         AddCompactField(panel, "Target RL dB", _antennaTargetReturnLossInput, 78);
         AddCompactField(panel, "Max V", _antennaMaxVoltageInput, 82);
         AddCompactField(panel, "Opt iters", _antennaOptimizerIterationsInput, 68);
+        AddCompactField(panel, "L min nH", _antennaLMinNhInput, 78);
+        AddCompactField(panel, "L max nH", _antennaLMaxNhInput, 78);
+        AddCompactField(panel, "C min pF", _antennaCMinPfInput, 78);
+        AddCompactField(panel, "C max pF", _antennaCMaxPfInput, 78);
+
+        _antennaUseContinuousInput.Text = "Use continuous L/C values";
+        _antennaUseContinuousInput.AutoSize = true;
+        _antennaUseContinuousInput.Margin = new Padding(4, 4, 8, 0);
+        panel.Controls.Add(_antennaUseContinuousInput);
+
+        _antennaSmoothGradientInput.Text = "Smooth increasing gradient";
+        _antennaSmoothGradientInput.AutoSize = true;
+        _antennaSmoothGradientInput.Margin = new Padding(4, 4, 8, 0);
+        panel.Controls.Add(_antennaSmoothGradientInput);
 
         _antennaSimulateButton.Text = "Analyze Antenna";
         _antennaSimulateButton.AutoSize = true;
         _antennaSimulateButton.Click += (_, _) => UpdateSmallAntennaMode();
         panel.Controls.Add(_antennaSimulateButton);
 
-        _antennaOptimizeButton.Text = "Optimize Antenna";
+        _antennaOptimizeButton.Text = "Optimize Antenna Match";
         _antennaOptimizeButton.AutoSize = true;
-        _antennaOptimizeButton.Click += (_, _) => OptimizeSmallAntennaMode();
+        _antennaOptimizeButton.Click += (_, _) => OptimizeSmallAntennaMode(SmallAntennaObjectiveMode.AntennaMatch);
         panel.Controls.Add(_antennaOptimizeButton);
+
+        _antennaOptimizeCompressionButton.Text = "Optimize Smooth Compression Medium";
+        _antennaOptimizeCompressionButton.AutoSize = true;
+        _antennaOptimizeCompressionButton.Click += (_, _) => OptimizeSmallAntennaMode(SmallAntennaObjectiveMode.SmoothCompression);
+        panel.Controls.Add(_antennaOptimizeCompressionButton);
 
         _antennaApplyBestButton.Text = "Apply Antenna Best";
         _antennaApplyBestButton.AutoSize = true;
         _antennaApplyBestButton.Enabled = false;
         _antennaApplyBestButton.Click += (_, _) => ApplyBestSmallAntennaCandidate();
         panel.Controls.Add(_antennaApplyBestButton);
+
+        _antennaExportBestJsonButton.Text = "Export Antenna Best JSON";
+        _antennaExportBestJsonButton.AutoSize = true;
+        _antennaExportBestJsonButton.Enabled = false;
+        _antennaExportBestJsonButton.Click += (_, _) => ExportBestSmallAntennaCandidateJson();
+        panel.Controls.Add(_antennaExportBestJsonButton);
 
         _antennaStatusLabel.AutoSize = false;
         _antennaStatusLabel.Width = 480;
@@ -1105,7 +1143,14 @@ public partial class Form1 : Form
                 ClearSmallAntennaCompressionPlots();
             }
 
-            _antennaSummaryText.Text = SmallAntennaMode.FormatSummary(summary);
+            var scoreBreakdown = SmallAntennaMode.CalculateScoreBreakdown(
+                sweep,
+                structure,
+                GetSmallAntennaOptimizerConfig(_lastAntennaObjectiveMode));
+            _antennaSummaryText.Text =
+                SmallAntennaMode.FormatSummary(summary)
+                + Environment.NewLine
+                + SmallAntennaMode.FormatScoreBreakdown(scoreBreakdown);
             _antennaStatusLabel.Text = string.IsNullOrWhiteSpace(summary.VoltageWarning)
                 ? string.IsNullOrWhiteSpace(propagationWarning) ? "Small antenna analysis OK" : propagationWarning
                 : summary.VoltageWarning;
@@ -1118,7 +1163,7 @@ public partial class Form1 : Form
         }
     }
 
-    private void OptimizeSmallAntennaMode()
+    private void OptimizeSmallAntennaMode(SmallAntennaObjectiveMode objectiveMode)
     {
         if (_optimizationRunning)
         {
@@ -1129,17 +1174,22 @@ public partial class Form1 : Form
         try
         {
             var structure = SimulationEngine.ParseStructureAllowEmpty(_structureInput.Text);
-            var config = GetSmallAntennaOptimizerConfig();
+            var config = GetSmallAntennaOptimizerConfig(objectiveMode);
+            _lastAntennaObjectiveMode = objectiveMode;
             _optimizationRunning = true;
             _antennaOptimizeButton.Enabled = false;
+            _antennaOptimizeCompressionButton.Enabled = false;
             _antennaApplyBestButton.Enabled = false;
+            _antennaExportBestJsonButton.Enabled = false;
             _optimizationCancellation = new CancellationTokenSource();
 
             _ = Task.Run(() =>
             {
                 try
                 {
-                    UpdateAntennaStatus("Starting antenna-mode optimization...");
+                    UpdateAntennaStatus(objectiveMode == SmallAntennaObjectiveMode.SmoothCompression
+                        ? "Starting smooth-compression medium optimization..."
+                        : "Starting antenna-match optimization...");
                     var candidate = SmallAntennaMode.Optimize(
                         structure,
                         config,
@@ -1150,13 +1200,17 @@ public partial class Form1 : Form
                     Invoke(() =>
                     {
                         _lastAntennaSweep = candidate.Sweep;
-                        _antennaSummaryText.Text = SmallAntennaMode.FormatSummary(candidate.Summary);
+                        _antennaSummaryText.Text =
+                            SmallAntennaMode.FormatSummary(candidate.Summary)
+                            + Environment.NewLine
+                            + SmallAntennaMode.FormatScoreBreakdown(candidate.ScoreBreakdown);
                         _antennaReturnLossPlot.Model = PlotFactory.BuildAntennaInputReturnLossModel(candidate.Sweep);
                         _antennaPowerPlot.Model = PlotFactory.BuildAntennaPowerModel(candidate.Sweep);
                         _antennaCurrentPlot.Model = PlotFactory.BuildAntennaCurrentModel(candidate.Sweep);
                         _antennaVoltagePlot.Model = PlotFactory.BuildAntennaVoltageModel(candidate.Sweep);
                         _antennaApplyBestButton.Enabled = true;
-                        _antennaStatusLabel.Text = $"Antenna optimization complete. Score: {candidate.Score:F4}";
+                        _antennaExportBestJsonButton.Enabled = true;
+                        _antennaStatusLabel.Text = $"Antenna optimization complete. Score: {candidate.Score:F4} | {FormatStructureInline(candidate.Structure)}";
                     });
                 }
                 catch (OperationCanceledException)
@@ -1170,7 +1224,11 @@ public partial class Form1 : Form
                 finally
                 {
                     _optimizationRunning = false;
-                    Invoke(() => _antennaOptimizeButton.Enabled = true);
+                    Invoke(() =>
+                    {
+                        _antennaOptimizeButton.Enabled = true;
+                        _antennaOptimizeCompressionButton.Enabled = true;
+                    });
                 }
             });
         }
@@ -1179,6 +1237,7 @@ public partial class Form1 : Form
             _antennaStatusLabel.Text = $"Antenna optimization error: {ex.Message}";
             _optimizationRunning = false;
             _antennaOptimizeButton.Enabled = true;
+            _antennaOptimizeCompressionButton.Enabled = true;
         }
     }
 
@@ -1198,6 +1257,39 @@ public partial class Form1 : Form
         _antennaStatusLabel.Text = $"Applied antenna-mode best. Score: {_bestAntennaCandidate.Score:F4}";
     }
 
+    private void ExportBestSmallAntennaCandidateJson()
+    {
+        if (_bestAntennaCandidate is null)
+        {
+            _antennaStatusLabel.Text = "No antenna candidate available.";
+            return;
+        }
+
+        try
+        {
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                DefaultExt = "json",
+                AddExtension = true,
+                FileName = "small-antenna-best-structure.json"
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
+
+            var json = JsonSerializer.Serialize(_bestAntennaCandidate.Structure, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(dialog.FileName, json);
+            _antennaStatusLabel.Text = $"Exported antenna best: {Path.GetFileName(dialog.FileName)}";
+        }
+        catch (Exception ex)
+        {
+            _antennaStatusLabel.Text = $"Antenna export error: {ex.Message}";
+        }
+    }
+
     private SmallAntennaConfig GetSmallAntennaConfig()
     {
         return new SmallAntennaConfig
@@ -1208,7 +1300,8 @@ public partial class Form1 : Form
         };
     }
 
-    private SmallAntennaOptimizerConfig GetSmallAntennaOptimizerConfig()
+    private SmallAntennaOptimizerConfig GetSmallAntennaOptimizerConfig(
+        SmallAntennaObjectiveMode objectiveMode = SmallAntennaObjectiveMode.AntennaMatch)
     {
         return new SmallAntennaOptimizerConfig
         {
@@ -1218,6 +1311,14 @@ public partial class Form1 : Form
             TargetInputReturnLossDb = (double)_antennaTargetReturnLossInput.Value,
             MaxAntennaVoltage = (double)_antennaMaxVoltageInput.Value,
             MaxIterations = (int)_antennaOptimizerIterationsInput.Value,
+            UseContinuousValues = _antennaUseContinuousInput.Checked,
+            ContinuousLMinHenries = (double)_antennaLMinNhInput.Value * 1e-9,
+            ContinuousLMaxHenries = (double)_antennaLMaxNhInput.Value * 1e-9,
+            ContinuousCMinFarads = (double)_antennaCMinPfInput.Value * 1e-12,
+            ContinuousCMaxFarads = (double)_antennaCMaxPfInput.Value * 1e-12,
+            UseSmoothIncreasingGradient = _antennaSmoothGradientInput.Checked,
+            CellSpacingMeters = (double)_antennaSpacingMmInput.Value * 1e-3,
+            ObjectiveMode = objectiveMode,
             AntennaConfig = GetSmallAntennaConfig()
         };
     }
@@ -1243,6 +1344,11 @@ public partial class Form1 : Form
     private void UpdateAntennaStatus(string message)
     {
         Invoke(() => _antennaStatusLabel.Text = message);
+    }
+
+    private static string FormatStructureInline(IReadOnlyList<RfElement> structure)
+    {
+        return string.Join(" - ", structure.Select(e => $"{GetElementDisplayName(e.Type)} {FormatElementValue(e)}"));
     }
 
     private void SaveConfiguration()

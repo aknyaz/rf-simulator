@@ -1,0 +1,19 @@
+{
+  "name": "abrupt LC jump bad",
+  "mode": "compression",
+  "frequency_mhz": 27.5,
+  "spacing_mm": 5,
+  "expect_overall_pass": false,
+  "expected_metric_ranges": {
+    "lc_smoothness_error": { "min": 10 }
+  },
+  "structure": [
+    { "type": "SeriesL", "value": 5e-8 },
+    { "type": "ShuntC", "value": 1.5e-11 },
+    { "type": "SeriesL", "value": 1.5e-6 },
+    { "type": "ShuntC", "value": 4e-10 },
+    { "type": "SeriesL", "value": 6e-8 },
+    { "type": "ShuntC", "value": 1.8e-11 },
+    { "type": "SeriesL", "value": 7e-8 }
+  ]
+}

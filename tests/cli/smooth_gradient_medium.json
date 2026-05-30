@@ -1,0 +1,24 @@
+{
+  "name": "smooth gradient medium",
+  "mode": "compression",
+  "frequency_mhz": 27.5,
+  "spacing_mm": 5,
+  "max_slow_wave_factor": 1000,
+  "max_energy_concentration_ratio": 0.9,
+  "expect_overall_pass": true,
+  "expected_metric_ranges": {
+    "lc_smoothness_error": { "max": 1 },
+    "energy_concentration_ratio": { "max": 0.9 }
+  },
+  "structure": [
+    { "type": "SeriesL", "value": 5e-8 },
+    { "type": "ShuntC", "value": 1.5e-11 },
+    { "type": "SeriesL", "value": 7.5e-8 },
+    { "type": "ShuntC", "value": 2.2e-11 },
+    { "type": "SeriesL", "value": 1.1e-7 },
+    { "type": "ShuntC", "value": 3.3e-11 },
+    { "type": "SeriesL", "value": 1.6e-7 },
+    { "type": "ShuntC", "value": 4.7e-11 },
+    { "type": "SeriesL", "value": 2.2e-7 }
+  ]
+}

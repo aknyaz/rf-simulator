@@ -1,0 +1,20 @@
+{
+  "name": "energy localized bad",
+  "mode": "compression",
+  "frequency_mhz": 27.5,
+  "spacing_mm": 5,
+  "max_energy_concentration_ratio": 0.25,
+  "expect_overall_pass": false,
+  "expected_metric_ranges": {
+    "energy_concentration_ratio": { "min": 0.25 }
+  },
+  "structure": [
+    { "type": "SeriesL", "value": 8e-8 },
+    { "type": "ShuntC", "value": 2e-11 },
+    { "type": "SeriesL", "value": 1e-7 },
+    { "type": "ShuntC", "value": 2.5e-11 },
+    { "type": "SeriesL", "value": 2e-6 },
+    { "type": "ShuntC", "value": 4e-10 },
+    { "type": "SeriesL", "value": 1.2e-7 }
+  ]
+}

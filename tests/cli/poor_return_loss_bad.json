@@ -1,0 +1,12 @@
+{
+  "name": "poor return loss bad",
+  "mode": "antenna",
+  "target_return_loss_db": -10,
+  "expect_overall_pass": false,
+  "expected_metric_ranges": {
+    "best_return_loss_db": { "min": -10 }
+  },
+  "structure": [
+    { "type": "SeriesL", "value": 1e-8 }
+  ]
+}
