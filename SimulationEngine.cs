@@ -20,6 +20,31 @@ public static class SimulationEngine
         return elements;
     }
 
+    public static List<RfElement> ParseStructureAllowEmpty(string json)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        var elements = JsonSerializer.Deserialize<List<RfElement>>(json, options)
+                       ?? throw new InvalidOperationException("Structure JSON is empty.");
+
+        foreach (var element in elements)
+        {
+            if (string.IsNullOrWhiteSpace(element.Type))
+            {
+                throw new InvalidOperationException("Each element must define type.");
+            }
+            if (element.Value <= 0)
+            {
+                throw new InvalidOperationException("Element values must be positive.");
+            }
+        }
+
+        return elements;
+    }
+
     public static void ValidateStructure(IReadOnlyCollection<RfElement> elements)
     {
         if (elements.Count == 0)

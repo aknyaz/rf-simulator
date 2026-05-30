@@ -14,14 +14,36 @@ public static class PropagationAnalysis
         double cellSpacingMeters,
         IReadOnlyList<SweepPoint> sweep)
     {
+        return AnalyzeTerminated(
+            structure,
+            frequencyHz,
+            z0,
+            new Complex(z0, 0),
+            cellSpacingMeters,
+            sweep);
+    }
+
+    public static PropagationResult AnalyzeTerminated(
+        IReadOnlyList<RfElement> structure,
+        double frequencyHz,
+        double referenceImpedanceOhms,
+        Complex loadImpedance,
+        double cellSpacingMeters,
+        IReadOnlyList<SweepPoint> sweep)
+    {
         if (frequencyHz <= 0)
         {
             throw new InvalidOperationException("Analysis frequency must be positive.");
         }
 
-        if (z0 <= 0)
+        if (referenceImpedanceOhms <= 0)
         {
             throw new InvalidOperationException("Z0 must be positive.");
+        }
+
+        if (loadImpedance.Magnitude <= 0)
+        {
+            throw new InvalidOperationException("Load impedance must be non-zero.");
         }
 
         if (cellSpacingMeters <= 0)
@@ -40,7 +62,7 @@ public static class PropagationAnalysis
         }
 
         var outputVoltage = Complex.One;
-        var outputCurrent = outputVoltage / z0;
+        var outputCurrent = outputVoltage / loadImpedance;
         var inputVoltage = total.A * outputVoltage + total.B * outputCurrent;
         var inputCurrent = total.C * outputVoltage + total.D * outputCurrent;
 

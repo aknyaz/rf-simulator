@@ -38,6 +38,31 @@ public partial class Form1 : Form
     private readonly PlotView _slowWaveFactorPlot = new();
     private readonly PlotView _storedEnergyPlot = new();
 
+    private readonly NumericUpDown _antennaRradInput = new();
+    private readonly NumericUpDown _antennaRlossInput = new();
+    private readonly NumericUpDown _antennaXantInput = new();
+    private readonly NumericUpDown _antennaStartMHzInput = new();
+    private readonly NumericUpDown _antennaStopMHzInput = new();
+    private readonly NumericUpDown _antennaPointsInput = new();
+    private readonly NumericUpDown _antennaSpacingMmInput = new();
+    private readonly NumericUpDown _antennaTargetReturnLossInput = new();
+    private readonly NumericUpDown _antennaMaxVoltageInput = new();
+    private readonly NumericUpDown _antennaOptimizerIterationsInput = new();
+    private readonly Button _antennaSimulateButton = new();
+    private readonly Button _antennaOptimizeButton = new();
+    private readonly Button _antennaApplyBestButton = new();
+    private readonly TextBox _antennaSummaryText = new();
+    private readonly Label _antennaStatusLabel = new();
+    private readonly PlotView _antennaReturnLossPlot = new();
+    private readonly PlotView _antennaPowerPlot = new();
+    private readonly PlotView _antennaCurrentPlot = new();
+    private readonly PlotView _antennaVoltagePlot = new();
+    private readonly PlotView _antennaNodeVoltagePlot = new();
+    private readonly PlotView _antennaNodePhasePlot = new();
+    private readonly PlotView _antennaLocalPhaseShiftPlot = new();
+    private readonly PlotView _antennaSlowWaveFactorPlot = new();
+    private readonly PlotView _antennaStoredEnergyPlot = new();
+
     // Optimizer controls
     private readonly NumericUpDown _optStartMHzInput = new();
     private readonly NumericUpDown _optStopMHzInput = new();
@@ -64,6 +89,8 @@ public partial class Form1 : Form
 
     private List<OptimizerEngine.CandidateResult> _candidateResults = new();
     private List<SweepPoint> _lastSweep = new();
+    private List<SmallAntennaPoint> _lastAntennaSweep = new();
+    private SmallAntennaCandidate? _bestAntennaCandidate;
     private int _displayedCandidateIndex = -1;
     private bool _optimizationRunning = false;
     private CancellationTokenSource _optimizationCancellation = new();
@@ -145,8 +172,12 @@ public partial class Form1 : Form
         var propagationTab = new TabPage("Propagation Analysis");
         propagationTab.Controls.Add(BuildPropagationAnalysisPanel());
 
+        var antennaTab = new TabPage("Small Antenna Mode");
+        antennaTab.Controls.Add(BuildSmallAntennaModePanel());
+
         tabs.TabPages.Add(sParameterTab);
         tabs.TabPages.Add(propagationTab);
+        tabs.TabPages.Add(antennaTab);
         return tabs;
     }
 
@@ -428,6 +459,174 @@ public partial class Form1 : Form
         panel.SetColumnSpan(_propagationStatusLabel, 2);
 
         return panel;
+    }
+
+    private Control BuildSmallAntennaModePanel()
+    {
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3
+        };
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 135));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        root.Controls.Add(BuildSmallAntennaControlsPanel(), 0, 0);
+
+        _antennaSummaryText.ReadOnly = true;
+        _antennaSummaryText.Multiline = true;
+        _antennaSummaryText.ScrollBars = ScrollBars.Vertical;
+        _antennaSummaryText.Dock = DockStyle.Fill;
+        _antennaSummaryText.Font = new Font("Consolas", 9);
+        _antennaSummaryText.BackColor = SystemColors.Window;
+        root.Controls.Add(_antennaSummaryText, 0, 1);
+
+        var tabs = new TabControl { Dock = DockStyle.Fill };
+        var sweepTab = new TabPage("Antenna Sweep");
+        sweepTab.Controls.Add(BuildSmallAntennaSweepPlots());
+        var compressionTab = new TabPage("Compression View");
+        compressionTab.Controls.Add(BuildSmallAntennaCompressionPlots());
+        tabs.TabPages.Add(sweepTab);
+        tabs.TabPages.Add(compressionTab);
+        root.Controls.Add(tabs, 0, 2);
+
+        return root;
+    }
+
+    private Control BuildSmallAntennaControlsPanel()
+    {
+        var panel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            Padding = new Padding(0, 0, 0, 6)
+        };
+
+        ConfigureNumeric(_antennaRradInput, 0, 10000, 2, 3, 0.5m);
+        ConfigureNumeric(_antennaRlossInput, 0, 10000, 1, 3, 0.5m);
+        ConfigureNumeric(_antennaXantInput, -10000, 10000, -300, 2, 10);
+        ConfigureNumeric(_antennaStartMHzInput, 0.001m, 10000, 5, 3, 1);
+        ConfigureNumeric(_antennaStopMHzInput, 0.001m, 10000, 50, 3, 1);
+        ConfigureNumeric(_antennaPointsInput, 11, 5001, 401, 0, 10);
+        ConfigureNumeric(_antennaSpacingMmInput, 0.001m, 1000, 5, 3, 0.5m);
+        ConfigureNumeric(_antennaTargetReturnLossInput, -80, 0, -10, 1, 0.5m);
+        ConfigureNumeric(_antennaMaxVoltageInput, 1, 1000000, 500, 1, 50);
+        ConfigureNumeric(_antennaOptimizerIterationsInput, 1, 500, 35, 0, 5);
+
+        AddCompactField(panel, "Rrad ohm", _antennaRradInput, 78);
+        AddCompactField(panel, "Rloss ohm", _antennaRlossInput, 78);
+        AddCompactField(panel, "Xant ohm", _antennaXantInput, 88);
+        AddCompactField(panel, "Start MHz", _antennaStartMHzInput, 82);
+        AddCompactField(panel, "Stop MHz", _antennaStopMHzInput, 82);
+        AddCompactField(panel, "Points", _antennaPointsInput, 68);
+        AddCompactField(panel, "Spacing mm", _antennaSpacingMmInput, 78);
+        AddCompactField(panel, "Target RL dB", _antennaTargetReturnLossInput, 78);
+        AddCompactField(panel, "Max V", _antennaMaxVoltageInput, 82);
+        AddCompactField(panel, "Opt iters", _antennaOptimizerIterationsInput, 68);
+
+        _antennaSimulateButton.Text = "Analyze Antenna";
+        _antennaSimulateButton.AutoSize = true;
+        _antennaSimulateButton.Click += (_, _) => UpdateSmallAntennaMode();
+        panel.Controls.Add(_antennaSimulateButton);
+
+        _antennaOptimizeButton.Text = "Optimize Antenna";
+        _antennaOptimizeButton.AutoSize = true;
+        _antennaOptimizeButton.Click += (_, _) => OptimizeSmallAntennaMode();
+        panel.Controls.Add(_antennaOptimizeButton);
+
+        _antennaApplyBestButton.Text = "Apply Antenna Best";
+        _antennaApplyBestButton.AutoSize = true;
+        _antennaApplyBestButton.Enabled = false;
+        _antennaApplyBestButton.Click += (_, _) => ApplyBestSmallAntennaCandidate();
+        panel.Controls.Add(_antennaApplyBestButton);
+
+        _antennaStatusLabel.AutoSize = false;
+        _antennaStatusLabel.Width = 480;
+        _antennaStatusLabel.Height = 26;
+        _antennaStatusLabel.Text = "Ready";
+        _antennaStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
+        _antennaStatusLabel.BorderStyle = BorderStyle.FixedSingle;
+        _antennaStatusLabel.Padding = new Padding(4, 0, 4, 0);
+        panel.Controls.Add(_antennaStatusLabel);
+
+        return panel;
+    }
+
+    private static void AddCompactField(FlowLayoutPanel panel, string label, Control control, int width)
+    {
+        var row = new Panel { Width = width + 72, Height = 28, Margin = new Padding(0, 0, 4, 2) };
+        row.Controls.Add(new Label
+        {
+            Text = label,
+            Location = new Point(0, 3),
+            Size = new Size(70, 22),
+            TextAlign = ContentAlignment.MiddleLeft
+        });
+        control.Dock = DockStyle.None;
+        control.Location = new Point(72, 1);
+        control.Size = new Size(width, 24);
+        row.Controls.Add(control);
+        panel.Controls.Add(row);
+    }
+
+    private Control BuildSmallAntennaSweepPlots()
+    {
+        var plots = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
+        };
+        plots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        plots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+        ConfigurePlotView(_antennaReturnLossPlot);
+        ConfigurePlotView(_antennaPowerPlot);
+        ConfigurePlotView(_antennaCurrentPlot);
+        ConfigurePlotView(_antennaVoltagePlot);
+
+        plots.Controls.Add(_antennaReturnLossPlot, 0, 0);
+        plots.Controls.Add(_antennaPowerPlot, 1, 0);
+        plots.Controls.Add(_antennaCurrentPlot, 0, 1);
+        plots.Controls.Add(_antennaVoltagePlot, 1, 1);
+        return plots;
+    }
+
+    private Control BuildSmallAntennaCompressionPlots()
+    {
+        var plots = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 3,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
+        };
+        plots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        plots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 34));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
+
+        ConfigurePlotView(_antennaNodeVoltagePlot);
+        ConfigurePlotView(_antennaNodePhasePlot);
+        ConfigurePlotView(_antennaLocalPhaseShiftPlot);
+        ConfigurePlotView(_antennaSlowWaveFactorPlot);
+        ConfigurePlotView(_antennaStoredEnergyPlot);
+
+        plots.Controls.Add(_antennaNodeVoltagePlot, 0, 0);
+        plots.Controls.Add(_antennaNodePhasePlot, 1, 0);
+        plots.Controls.Add(_antennaLocalPhaseShiftPlot, 0, 1);
+        plots.Controls.Add(_antennaSlowWaveFactorPlot, 1, 1);
+        plots.Controls.Add(_antennaStoredEnergyPlot, 0, 2);
+        plots.SetColumnSpan(_antennaStoredEnergyPlot, 2);
+        return plots;
     }
 
     private Control BuildOptimizerPanel()
@@ -748,6 +947,7 @@ public partial class Form1 : Form
 
             RefreshPropagationFrequencyChoices(sweep);
             UpdatePropagationAnalysis();
+            UpdateSmallAntennaMode();
 
             _statusLabel.Text = $"OK | {sweep.Count} points";
         }
@@ -844,6 +1044,205 @@ public partial class Form1 : Form
             _slowWaveFactorPlot.Model = null;
             _storedEnergyPlot.Model = null;
         }
+    }
+
+    private void UpdateSmallAntennaMode()
+    {
+        try
+        {
+            var structure = SimulationEngine.ParseStructureAllowEmpty(_structureInput.Text);
+            var config = GetSmallAntennaConfig();
+            var sweep = SmallAntennaMode.Simulate(
+                (double)_antennaStartMHzInput.Value * 1e6,
+                (double)_antennaStopMHzInput.Value * 1e6,
+                (int)_antennaPointsInput.Value,
+                structure,
+                config);
+            _lastAntennaSweep = sweep;
+
+            var bestMatchFrequencyHz = sweep.OrderBy(p => p.InputReturnLossDb).First().FrequencyHz;
+            PropagationResult? propagation = null;
+            var propagationWarning = string.Empty;
+            if (structure.Count > 0)
+            {
+                try
+                {
+                    propagation = PropagationAnalysis.AnalyzeTerminated(
+                        structure,
+                        bestMatchFrequencyHz,
+                        SmallAntennaMode.SourceResistanceOhms,
+                        config.AntennaImpedance,
+                        (double)_antennaSpacingMmInput.Value * 1e-3,
+                        _lastSweep);
+                }
+                catch (Exception ex)
+                {
+                    propagationWarning = $"Compression view unavailable: {ex.Message}";
+                }
+            }
+            else
+            {
+                propagationWarning = "Compression view unavailable: direct antenna has no LC cells.";
+            }
+
+            var summary = SmallAntennaMode.Summarize(sweep, propagation, (double)_antennaMaxVoltageInput.Value);
+
+            _antennaReturnLossPlot.Model = PlotFactory.BuildAntennaInputReturnLossModel(sweep);
+            _antennaPowerPlot.Model = PlotFactory.BuildAntennaPowerModel(sweep);
+            _antennaCurrentPlot.Model = PlotFactory.BuildAntennaCurrentModel(sweep);
+            _antennaVoltagePlot.Model = PlotFactory.BuildAntennaVoltageModel(sweep);
+
+            if (propagation is not null)
+            {
+                _antennaNodeVoltagePlot.Model = PlotFactory.BuildNodeVoltageMagnitudeModel(propagation);
+                _antennaNodePhasePlot.Model = PlotFactory.BuildNodePhaseModel(propagation);
+                _antennaLocalPhaseShiftPlot.Model = PlotFactory.BuildLocalPhaseShiftModel(propagation);
+                _antennaSlowWaveFactorPlot.Model = PlotFactory.BuildSlowWaveFactorModel(propagation);
+                _antennaStoredEnergyPlot.Model = PlotFactory.BuildStoredEnergyModel(propagation);
+            }
+            else
+            {
+                ClearSmallAntennaCompressionPlots();
+            }
+
+            _antennaSummaryText.Text = SmallAntennaMode.FormatSummary(summary);
+            _antennaStatusLabel.Text = string.IsNullOrWhiteSpace(summary.VoltageWarning)
+                ? string.IsNullOrWhiteSpace(propagationWarning) ? "Small antenna analysis OK" : propagationWarning
+                : summary.VoltageWarning;
+        }
+        catch (Exception ex)
+        {
+            _antennaStatusLabel.Text = $"Small antenna analysis error: {ex.Message}";
+            _antennaSummaryText.Text = ex.Message;
+            ClearSmallAntennaPlots();
+        }
+    }
+
+    private void OptimizeSmallAntennaMode()
+    {
+        if (_optimizationRunning)
+        {
+            _antennaStatusLabel.Text = "Optimizer is already running.";
+            return;
+        }
+
+        try
+        {
+            var structure = SimulationEngine.ParseStructureAllowEmpty(_structureInput.Text);
+            var config = GetSmallAntennaOptimizerConfig();
+            _optimizationRunning = true;
+            _antennaOptimizeButton.Enabled = false;
+            _antennaApplyBestButton.Enabled = false;
+            _optimizationCancellation = new CancellationTokenSource();
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    UpdateAntennaStatus("Starting antenna-mode optimization...");
+                    var candidate = SmallAntennaMode.Optimize(
+                        structure,
+                        config,
+                        UpdateAntennaStatus,
+                        _optimizationCancellation.Token);
+                    _bestAntennaCandidate = candidate;
+
+                    Invoke(() =>
+                    {
+                        _lastAntennaSweep = candidate.Sweep;
+                        _antennaSummaryText.Text = SmallAntennaMode.FormatSummary(candidate.Summary);
+                        _antennaReturnLossPlot.Model = PlotFactory.BuildAntennaInputReturnLossModel(candidate.Sweep);
+                        _antennaPowerPlot.Model = PlotFactory.BuildAntennaPowerModel(candidate.Sweep);
+                        _antennaCurrentPlot.Model = PlotFactory.BuildAntennaCurrentModel(candidate.Sweep);
+                        _antennaVoltagePlot.Model = PlotFactory.BuildAntennaVoltageModel(candidate.Sweep);
+                        _antennaApplyBestButton.Enabled = true;
+                        _antennaStatusLabel.Text = $"Antenna optimization complete. Score: {candidate.Score:F4}";
+                    });
+                }
+                catch (OperationCanceledException)
+                {
+                    UpdateAntennaStatus("Antenna optimization cancelled.");
+                }
+                catch (Exception ex)
+                {
+                    UpdateAntennaStatus($"Antenna optimization error: {ex.Message}");
+                }
+                finally
+                {
+                    _optimizationRunning = false;
+                    Invoke(() => _antennaOptimizeButton.Enabled = true);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _antennaStatusLabel.Text = $"Antenna optimization error: {ex.Message}";
+            _optimizationRunning = false;
+            _antennaOptimizeButton.Enabled = true;
+        }
+    }
+
+    private void ApplyBestSmallAntennaCandidate()
+    {
+        if (_bestAntennaCandidate is null)
+        {
+            _antennaStatusLabel.Text = "No antenna candidate available.";
+            return;
+        }
+
+        _structureInput.Text = JsonSerializer.Serialize(_bestAntennaCandidate.Structure, new JsonSerializerOptions { WriteIndented = true });
+        UpdateStructureSummary(_bestAntennaCandidate.Structure);
+        _presetCombo.SelectedIndex = -1;
+        RunSimulation();
+        UpdateSmallAntennaMode();
+        _antennaStatusLabel.Text = $"Applied antenna-mode best. Score: {_bestAntennaCandidate.Score:F4}";
+    }
+
+    private SmallAntennaConfig GetSmallAntennaConfig()
+    {
+        return new SmallAntennaConfig
+        {
+            RadiationResistanceOhms = (double)_antennaRradInput.Value,
+            LossResistanceOhms = (double)_antennaRlossInput.Value,
+            ReactanceOhms = (double)_antennaXantInput.Value
+        };
+    }
+
+    private SmallAntennaOptimizerConfig GetSmallAntennaOptimizerConfig()
+    {
+        return new SmallAntennaOptimizerConfig
+        {
+            StartHz = (double)_antennaStartMHzInput.Value * 1e6,
+            StopHz = (double)_antennaStopMHzInput.Value * 1e6,
+            Points = (int)_antennaPointsInput.Value,
+            TargetInputReturnLossDb = (double)_antennaTargetReturnLossInput.Value,
+            MaxAntennaVoltage = (double)_antennaMaxVoltageInput.Value,
+            MaxIterations = (int)_antennaOptimizerIterationsInput.Value,
+            AntennaConfig = GetSmallAntennaConfig()
+        };
+    }
+
+    private void ClearSmallAntennaPlots()
+    {
+        _antennaReturnLossPlot.Model = null;
+        _antennaPowerPlot.Model = null;
+        _antennaCurrentPlot.Model = null;
+        _antennaVoltagePlot.Model = null;
+        ClearSmallAntennaCompressionPlots();
+    }
+
+    private void ClearSmallAntennaCompressionPlots()
+    {
+        _antennaNodeVoltagePlot.Model = null;
+        _antennaNodePhasePlot.Model = null;
+        _antennaLocalPhaseShiftPlot.Model = null;
+        _antennaSlowWaveFactorPlot.Model = null;
+        _antennaStoredEnergyPlot.Model = null;
+    }
+
+    private void UpdateAntennaStatus(string message)
+    {
+        Invoke(() => _antennaStatusLabel.Text = message);
     }
 
     private void SaveConfiguration()

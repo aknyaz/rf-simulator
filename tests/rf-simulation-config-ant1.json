@@ -1,0 +1,28 @@
+{
+  "StartMHz": 5,
+  "StopMHz": 50,
+  "Points": 401,
+  "Z0": 50,
+  "Structure": [
+    {
+      "Type": "SeriesL",
+      "Value": 3.3E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.2E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 2.2E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.5E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 8.2E-07
+    }
+  ]
+}

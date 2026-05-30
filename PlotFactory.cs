@@ -168,6 +168,57 @@ public static class PlotFactory
         return model;
     }
 
+    public static PlotModel BuildAntennaInputReturnLossModel(IReadOnlyList<SmallAntennaPoint> sweep)
+    {
+        return BuildAntennaFrequencyModel(
+            "Input Return Loss With Antenna Load",
+            "dB",
+            sweep,
+            new[]
+            {
+                new AntennaSeries("Input return loss", OxyColor.FromRgb(184, 161, 0), p => p.InputReturnLossDb)
+            });
+    }
+
+    public static PlotModel BuildAntennaPowerModel(IReadOnlyList<SmallAntennaPoint> sweep)
+    {
+        var model = BuildAntennaFrequencyModel(
+            "Antenna Delivered / Radiated Power",
+            "dB re 1 W available",
+            sweep,
+            new[]
+            {
+                new AntennaSeries("Delivered", OxyColor.FromRgb(184, 161, 0), p => p.DeliveredPowerDb),
+                new AntennaSeries("Radiated", OxyColors.DodgerBlue, p => p.RadiatedPowerDb)
+            });
+        model.IsLegendVisible = true;
+        return model;
+    }
+
+    public static PlotModel BuildAntennaCurrentModel(IReadOnlyList<SmallAntennaPoint> sweep)
+    {
+        return BuildAntennaFrequencyModel(
+            "Antenna Current",
+            "A RMS",
+            sweep,
+            new[]
+            {
+                new AntennaSeries("|Iant|", OxyColor.FromRgb(184, 161, 0), p => p.AntennaCurrent.Magnitude)
+            });
+    }
+
+    public static PlotModel BuildAntennaVoltageModel(IReadOnlyList<SmallAntennaPoint> sweep)
+    {
+        return BuildAntennaFrequencyModel(
+            "Antenna Voltage",
+            "V RMS",
+            sweep,
+            new[]
+            {
+                new AntennaSeries("|Vant|", OxyColor.FromRgb(184, 161, 0), p => p.AntennaVoltage.Magnitude)
+            });
+    }
+
     private static PlotModel BuildDbModel(string title, IReadOnlyList<SweepPoint> sweep, Func<SweepPoint, double> selector)
     {
         return BuildFrequencyModel(title, "dB", sweep, i => selector(sweep[i]));
@@ -223,6 +274,48 @@ public static class PlotFactory
         return model;
     }
 
+    private static PlotModel BuildAntennaFrequencyModel(
+        string title,
+        string yAxisTitle,
+        IReadOnlyList<SmallAntennaPoint> sweep,
+        IReadOnlyList<AntennaSeries> seriesDefinitions)
+    {
+        var model = new PlotModel { Title = title, PlotAreaBorderColor = OxyColors.Gray };
+        var startMHz = sweep.Count > 0 ? sweep[0].FrequencyHz / 1e6 : 0;
+        var stopMHz = sweep.Count > 0 ? sweep[^1].FrequencyHz / 1e6 : 1;
+        var axisPadMHz = Math.Max((stopMHz - startMHz) * 0.025, 0.5);
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Frequency (MHz)",
+            Minimum = startMHz,
+            Maximum = stopMHz + axisPadMHz,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Dot,
+            MajorGridlineColor = OxyColor.FromAColor(80, OxyColors.Gray),
+            MinorGridlineColor = OxyColor.FromAColor(30, OxyColors.Gray)
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Left,
+            Title = yAxisTitle,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Dot,
+            MajorGridlineColor = OxyColor.FromAColor(80, OxyColors.Gray),
+            MinorGridlineColor = OxyColor.FromAColor(30, OxyColors.Gray)
+        });
+
+        foreach (var definition in seriesDefinitions)
+        {
+            model.Series.Add(BuildLineSeries(
+                definition.Title,
+                definition.Color,
+                sweep.Select(p => new DataPoint(p.FrequencyHz / 1e6, definition.Selector(p))).ToList()));
+        }
+
+        return model;
+    }
+
     private static PlotModel CreateIndexModel(string title, string xAxisTitle, string yAxisTitle)
     {
         var model = new PlotModel { Title = title, PlotAreaBorderColor = OxyColors.Gray };
@@ -267,6 +360,11 @@ public static class PlotFactory
 
         return line;
     }
+
+    private readonly record struct AntennaSeries(
+        string Title,
+        OxyColor Color,
+        Func<SmallAntennaPoint, double> Selector);
 
     private static double ChooseGroupDelayMajorStep(double rangeNs)
     {
