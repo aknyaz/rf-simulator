@@ -25,6 +25,19 @@ public partial class Form1 : Form
     private readonly PlotView _s21PhasePlot = new();
     private readonly PlotView _groupDelayPlot = new();
 
+    private readonly NumericUpDown _propagationSpacingMmInput = new();
+    private readonly NumericUpDown _propagationFrequencyMHzInput = new();
+    private readonly ComboBox _propagationSweepFrequencyCombo = new();
+    private readonly Button _propagationUseCenterButton = new();
+    private readonly Button _propagationUpdateButton = new();
+    private readonly TextBox _propagationSummaryText = new();
+    private readonly Label _propagationStatusLabel = new();
+    private readonly PlotView _nodeVoltagePlot = new();
+    private readonly PlotView _nodePhasePlot = new();
+    private readonly PlotView _localPhaseShiftPlot = new();
+    private readonly PlotView _slowWaveFactorPlot = new();
+    private readonly PlotView _storedEnergyPlot = new();
+
     // Optimizer controls
     private readonly NumericUpDown _optStartMHzInput = new();
     private readonly NumericUpDown _optStopMHzInput = new();
@@ -50,6 +63,7 @@ public partial class Form1 : Form
     private readonly Label _optimizerStatusLabel = new();
 
     private List<OptimizerEngine.CandidateResult> _candidateResults = new();
+    private List<SweepPoint> _lastSweep = new();
     private int _displayedCandidateIndex = -1;
     private bool _optimizationRunning = false;
     private CancellationTokenSource _optimizationCancellation = new();
@@ -87,10 +101,10 @@ public partial class Form1 : Form
         simulatorRoot.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var controlsPanel = BuildControlsPanel();
-        var plotsGrid = BuildPlotsGrid();
+        var analysisTabs = BuildAnalysisTabs();
 
         simulatorRoot.Controls.Add(controlsPanel, 0, 0);
-        simulatorRoot.Controls.Add(plotsGrid, 0, 1);
+        simulatorRoot.Controls.Add(analysisTabs, 0, 1);
 
         var split = new SplitContainer
         {
@@ -116,6 +130,24 @@ public partial class Form1 : Form
 
         root.Controls.Add(split, 0, 0);
         Controls.Add(root);
+    }
+
+    private Control BuildAnalysisTabs()
+    {
+        var tabs = new TabControl
+        {
+            Dock = DockStyle.Fill
+        };
+
+        var sParameterTab = new TabPage("S-Parameters");
+        sParameterTab.Controls.Add(BuildPlotsGrid());
+
+        var propagationTab = new TabPage("Propagation Analysis");
+        propagationTab.Controls.Add(BuildPropagationAnalysisPanel());
+
+        tabs.TabPages.Add(sParameterTab);
+        tabs.TabPages.Add(propagationTab);
+        return tabs;
     }
 
     private Control BuildControlsPanel()
@@ -275,6 +307,127 @@ public partial class Form1 : Form
         plots.Padding = new Padding(0);
 
         return plots;
+    }
+
+    private Control BuildPropagationAnalysisPanel()
+    {
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            Padding = new Padding(0)
+        };
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        root.Controls.Add(BuildPropagationControlsPanel(), 0, 0);
+
+        _propagationSummaryText.ReadOnly = true;
+        _propagationSummaryText.Multiline = true;
+        _propagationSummaryText.ScrollBars = ScrollBars.Vertical;
+        _propagationSummaryText.Dock = DockStyle.Fill;
+        _propagationSummaryText.Font = new Font("Consolas", 9);
+        _propagationSummaryText.BackColor = SystemColors.Window;
+        root.Controls.Add(_propagationSummaryText, 0, 1);
+
+        var plots = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 3,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
+        };
+        plots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        plots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 34));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
+        plots.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
+
+        ConfigurePlotView(_nodeVoltagePlot);
+        ConfigurePlotView(_nodePhasePlot);
+        ConfigurePlotView(_localPhaseShiftPlot);
+        ConfigurePlotView(_slowWaveFactorPlot);
+        ConfigurePlotView(_storedEnergyPlot);
+
+        plots.Controls.Add(_nodeVoltagePlot, 0, 0);
+        plots.Controls.Add(_nodePhasePlot, 1, 0);
+        plots.Controls.Add(_localPhaseShiftPlot, 0, 1);
+        plots.Controls.Add(_slowWaveFactorPlot, 1, 1);
+        plots.Controls.Add(_storedEnergyPlot, 0, 2);
+        plots.SetColumnSpan(_storedEnergyPlot, 2);
+        root.Controls.Add(plots, 0, 2);
+
+        return root;
+    }
+
+    private Control BuildPropagationControlsPanel()
+    {
+        var panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            ColumnCount = 9,
+            RowCount = 1,
+            AutoSize = true,
+            Padding = new Padding(0, 0, 0, 6)
+        };
+
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+        ConfigureNumeric(_propagationSpacingMmInput, 0.001m, 1000, 5, 3, 0.5m);
+        ConfigureNumeric(_propagationFrequencyMHzInput, 0.001m, 10000, 27.5m, 6, 0.1m);
+
+        _propagationSweepFrequencyCombo.DropDownStyle = ComboBoxStyle.DropDownList;
+        _propagationSweepFrequencyCombo.Dock = DockStyle.Fill;
+        _propagationSweepFrequencyCombo.SelectedIndexChanged += (_, _) =>
+        {
+            if (_propagationSweepFrequencyCombo.SelectedItem is SweepFrequencyItem item)
+            {
+                SetNumericValue(_propagationFrequencyMHzInput, (decimal)(item.FrequencyHz / 1e6));
+                UpdatePropagationAnalysis();
+            }
+        };
+
+        _propagationUseCenterButton.Text = "Use Sweep Center";
+        _propagationUseCenterButton.AutoSize = true;
+        _propagationUseCenterButton.Click += (_, _) =>
+        {
+            SetPropagationFrequencyToSweepCenter();
+            UpdatePropagationAnalysis();
+        };
+
+        _propagationUpdateButton.Text = "Update";
+        _propagationUpdateButton.AutoSize = true;
+        _propagationUpdateButton.Click += (_, _) => UpdatePropagationAnalysis();
+
+        _propagationStatusLabel.AutoSize = false;
+        _propagationStatusLabel.Dock = DockStyle.Fill;
+        _propagationStatusLabel.AutoEllipsis = true;
+        _propagationStatusLabel.Text = "Run simulation to populate propagation analysis.";
+        _propagationStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
+        _propagationStatusLabel.BorderStyle = BorderStyle.FixedSingle;
+        _propagationStatusLabel.Padding = new Padding(4, 0, 4, 0);
+
+        panel.Controls.Add(new Label { Text = "Cell spacing mm", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+        panel.Controls.Add(_propagationSpacingMmInput, 1, 0);
+        panel.Controls.Add(new Label { Text = "Frequency MHz", AutoSize = true, Anchor = AnchorStyles.Left }, 2, 0);
+        panel.Controls.Add(_propagationFrequencyMHzInput, 3, 0);
+        panel.Controls.Add(_propagationSweepFrequencyCombo, 4, 0);
+        panel.Controls.Add(_propagationUseCenterButton, 5, 0);
+        panel.Controls.Add(_propagationUpdateButton, 6, 0);
+        panel.Controls.Add(_propagationStatusLabel, 7, 0);
+        panel.SetColumnSpan(_propagationStatusLabel, 2);
+
+        return panel;
     }
 
     private Control BuildOptimizerPanel()
@@ -584,6 +737,7 @@ public partial class Form1 : Form
                 (int)_pointsInput.Value,
                 (double)_z0Input.Value,
                 structure);
+            _lastSweep = sweep;
 
             _smithPlot.Model = PlotFactory.BuildSmithModel(sweep);
             _s11DbPlot.Model = PlotFactory.BuildS11DbModel(sweep);
@@ -592,11 +746,103 @@ public partial class Form1 : Form
             _s21PhasePlot.Model = PlotFactory.BuildS21PhaseModel(sweep);
             _groupDelayPlot.Model = PlotFactory.BuildGroupDelayModel(sweep);
 
+            RefreshPropagationFrequencyChoices(sweep);
+            UpdatePropagationAnalysis();
+
             _statusLabel.Text = $"OK | {sweep.Count} points";
         }
         catch (Exception ex)
         {
             _statusLabel.Text = $"Error: {ex.Message}";
+        }
+    }
+
+    private void RefreshPropagationFrequencyChoices(IReadOnlyList<SweepPoint> sweep)
+    {
+        var selectedMHz = (double)_propagationFrequencyMHzInput.Value;
+        _propagationSweepFrequencyCombo.Items.Clear();
+
+        if (sweep.Count == 0)
+        {
+            return;
+        }
+
+        var indices = new[] { 0, sweep.Count / 4, sweep.Count / 2, sweep.Count * 3 / 4, sweep.Count - 1 }
+            .Distinct()
+            .ToList();
+
+        foreach (var index in indices)
+        {
+            _propagationSweepFrequencyCombo.Items.Add(new SweepFrequencyItem(sweep[index].FrequencyHz));
+        }
+
+        var nearestIndex = 0;
+        var nearestDelta = double.PositiveInfinity;
+        for (var i = 0; i < _propagationSweepFrequencyCombo.Items.Count; i++)
+        {
+            if (_propagationSweepFrequencyCombo.Items[i] is SweepFrequencyItem item)
+            {
+                var delta = Math.Abs(item.FrequencyHz / 1e6 - selectedMHz);
+                if (delta < nearestDelta)
+                {
+                    nearestDelta = delta;
+                    nearestIndex = i;
+                }
+            }
+        }
+
+        _propagationSweepFrequencyCombo.SelectedIndex = nearestIndex;
+    }
+
+    private void SetPropagationFrequencyToSweepCenter()
+    {
+        if (_lastSweep.Count == 0)
+        {
+            var centerMHz = ((double)_startMHzInput.Value + (double)_stopMHzInput.Value) / 2.0;
+            SetNumericValue(_propagationFrequencyMHzInput, (decimal)centerMHz);
+            return;
+        }
+
+        var centerIndex = _lastSweep.Count / 2;
+        SetNumericValue(_propagationFrequencyMHzInput, (decimal)(_lastSweep[centerIndex].FrequencyHz / 1e6));
+    }
+
+    private void UpdatePropagationAnalysis()
+    {
+        try
+        {
+            if (_lastSweep.Count == 0)
+            {
+                _propagationSummaryText.Text = string.Empty;
+                _propagationStatusLabel.Text = "Run simulation to populate propagation analysis.";
+                return;
+            }
+
+            var structure = SimulationEngine.ParseStructure(_structureInput.Text);
+            var result = PropagationAnalysis.Analyze(
+                structure,
+                (double)_propagationFrequencyMHzInput.Value * 1e6,
+                (double)_z0Input.Value,
+                (double)_propagationSpacingMmInput.Value * 1e-3,
+                _lastSweep);
+
+            _nodeVoltagePlot.Model = PlotFactory.BuildNodeVoltageMagnitudeModel(result);
+            _nodePhasePlot.Model = PlotFactory.BuildNodePhaseModel(result);
+            _localPhaseShiftPlot.Model = PlotFactory.BuildLocalPhaseShiftModel(result);
+            _slowWaveFactorPlot.Model = PlotFactory.BuildSlowWaveFactorModel(result);
+            _storedEnergyPlot.Model = PlotFactory.BuildStoredEnergyModel(result);
+            _propagationSummaryText.Text = PropagationAnalysis.FormatSummary(result);
+            _propagationStatusLabel.Text = string.IsNullOrWhiteSpace(result.Warning) ? "Propagation analysis OK" : result.Warning;
+        }
+        catch (Exception ex)
+        {
+            _propagationStatusLabel.Text = $"Propagation analysis unavailable: {ex.Message}";
+            _propagationSummaryText.Text = ex.Message;
+            _nodeVoltagePlot.Model = null;
+            _nodePhasePlot.Model = null;
+            _localPhaseShiftPlot.Model = null;
+            _slowWaveFactorPlot.Model = null;
+            _storedEnergyPlot.Model = null;
         }
     }
 
@@ -1126,4 +1372,15 @@ public partial class Form1 : Form
         input.Value = Math.Min(input.Maximum, Math.Max(input.Minimum, value));
     }
 
+    private sealed class SweepFrequencyItem
+    {
+        public SweepFrequencyItem(double frequencyHz)
+        {
+            FrequencyHz = frequencyHz;
+        }
+
+        public double FrequencyHz { get; }
+
+        public override string ToString() => $"{FrequencyHz / 1e6:F3} MHz";
+    }
 }

@@ -114,6 +114,60 @@ public static class PlotFactory
         return model;
     }
 
+    public static PlotModel BuildNodeVoltageMagnitudeModel(PropagationResult result)
+    {
+        return BuildIndexModel(
+            "Node Voltage Magnitude",
+            "Node Index",
+            "|V|",
+            result.Nodes.Select(n => new DataPoint(n.Index, n.VoltageMagnitude)).ToList());
+    }
+
+    public static PlotModel BuildNodePhaseModel(PropagationResult result)
+    {
+        return BuildIndexModel(
+            "Node Phase",
+            "Node Index",
+            "deg",
+            result.Nodes.Select(n => new DataPoint(n.Index, n.PhaseDeg)).ToList());
+    }
+
+    public static PlotModel BuildLocalPhaseShiftModel(PropagationResult result)
+    {
+        return BuildIndexModel(
+            "Local Phase Shift Per Cell",
+            "Cell Index",
+            "deg",
+            result.Cells.Select(c => new DataPoint(c.Index, c.DeltaPhaseDeg)).ToList());
+    }
+
+    public static PlotModel BuildSlowWaveFactorModel(PropagationResult result)
+    {
+        return BuildIndexModel(
+            "Slow-Wave Factor",
+            "Cell Index",
+            "c / v_phase",
+            result.Cells
+                .Where(c => double.IsFinite(c.SlowWaveFactor))
+                .Select(c => new DataPoint(c.Index, c.SlowWaveFactor))
+                .ToList());
+    }
+
+    public static PlotModel BuildStoredEnergyModel(PropagationResult result)
+    {
+        var model = CreateIndexModel("Stored Energy Per Element", "Element Index", "J");
+        model.Series.Add(BuildLineSeries(
+            "Inductor magnetic energy",
+            OxyColor.FromRgb(184, 161, 0),
+            result.Cells.Select(c => new DataPoint(c.Index, c.InductorEnergyJoules)).ToList()));
+        model.Series.Add(BuildLineSeries(
+            "Capacitor electric energy",
+            OxyColors.DodgerBlue,
+            result.Capacitors.Select(c => new DataPoint(c.Index, c.CapacitorEnergyJoules)).ToList()));
+        model.IsLegendVisible = true;
+        return model;
+    }
+
     private static PlotModel BuildDbModel(string title, IReadOnlyList<SweepPoint> sweep, Func<SweepPoint, double> selector)
     {
         return BuildFrequencyModel(title, "dB", sweep, i => selector(sweep[i]));
@@ -160,6 +214,58 @@ public static class PlotFactory
 
         AddFrequencyMarkers(model, sweep, selector);
         return model;
+    }
+
+    private static PlotModel BuildIndexModel(string title, string xAxisTitle, string yAxisTitle, IReadOnlyList<DataPoint> points)
+    {
+        var model = CreateIndexModel(title, xAxisTitle, yAxisTitle);
+        model.Series.Add(BuildLineSeries(null, OxyColor.FromRgb(184, 161, 0), points));
+        return model;
+    }
+
+    private static PlotModel CreateIndexModel(string title, string xAxisTitle, string yAxisTitle)
+    {
+        var model = new PlotModel { Title = title, PlotAreaBorderColor = OxyColors.Gray };
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = xAxisTitle,
+            MajorStep = 1,
+            MinorStep = 1,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Dot,
+            MajorGridlineColor = OxyColor.FromAColor(80, OxyColors.Gray),
+            MinorGridlineColor = OxyColor.FromAColor(30, OxyColors.Gray)
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Left,
+            Title = yAxisTitle,
+            MajorGridlineStyle = LineStyle.Solid,
+            MinorGridlineStyle = LineStyle.Dot,
+            MajorGridlineColor = OxyColor.FromAColor(80, OxyColors.Gray),
+            MinorGridlineColor = OxyColor.FromAColor(30, OxyColors.Gray)
+        });
+        return model;
+    }
+
+    private static LineSeries BuildLineSeries(string? title, OxyColor color, IReadOnlyList<DataPoint> points)
+    {
+        var line = new LineSeries
+        {
+            Title = title,
+            Color = color,
+            StrokeThickness = 1.6,
+            MarkerType = MarkerType.Circle,
+            MarkerSize = 2.5
+        };
+
+        foreach (var point in points)
+        {
+            line.Points.Add(point);
+        }
+
+        return line;
     }
 
     private static double ChooseGroupDelayMajorStep(double rangeNs)
