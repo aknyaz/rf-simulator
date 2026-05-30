@@ -1,0 +1,165 @@
+{
+  "mode": "grow-compression",
+  "passed": false,
+  "accepted_cells": 0,
+  "rejected_step_count": 4510,
+  "stop_reason": "No SeriesL \u002B ShuntC or ShuntC \u002B SeriesL seed met the return-loss, coupling, and power-delivery constraints.",
+  "output_path": null,
+  "elapsed_seconds": 3.0496341,
+  "final_structure": null,
+  "final_metrics": null,
+  "final_usable_rf_device": false,
+  "final_validation_reasons": [],
+  "growth_report": [
+    "1 cell: REJECT, reason = no seed met the complete launcher validation constraints.",
+    "Final accepted structure: 0 cells."
+  ],
+  "best_rejected_seeds": [
+    {
+      "best_return_loss_db": -45.010336724135584,
+      "delivered_power_db": -0.00013701164780018695,
+      "best_match_reflection_coefficient_magnitude": 0.005616725036886598,
+      "best_match_reflected_power_percent": 0.003154760013998876,
+      "best_match_accepted_power_percent": 99.996845239986,
+      "best_match_delivered_power_percent": 99.99684523998569,
+      "average_input_reflection_percent": 94.53500727674103,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "reasons": [
+        "slow-wave factor exceeded bound",
+        "energy localization",
+        "excessive sweep-average reflected input power",
+        "internal medium quality failed",
+        "usable RF-device validation failed",
+        "resonance penalty exceeded limit"
+      ],
+      "structure": [
+        {
+          "type": "ShuntC",
+          "value": 3.0219213549649874E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 1.1977044785410613E-06
+        }
+      ]
+    },
+    {
+      "best_return_loss_db": -23.132744107893892,
+      "delivered_power_db": -0.02116253051600184,
+      "best_match_reflection_coefficient_magnitude": 0.06972086949652377,
+      "best_match_reflected_power_percent": 0.48609996433512986,
+      "best_match_accepted_power_percent": 99.51390003566488,
+      "best_match_delivered_power_percent": 99.51390003566478,
+      "average_input_reflection_percent": 94.77266600596401,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "reasons": [
+        "slow-wave factor exceeded bound",
+        "energy localization",
+        "excessive sweep-average reflected input power",
+        "internal medium quality failed",
+        "usable RF-device validation failed",
+        "resonance penalty exceeded limit"
+      ],
+      "structure": [
+        {
+          "type": "ShuntC",
+          "value": 2.4231249399431987E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 1.0095385313727747E-06
+        }
+      ]
+    },
+    {
+      "best_return_loss_db": -22.501843600063825,
+      "delivered_power_db": -0.0244806762281364,
+      "best_match_reflection_coefficient_magnitude": 0.07497350594514149,
+      "best_match_reflected_power_percent": 0.5621026593706167,
+      "best_match_accepted_power_percent": 99.43789734062939,
+      "best_match_delivered_power_percent": 99.43789734062946,
+      "average_input_reflection_percent": 94.95405355587788,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "reasons": [
+        "slow-wave factor exceeded bound",
+        "energy localization",
+        "excessive sweep-average reflected input power",
+        "internal medium quality failed",
+        "usable RF-device validation failed",
+        "resonance penalty exceeded limit"
+      ],
+      "structure": [
+        {
+          "type": "ShuntC",
+          "value": 3.3E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 1.1977044785410613E-06
+        }
+      ]
+    },
+    {
+      "best_return_loss_db": -22.072263781320117,
+      "delivered_power_db": -0.027033913988368685,
+      "best_match_reflection_coefficient_magnitude": 0.07877470961727812,
+      "best_match_reflected_power_percent": 0.6205454875286489,
+      "best_match_accepted_power_percent": 99.37945451247136,
+      "best_match_delivered_power_percent": 99.37945451247113,
+      "average_input_reflection_percent": 95.56512614330697,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "reasons": [
+        "slow-wave factor exceeded bound",
+        "energy localization",
+        "excessive sweep-average reflected input power",
+        "internal medium quality failed",
+        "usable RF-device validation failed",
+        "resonance penalty exceeded limit"
+      ],
+      "structure": [
+        {
+          "type": "ShuntC",
+          "value": 3.768690802962665E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 1.420942315066149E-06
+        }
+      ]
+    },
+    {
+      "best_return_loss_db": -21.919718736633634,
+      "delivered_power_db": -0.028003470599728377,
+      "best_match_reflection_coefficient_magnitude": 0.08017040234598231,
+      "best_match_reflected_power_percent": 0.6427293412316687,
+      "best_match_accepted_power_percent": 99.35727065876833,
+      "best_match_delivered_power_percent": 99.35727065876833,
+      "average_input_reflection_percent": 95.02889241677286,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "reasons": [
+        "slow-wave factor exceeded bound",
+        "energy localization",
+        "excessive sweep-average reflected input power",
+        "internal medium quality failed",
+        "usable RF-device validation failed",
+        "resonance penalty exceeded limit"
+      ],
+      "structure": [
+        {
+          "type": "ShuntC",
+          "value": 3.3E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 1.420942315066149E-06
+        }
+      ]
+    }
+  ],
+  "steps": []
+}

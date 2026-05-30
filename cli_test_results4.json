@@ -1,0 +1,992 @@
+{
+  "mode": "optimize-compression",
+  "passed": false,
+  "failure_reason": "No physically valid candidate was found.",
+  "iterations": 10000,
+  "random_seed": 12345,
+  "accepted_candidates": 2,
+  "rejected_candidates": 9999,
+  "save_best_path": "best_medium.json",
+  "history_json_path": "optimizer_history.json",
+  "history_csv_path": "optimizer_history.csv",
+  "best_metrics": null,
+  "best_internal_metrics": {
+    "mode": "compression",
+    "best_return_loss_db": -0.049136748943813875,
+    "average_input_reflection_percent": 99.17921119467377,
+    "frequency_of_best_match_mhz": 12.425,
+    "delivered_power_db": -19.488324136512507,
+    "radiated_power_db": -21.249236727069317,
+    "radiation_efficiency_percent": 66.66666666666667,
+    "total_phase_shift_deg": -1.0920291921332,
+    "total_group_delay_ns": 20.967641890615088,
+    "average_slow_wave_factor": 2.9276290249708583,
+    "max_slow_wave_factor": 6.840866417594533,
+    "slow_wave_factor_peak_cell": 0,
+    "energy_concentration_ratio": 0.4371218378703727,
+    "phase_smoothness_error": 1.1775230292486425,
+    "lc_smoothness_error": 1.9054718253021825,
+    "compression_ratio": 251.43763603405057,
+    "optimizer_score": 147707.34504318776,
+    "score_breakdown": {
+      "input_match_score": 49509.83972061024,
+      "radiated_power_score": -2.2471727154664642,
+      "smooth_gradient_score": 215.5024937411675,
+      "phase_compression_score": 64.5878872629864,
+      "resonance_penalty": 0,
+      "energy_localization_penalty": 798.5025072256997,
+      "input_coupling_score": 97121.15960706315,
+      "total_score": 147707.34504318776
+    },
+    "pass_fail_flags": {
+      "finite_metrics": true,
+      "target_return_loss": false,
+      "propagation_supported": true,
+      "slow_wave_bounded": true,
+      "energy_distributed": true,
+      "input_coupling_acceptable": false,
+      "internal_medium_quality": true,
+      "usable_rf_device": false,
+      "overall": false
+    },
+    "output_path": null,
+    "structure": [
+      {
+        "type": "SeriesL",
+        "value": 8E-08
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.8E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.6E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 4.5E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.4000000000000003E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 7E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 3.2E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 9.5E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 4.0000000000000003E-07
+      }
+    ]
+  },
+  "regression_before": {
+    "test_directory": "tests\\cli",
+    "passed": true,
+    "total": 5,
+    "passed_count": 5,
+    "failed_count": 0,
+    "summary_lines": [
+      "abrupt_lc_jump_bad: INTERNAL FAIL / DEVICE FAIL",
+      "bad_resonant_match: INTERNAL FAIL / DEVICE FAIL",
+      "energy_localized_bad: INTERNAL FAIL / DEVICE FAIL",
+      "poor_return_loss_bad: INTERNAL FAIL / DEVICE FAIL",
+      "smooth_gradient_medium: INTERNAL PASS / DEVICE FAIL"
+    ],
+    "results": [
+      {
+        "name": "abrupt LC jump bad",
+        "file": "abrupt_lc_jump_bad.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -0.04090194134634097,
+          "average_input_reflection_percent": 99.93909634376392,
+          "frequency_of_best_match_mhz": 5,
+          "delivered_power_db": -20.280838817039385,
+          "radiated_power_db": -22.041751407596198,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -0.4975641551826052,
+          "total_group_delay_ns": 57.831075898933555,
+          "average_slow_wave_factor": 4.143499474857963,
+          "max_slow_wave_factor": 13.934310208924352,
+          "slow_wave_factor_peak_cell": 1,
+          "energy_concentration_ratio": 0.9590449386721925,
+          "phase_smoothness_error": 25.552178739491204,
+          "lc_smoothness_error": 42.35065389189569,
+          "compression_ratio": 866.8660196262925,
+          "optimizer_score": 161509.71938613054,
+          "score_breakdown": {
+            "input_match_score": 49591.81707093954,
+            "radiated_power_score": -0.20538794427451845,
+            "smooth_gradient_score": 150.63850848385565,
+            "phase_compression_score": 0.27077485342544116,
+            "resonance_penalty": 8213.856373263803,
+            "energy_localization_penalty": 1260.968187079811,
+            "input_coupling_score": 102292.37385945438,
+            "total_score": 161509.71938613054
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": true,
+            "energy_distributed": false,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 5E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.5E-06
+            },
+            {
+              "type": "ShuntC",
+              "value": 4E-10
+            },
+            {
+              "type": "SeriesL",
+              "value": 6E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.8E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 7E-08
+            }
+          ]
+        }
+      },
+      {
+        "name": "bad resonant match",
+        "file": "bad_resonant_match.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -8.997586806121479,
+          "average_input_reflection_percent": 97.00900675070606,
+          "frequency_of_best_match_mhz": 48.875,
+          "delivered_power_db": -0.5846994074016942,
+          "radiated_power_db": -2.345611997958507,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -404.6487813154009,
+          "total_group_delay_ns": 565.9981331399199,
+          "average_slow_wave_factor": 153.21354270752238,
+          "max_slow_wave_factor": 602.1643008237318,
+          "slow_wave_factor_peak_cell": 1,
+          "energy_concentration_ratio": 0.27324099226592996,
+          "phase_smoothness_error": 123.06712622765505,
+          "lc_smoothness_error": 24.047312619171755,
+          "compression_ratio": 3770.7104790539524,
+          "optimizer_score": 248179.94099228387,
+          "score_breakdown": {
+            "input_match_score": 502.4161056308687,
+            "radiated_power_score": -5.615313943316077,
+            "smooth_gradient_score": 3706.260225947853,
+            "phase_compression_score": 153112.6511234405,
+            "resonance_penalty": 1078.432326017597,
+            "energy_localization_penalty": 125.78939210377057,
+            "input_coupling_score": 89660.0071330866,
+            "total_score": 248179.94099228387
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": false,
+            "energy_distributed": true,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 4.7E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.1E-10
+            },
+            {
+              "type": "SeriesL",
+              "value": 3.3E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 8.2E-12
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.8E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2.2E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.7E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2.7E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 4.7E-07
+            }
+          ]
+        }
+      },
+      {
+        "name": "energy localized bad",
+        "file": "energy_localized_bad.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -0.046315437431759254,
+          "average_input_reflection_percent": 99.9517362873627,
+          "frequency_of_best_match_mhz": 5,
+          "delivered_power_db": -19.743722549701566,
+          "radiated_power_db": -21.50463514025838,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -178.55318283699498,
+          "total_group_delay_ns": 73.60079758319696,
+          "average_slow_wave_factor": 1486.9138212896146,
+          "max_slow_wave_factor": 4248.969949891295,
+          "slow_wave_factor_peak_cell": 2,
+          "energy_concentration_ratio": 0.9507239501565045,
+          "phase_smoothness_error": 111.34458467111676,
+          "lc_smoothness_error": 24.67652602767064,
+          "compression_ratio": 1103.248200911354,
+          "optimizer_score": 9750462.846698139,
+          "score_breakdown": {
+            "input_match_score": 49537.91818555465,
+            "radiated_power_score": -0.16343532272322736,
+            "smooth_gradient_score": 1856.7161662200547,
+            "phase_compression_score": 9579616.48719853,
+            "resonance_penalty": 14981.202744458911,
+            "energy_localization_penalty": 3417.4355032504363,
+            "input_coupling_score": 101053.25033544768,
+            "total_score": 9750462.846698139
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": false,
+            "energy_distributed": false,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 8E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2E-06
+            },
+            {
+              "type": "ShuntC",
+              "value": 4E-10
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.2E-07
+            }
+          ]
+        }
+      },
+      {
+        "name": "poor return loss bad",
+        "file": "poor_return_loss_bad.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "antenna",
+          "best_return_loss_db": -0.028750566896937387,
+          "average_input_reflection_percent": 99.34621531330625,
+          "frequency_of_best_match_mhz": 50,
+          "delivered_power_db": -21.805746341748616,
+          "radiated_power_db": -23.56665893230543,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -0.006062884062634942,
+          "total_group_delay_ns": 0.005828274037189838,
+          "average_slow_wave_factor": 0.02019563239673728,
+          "max_slow_wave_factor": 0.02019563239673728,
+          "slow_wave_factor_peak_cell": 0,
+          "energy_concentration_ratio": 1,
+          "phase_smoothness_error": 0,
+          "lc_smoothness_error": 0,
+          "compression_ratio": 0.34945451990134496,
+          "optimizer_score": 10942565.00811378,
+          "score_breakdown": {
+            "input_match_score": 10942581.525715815,
+            "radiated_power_score": -16.517602035591327,
+            "smooth_gradient_score": 0,
+            "phase_compression_score": 0,
+            "resonance_penalty": 0,
+            "energy_localization_penalty": 0,
+            "input_coupling_score": 0,
+            "total_score": 10942565.00811378
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": true,
+            "energy_distributed": false,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            }
+          ]
+        }
+      },
+      {
+        "name": "smooth gradient medium",
+        "file": "smooth_gradient_medium.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": true,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -0.049445007053335516,
+          "average_input_reflection_percent": 99.07039156195894,
+          "frequency_of_best_match_mhz": 26.2625,
+          "delivered_power_db": -19.461317729010553,
+          "radiated_power_db": -21.222230319567362,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -2.182409561973277,
+          "total_group_delay_ns": 10.16197712956461,
+          "average_slow_wave_factor": 2.7680783836127647,
+          "max_slow_wave_factor": 9.529318162015688,
+          "slow_wave_factor_peak_cell": 0,
+          "energy_concentration_ratio": 0.44335303523956726,
+          "phase_smoothness_error": 3.060851698789755,
+          "lc_smoothness_error": 0.9890392763438388,
+          "compression_ratio": 121.85936407247834,
+          "optimizer_score": 147243.6908966294,
+          "score_breakdown": {
+            "input_match_score": 49506.77233382789,
+            "radiated_power_score": -2.482353390031307,
+            "smooth_gradient_score": 221.05739628981837,
+            "phase_compression_score": 56.07870671356707,
+            "resonance_penalty": 0,
+            "energy_localization_penalty": 769.3858287485004,
+            "input_coupling_score": 96692.87898443968,
+            "total_score": 147243.6908966294
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": true,
+            "energy_distributed": true,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": true,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 5E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 7.5E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.1E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 3.3E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.6E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 4.7E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2.2E-07
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "regression_after": {
+    "test_directory": "tests\\cli",
+    "passed": true,
+    "total": 5,
+    "passed_count": 5,
+    "failed_count": 0,
+    "summary_lines": [
+      "abrupt_lc_jump_bad: INTERNAL FAIL / DEVICE FAIL",
+      "bad_resonant_match: INTERNAL FAIL / DEVICE FAIL",
+      "energy_localized_bad: INTERNAL FAIL / DEVICE FAIL",
+      "poor_return_loss_bad: INTERNAL FAIL / DEVICE FAIL",
+      "smooth_gradient_medium: INTERNAL PASS / DEVICE FAIL"
+    ],
+    "results": [
+      {
+        "name": "abrupt LC jump bad",
+        "file": "abrupt_lc_jump_bad.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -0.04090194134634097,
+          "average_input_reflection_percent": 99.93909634376392,
+          "frequency_of_best_match_mhz": 5,
+          "delivered_power_db": -20.280838817039385,
+          "radiated_power_db": -22.041751407596198,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -0.4975641551826052,
+          "total_group_delay_ns": 57.831075898933555,
+          "average_slow_wave_factor": 4.143499474857963,
+          "max_slow_wave_factor": 13.934310208924352,
+          "slow_wave_factor_peak_cell": 1,
+          "energy_concentration_ratio": 0.9590449386721925,
+          "phase_smoothness_error": 25.552178739491204,
+          "lc_smoothness_error": 42.35065389189569,
+          "compression_ratio": 866.8660196262925,
+          "optimizer_score": 161509.71938613054,
+          "score_breakdown": {
+            "input_match_score": 49591.81707093954,
+            "radiated_power_score": -0.20538794427451845,
+            "smooth_gradient_score": 150.63850848385565,
+            "phase_compression_score": 0.27077485342544116,
+            "resonance_penalty": 8213.856373263803,
+            "energy_localization_penalty": 1260.968187079811,
+            "input_coupling_score": 102292.37385945438,
+            "total_score": 161509.71938613054
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": true,
+            "energy_distributed": false,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 5E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.5E-06
+            },
+            {
+              "type": "ShuntC",
+              "value": 4E-10
+            },
+            {
+              "type": "SeriesL",
+              "value": 6E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.8E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 7E-08
+            }
+          ]
+        }
+      },
+      {
+        "name": "bad resonant match",
+        "file": "bad_resonant_match.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -8.997586806121479,
+          "average_input_reflection_percent": 97.00900675070606,
+          "frequency_of_best_match_mhz": 48.875,
+          "delivered_power_db": -0.5846994074016942,
+          "radiated_power_db": -2.345611997958507,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -404.6487813154009,
+          "total_group_delay_ns": 565.9981331399199,
+          "average_slow_wave_factor": 153.21354270752238,
+          "max_slow_wave_factor": 602.1643008237318,
+          "slow_wave_factor_peak_cell": 1,
+          "energy_concentration_ratio": 0.27324099226592996,
+          "phase_smoothness_error": 123.06712622765505,
+          "lc_smoothness_error": 24.047312619171755,
+          "compression_ratio": 3770.7104790539524,
+          "optimizer_score": 248179.94099228387,
+          "score_breakdown": {
+            "input_match_score": 502.4161056308687,
+            "radiated_power_score": -5.615313943316077,
+            "smooth_gradient_score": 3706.260225947853,
+            "phase_compression_score": 153112.6511234405,
+            "resonance_penalty": 1078.432326017597,
+            "energy_localization_penalty": 125.78939210377057,
+            "input_coupling_score": 89660.0071330866,
+            "total_score": 248179.94099228387
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": false,
+            "energy_distributed": true,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 4.7E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.1E-10
+            },
+            {
+              "type": "SeriesL",
+              "value": 3.3E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 8.2E-12
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.8E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2.2E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.7E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2.7E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 4.7E-07
+            }
+          ]
+        }
+      },
+      {
+        "name": "energy localized bad",
+        "file": "energy_localized_bad.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -0.046315437431759254,
+          "average_input_reflection_percent": 99.9517362873627,
+          "frequency_of_best_match_mhz": 5,
+          "delivered_power_db": -19.743722549701566,
+          "radiated_power_db": -21.50463514025838,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -178.55318283699498,
+          "total_group_delay_ns": 73.60079758319696,
+          "average_slow_wave_factor": 1486.9138212896146,
+          "max_slow_wave_factor": 4248.969949891295,
+          "slow_wave_factor_peak_cell": 2,
+          "energy_concentration_ratio": 0.9507239501565045,
+          "phase_smoothness_error": 111.34458467111676,
+          "lc_smoothness_error": 24.67652602767064,
+          "compression_ratio": 1103.248200911354,
+          "optimizer_score": 9750462.846698139,
+          "score_breakdown": {
+            "input_match_score": 49537.91818555465,
+            "radiated_power_score": -0.16343532272322736,
+            "smooth_gradient_score": 1856.7161662200547,
+            "phase_compression_score": 9579616.48719853,
+            "resonance_penalty": 14981.202744458911,
+            "energy_localization_penalty": 3417.4355032504363,
+            "input_coupling_score": 101053.25033544768,
+            "total_score": 9750462.846698139
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": false,
+            "energy_distributed": false,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 8E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2E-06
+            },
+            {
+              "type": "ShuntC",
+              "value": 4E-10
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.2E-07
+            }
+          ]
+        }
+      },
+      {
+        "name": "poor return loss bad",
+        "file": "poor_return_loss_bad.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": false,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "antenna",
+          "best_return_loss_db": -0.028750566896937387,
+          "average_input_reflection_percent": 99.34621531330625,
+          "frequency_of_best_match_mhz": 50,
+          "delivered_power_db": -21.805746341748616,
+          "radiated_power_db": -23.56665893230543,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -0.006062884062634942,
+          "total_group_delay_ns": 0.005828274037189838,
+          "average_slow_wave_factor": 0.02019563239673728,
+          "max_slow_wave_factor": 0.02019563239673728,
+          "slow_wave_factor_peak_cell": 0,
+          "energy_concentration_ratio": 1,
+          "phase_smoothness_error": 0,
+          "lc_smoothness_error": 0,
+          "compression_ratio": 0.34945451990134496,
+          "optimizer_score": 10942565.00811378,
+          "score_breakdown": {
+            "input_match_score": 10942581.525715815,
+            "radiated_power_score": -16.517602035591327,
+            "smooth_gradient_score": 0,
+            "phase_compression_score": 0,
+            "resonance_penalty": 0,
+            "energy_localization_penalty": 0,
+            "input_coupling_score": 0,
+            "total_score": 10942565.00811378
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": true,
+            "energy_distributed": false,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": false,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 1E-08
+            }
+          ]
+        }
+      },
+      {
+        "name": "smooth gradient medium",
+        "file": "smooth_gradient_medium.json",
+        "analysis_passed": false,
+        "analysis_status": "FAIL",
+        "internal_medium_passed": true,
+        "usable_rf_device_passed": false,
+        "expected_overall_pass": false,
+        "passed": true,
+        "failures": [],
+        "metrics": {
+          "mode": "compression",
+          "best_return_loss_db": -0.049445007053335516,
+          "average_input_reflection_percent": 99.07039156195894,
+          "frequency_of_best_match_mhz": 26.2625,
+          "delivered_power_db": -19.461317729010553,
+          "radiated_power_db": -21.222230319567362,
+          "radiation_efficiency_percent": 66.66666666666666,
+          "total_phase_shift_deg": -2.182409561973277,
+          "total_group_delay_ns": 10.16197712956461,
+          "average_slow_wave_factor": 2.7680783836127647,
+          "max_slow_wave_factor": 9.529318162015688,
+          "slow_wave_factor_peak_cell": 0,
+          "energy_concentration_ratio": 0.44335303523956726,
+          "phase_smoothness_error": 3.060851698789755,
+          "lc_smoothness_error": 0.9890392763438388,
+          "compression_ratio": 121.85936407247834,
+          "optimizer_score": 147243.6908966294,
+          "score_breakdown": {
+            "input_match_score": 49506.77233382789,
+            "radiated_power_score": -2.482353390031307,
+            "smooth_gradient_score": 221.05739628981837,
+            "phase_compression_score": 56.07870671356707,
+            "resonance_penalty": 0,
+            "energy_localization_penalty": 769.3858287485004,
+            "input_coupling_score": 96692.87898443968,
+            "total_score": 147243.6908966294
+          },
+          "pass_fail_flags": {
+            "finite_metrics": true,
+            "target_return_loss": false,
+            "propagation_supported": true,
+            "slow_wave_bounded": true,
+            "energy_distributed": true,
+            "input_coupling_acceptable": false,
+            "internal_medium_quality": true,
+            "usable_rf_device": false,
+            "overall": false
+          },
+          "output_path": null,
+          "structure": [
+            {
+              "type": "SeriesL",
+              "value": 5E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 1.5E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 7.5E-08
+            },
+            {
+              "type": "ShuntC",
+              "value": 2.2E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.1E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 3.3E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 1.6E-07
+            },
+            {
+              "type": "ShuntC",
+              "value": 4.7E-11
+            },
+            {
+              "type": "SeriesL",
+              "value": 2.2E-07
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -166,14 +166,15 @@ public static class PropagationAnalysis
             throw new InvalidOperationException("Structure must contain at least one element.");
         }
 
-        if (!IsSeriesL(structure[0]))
+        if (!IsSeriesL(structure[0]) && !IsShuntC(structure[0]))
         {
-            throw new InvalidOperationException("Propagation analysis currently supports ladders that start with SeriesL.");
+            throw new InvalidOperationException("Propagation analysis supports ladders that start with SeriesL or ShuntC.");
         }
 
+        var startsWithSeries = IsSeriesL(structure[0]);
         for (var i = 0; i < structure.Count; i++)
         {
-            var expectedSeries = i % 2 == 0;
+            var expectedSeries = startsWithSeries ? i % 2 == 0 : i % 2 != 0;
             if (expectedSeries && !IsSeriesL(structure[i]))
             {
                 throw new InvalidOperationException("Propagation analysis supports alternating SeriesL / ShuntC ladder structures only.");

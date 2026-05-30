@@ -48,6 +48,8 @@ public partial class Form1 : Form
     private readonly NumericUpDown _antennaTargetReturnLossInput = new();
     private readonly NumericUpDown _antennaMaxVoltageInput = new();
     private readonly NumericUpDown _antennaOptimizerIterationsInput = new();
+    private readonly NumericUpDown _antennaLauncherCellsInput = new();
+    private readonly NumericUpDown _antennaMaxAverageReflectionInput = new();
     private readonly CheckBox _antennaUseContinuousInput = new();
     private readonly CheckBox _antennaSmoothGradientInput = new();
     private readonly NumericUpDown _antennaLMinNhInput = new();
@@ -525,6 +527,8 @@ public partial class Form1 : Form
         ConfigureNumeric(_antennaTargetReturnLossInput, -80, 0, -10, 1, 0.5m);
         ConfigureNumeric(_antennaMaxVoltageInput, 1, 1000000, 500, 1, 50);
         ConfigureNumeric(_antennaOptimizerIterationsInput, 1, 500, 35, 0, 5);
+        ConfigureNumeric(_antennaLauncherCellsInput, 0, 20, 2, 0, 1);
+        ConfigureNumeric(_antennaMaxAverageReflectionInput, 0, 100, 50, 1, 5);
         ConfigureNumeric(_antennaLMinNhInput, 0.001m, 1000000, 10, 3, 10);
         ConfigureNumeric(_antennaLMaxNhInput, 0.001m, 1000000, 2000, 3, 10);
         ConfigureNumeric(_antennaCMinPfInput, 0.001m, 1000000, 0.5m, 3, 1);
@@ -540,6 +544,8 @@ public partial class Form1 : Form
         AddCompactField(panel, "Target RL dB", _antennaTargetReturnLossInput, 78);
         AddCompactField(panel, "Max V", _antennaMaxVoltageInput, 82);
         AddCompactField(panel, "Opt iters", _antennaOptimizerIterationsInput, 68);
+        AddCompactField(panel, "Launcher cells", _antennaLauncherCellsInput, 68);
+        AddCompactField(panel, "Max avg refl %", _antennaMaxAverageReflectionInput, 72);
         AddCompactField(panel, "L min nH", _antennaLMinNhInput, 78);
         AddCompactField(panel, "L max nH", _antennaLMaxNhInput, 78);
         AddCompactField(panel, "C min pF", _antennaCMinPfInput, 78);
@@ -1317,6 +1323,8 @@ public partial class Form1 : Form
             ContinuousCMinFarads = (double)_antennaCMinPfInput.Value * 1e-12,
             ContinuousCMaxFarads = (double)_antennaCMaxPfInput.Value * 1e-12,
             UseSmoothIncreasingGradient = _antennaSmoothGradientInput.Checked,
+            LauncherCellCount = (int)_antennaLauncherCellsInput.Value,
+            MaxAverageInputReflectionPercent = (double)_antennaMaxAverageReflectionInput.Value,
             CellSpacingMeters = (double)_antennaSpacingMmInput.Value * 1e-3,
             ObjectiveMode = objectiveMode,
             AntennaConfig = GetSmallAntennaConfig()

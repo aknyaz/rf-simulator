@@ -1,0 +1,38 @@
+[
+  {
+    "type": "SeriesL",
+    "value": 8E-08
+  },
+  {
+    "type": "ShuntC",
+    "value": 1.8E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 1.6E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 4.5E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 2.4000000000000003E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 7E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 3.2E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 9.5E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 4.0000000000000003E-07
+  }
+]

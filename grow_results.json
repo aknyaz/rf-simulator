@@ -1,0 +1,17 @@
+{
+  "mode": "grow-compression",
+  "passed": false,
+  "accepted_cells": 0,
+  "rejected_step_count": 4510,
+  "stop_reason": "No SeriesL \u002B ShuntC or ShuntC \u002B SeriesL seed met the return-loss, coupling, and power-delivery constraints.",
+  "output_path": null,
+  "elapsed_seconds": 3.0645914,
+  "final_structure": null,
+  "final_metrics": null,
+  "final_usable_rf_device": false,
+  "growth_report": [
+    "1 cell: REJECT, reason = no seed met return loss, coupling, and delivered-power constraints.",
+    "Final accepted structure: 0 cells."
+  ],
+  "steps": []
+}

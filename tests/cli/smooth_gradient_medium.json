@@ -5,7 +5,8 @@
   "spacing_mm": 5,
   "max_slow_wave_factor": 1000,
   "max_energy_concentration_ratio": 0.9,
-  "expect_overall_pass": true,
+  "expect_overall_pass": false,
+  "expect_internal_medium_pass": true,
   "expected_metric_ranges": {
     "lc_smoothness_error": { "max": 1 },
     "energy_concentration_ratio": { "max": 0.9 }

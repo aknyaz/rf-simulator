@@ -168,18 +168,21 @@ public static class SmallAntennaMode
         var smoothGradientScore = 0.35 * CalculateGradientPenalty(structure);
         var phaseCompressionScore = 0.0;
         var energyLocalizationPenalty = 0.0;
+        var inputCouplingScore = 0.0;
 
         if (config.ObjectiveMode == SmallAntennaObjectiveMode.SmoothCompression)
         {
+            var compressionMedium = GetCompressionMediumStructure(structure, config.LauncherCellCount);
             var jumpPenalty =
-                CalculateSameTypeJumpPenalty(structure, "SeriesL")
-                + CalculateSameTypeJumpPenalty(structure, "ShuntC");
-            var increasingPenalty = CalculateIncreasingGradientPenalty(structure);
+                CalculateSameTypeJumpPenalty(compressionMedium, "SeriesL")
+                + CalculateSameTypeJumpPenalty(compressionMedium, "ShuntC");
+            var increasingPenalty = CalculateIncreasingGradientPenalty(compressionMedium);
             var derivativePenalty =
-                CalculateSameTypeDerivativePenalty(structure, "SeriesL")
-                + CalculateSameTypeDerivativePenalty(structure, "ShuntC");
+                CalculateSameTypeDerivativePenalty(compressionMedium, "SeriesL")
+                + CalculateSameTypeDerivativePenalty(compressionMedium, "ShuntC");
             smoothGradientScore += 75.0 * jumpPenalty + 140.0 * increasingPenalty + 60.0 * derivativePenalty;
 
+            inputCouplingScore = CalculateInputCouplingPenalty(sweep, structure, config);
             resonancePenalty += CalculateBroadbandResonancePenalty(sweep, config.MaxAntennaVoltage);
             var shapeScores = CalculateCompressionShapeScores(sweep, structure, config);
             phaseCompressionScore = shapeScores.PhaseCompressionScore;
@@ -196,7 +199,8 @@ public static class SmallAntennaMode
             smoothGradientScore,
             phaseCompressionScore,
             resonancePenalty,
-            energyLocalizationPenalty);
+            energyLocalizationPenalty,
+            inputCouplingScore);
     }
 
     private static double CalculateInputMatchScore(double bestReturnLoss, SmallAntennaOptimizerConfig config)
@@ -209,7 +213,7 @@ public static class SmallAntennaMode
         var miss = bestReturnLoss - config.TargetInputReturnLossDb;
         return config.ObjectiveMode == SmallAntennaObjectiveMode.AntennaMatch
             ? 1_000_000.0 + 100_000.0 * miss * miss
-            : 0.75 * miss * miss;
+            : 500.0 * miss * miss;
     }
 
     public static SmallAntennaCandidate Optimize(
@@ -362,6 +366,7 @@ public static class SmallAntennaMode
         sb.AppendLine($"Phase-compression score: {score.PhaseCompressionScore:F4}");
         sb.AppendLine($"Resonance penalty: {score.ResonancePenalty:F4}");
         sb.AppendLine($"Energy-localization penalty: {score.EnergyLocalizationPenalty:F4}");
+        sb.AppendLine($"Input-coupling score: {score.InputCouplingScore:F4}");
         return sb.ToString();
     }
 
@@ -495,8 +500,11 @@ public static class SmallAntennaMode
                 .Select(c => c.SlowWaveFactor)
                 .Where(value => double.IsFinite(value) && value > 0)
                 .ToList();
+            var launcherCells = Math.Clamp(config.LauncherCellCount, 0, Math.Max(0, phaseShift.Count - 2));
+            phaseShift = phaseShift.Skip(launcherCells).ToList();
+            slowWave = slowWave.Skip(launcherCells).ToList();
 
-            if (phaseShift.Count < 2 || slowWave.Count != propagation.Cells.Count)
+            if (phaseShift.Count < 2 || slowWave.Count != phaseShift.Count)
             {
                 return CompressionShapeScores.Invalid;
             }
@@ -523,7 +531,7 @@ public static class SmallAntennaMode
                 -12.0 * Math.Log(1.0 + totalPhase)
                 -8.0 * Math.Log(1.0 + averageSlowWave);
 
-            var energies = BuildDistributedEnergyProfile(propagation);
+            var energies = BuildDistributedEnergyProfile(propagation).Skip(launcherCells).ToList();
             if (energies.Count == 0)
             {
                 return new CompressionShapeScores(phaseCompressionScore, 100_000);
@@ -635,6 +643,101 @@ public static class SmallAntennaMode
         for (var i = 0; i < values.Count - 1; i++)
         {
             penalty += Math.Pow(Math.Log(values[i + 1] / values[i]), 2);
+        }
+
+        return penalty;
+    }
+
+    private static double CalculateInputCouplingPenalty(
+        IReadOnlyList<SmallAntennaPoint> sweep,
+        IReadOnlyList<RfElement> structure,
+        SmallAntennaOptimizerConfig config)
+    {
+        var reflectionPower = sweep
+            .Select(point => point.InputReflectionCoefficient.Magnitude)
+            .Select(magnitude => magnitude * magnitude)
+            .ToList();
+        if (reflectionPower.Count == 0)
+        {
+            return 100_000;
+        }
+
+        var launcherElements = GetLauncherStructure(structure, config.LauncherCellCount);
+        var taperPenalty =
+            CalculateSameTypeIncreasingPenalty(launcherElements, "SeriesL")
+            + CalculateSameTypeIncreasingPenalty(launcherElements, "ShuntC")
+            + CalculateSameTypeAbruptRatioPenalty(launcherElements, "SeriesL", 2.5)
+            + CalculateSameTypeAbruptRatioPenalty(launcherElements, "ShuntC", 2.5)
+            + CalculateLauncherInterfacePenalty(structure, config.LauncherCellCount);
+        var averageReflectionPercent = reflectionPower.Average() * 100.0;
+        var couplingGateMiss = Math.Max(0, averageReflectionPercent - config.MaxAverageInputReflectionPercent);
+
+        return 260.0 * reflectionPower.Average()
+               + 120.0 * reflectionPower.Max()
+               + 90.0 * taperPenalty
+               + 40.0 * couplingGateMiss * couplingGateMiss;
+    }
+
+    private static IReadOnlyList<RfElement> GetLauncherStructure(
+        IReadOnlyList<RfElement> structure,
+        int requestedLauncherCells)
+    {
+        var launcherElementCount = Math.Clamp(requestedLauncherCells * 2, 0, Math.Max(0, structure.Count - 1));
+        return structure.Take(launcherElementCount).ToList();
+    }
+
+    private static IReadOnlyList<RfElement> GetCompressionMediumStructure(
+        IReadOnlyList<RfElement> structure,
+        int requestedLauncherCells)
+    {
+        var launcherElementCount = Math.Clamp(requestedLauncherCells * 2, 0, Math.Max(0, structure.Count - 3));
+        return structure.Skip(launcherElementCount).ToList();
+    }
+
+    private static double CalculateLauncherInterfacePenalty(
+        IReadOnlyList<RfElement> structure,
+        int requestedLauncherCells)
+    {
+        var launcherElementCount = Math.Clamp(requestedLauncherCells * 2, 0, Math.Max(0, structure.Count - 3));
+        if (launcherElementCount == 0)
+        {
+            return 0;
+        }
+
+        var penalty = 0.0;
+        foreach (var type in new[] { "SeriesL", "ShuntC" })
+        {
+            var launcherValue = structure.Take(launcherElementCount)
+                .Where(element => element.Type.Equals(type, StringComparison.OrdinalIgnoreCase))
+                .Select(element => element.Value)
+                .LastOrDefault();
+            var mediumValue = structure.Skip(launcherElementCount)
+                .Where(element => element.Type.Equals(type, StringComparison.OrdinalIgnoreCase))
+                .Select(element => element.Value)
+                .FirstOrDefault();
+            if (launcherValue > 0 && mediumValue > 0)
+            {
+                penalty += Math.Pow(Math.Max(0, Math.Abs(Math.Log(mediumValue / launcherValue)) - Math.Log(2.0)), 2);
+            }
+        }
+
+        return penalty;
+    }
+
+    private static double CalculateSameTypeAbruptRatioPenalty(
+        IReadOnlyList<RfElement> structure,
+        string type,
+        double allowedRatio)
+    {
+        var values = structure
+            .Where(element => element.Type.Equals(type, StringComparison.OrdinalIgnoreCase))
+            .Select(element => element.Value)
+            .ToList();
+        var penalty = 0.0;
+        for (var index = 0; index < values.Count - 1; index++)
+        {
+            var ratio = Math.Max(values[index], values[index + 1]) / Math.Min(values[index], values[index + 1]);
+            penalty += Math.Pow(Math.Max(0, Math.Log(ratio / allowedRatio)), 2);
         }
 
         return penalty;
@@ -792,6 +895,8 @@ public sealed class SmallAntennaOptimizerConfig
     public double ContinuousCMinFarads { get; set; } = 0.5e-12;
     public double ContinuousCMaxFarads { get; set; } = 470e-12;
     public bool UseSmoothIncreasingGradient { get; set; }
+    public int LauncherCellCount { get; set; } = 2;
+    public double MaxAverageInputReflectionPercent { get; set; } = 50;
     public double CellSpacingMeters { get; set; } = 5e-3;
     public SmallAntennaObjectiveMode ObjectiveMode { get; set; } = SmallAntennaObjectiveMode.AntennaMatch;
     public SmallAntennaConfig AntennaConfig { get; set; } = new();
@@ -846,7 +951,8 @@ public readonly record struct SmallAntennaScoreBreakdown(
     double SmoothGradientScore,
     double PhaseCompressionScore,
     double ResonancePenalty,
-    double EnergyLocalizationPenalty)
+    double EnergyLocalizationPenalty,
+    double InputCouplingScore)
 {
     public double TotalScore =>
         InputMatchScore
@@ -854,8 +960,9 @@ public readonly record struct SmallAntennaScoreBreakdown(
         + SmoothGradientScore
         + PhaseCompressionScore
         + ResonancePenalty
-        + EnergyLocalizationPenalty;
+        + EnergyLocalizationPenalty
+        + InputCouplingScore;
 
     public static SmallAntennaScoreBreakdown Invalid =>
-        new(double.MaxValue, 0, 0, 0, 0, 0);
+        new(double.MaxValue, 0, 0, 0, 0, 0, 0);
 }
