@@ -1,0 +1,982 @@
+[
+  {
+    "Rank": 1,
+    "Score": -1.9191037511400564,
+    "WorstS11Db": -15.725152107680591,
+    "AverageS11Db": -24.608909896891536,
+    "WorstS21Db": -0.11780013653742503,
+    "RippleDb": 0.11295071327503058,
+    "TotalPhaseRotationDeg": 192.67692677329305,
+    "AverageGroupDelayNs": 11.895291880646548,
+    "MaxGroupDelayNs": 13.920024961288375,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 2,
+    "Score": -1.6044635054789753,
+    "WorstS11Db": -15.992244445601717,
+    "AverageS11Db": -19.585479900700854,
+    "WorstS21Db": -0.11068334625795317,
+    "RippleDb": 0.10994067007413762,
+    "TotalPhaseRotationDeg": 286.7196016603242,
+    "AverageGroupDelayNs": 17.706869785892565,
+    "MaxGroupDelayNs": 26.35871458446116,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 1E-10
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 1.2E-10
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.6E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 3,
+    "Score": -1.161658030646168,
+    "WorstS11Db": -15.02765203985227,
+    "AverageS11Db": -17.211021698870045,
+    "WorstS21Db": -0.13865431140736484,
+    "RippleDb": 0.12731540318721402,
+    "TotalPhaseRotationDeg": 205.88525688915053,
+    "AverageGroupDelayNs": 12.710475304736244,
+    "MaxGroupDelayNs": 14.570621507913609,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 7.5E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 1.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      }
+    ]
+  },
+  {
+    "Rank": 4,
+    "Score": -1.0159035023604635,
+    "WorstS11Db": -15.601296018308348,
+    "AverageS11Db": -23.942184877037946,
+    "WorstS21Db": -0.12125604692394892,
+    "RippleDb": 0.12088867667304892,
+    "TotalPhaseRotationDeg": 194.1626813490715,
+    "AverageGroupDelayNs": 11.988867329941916,
+    "MaxGroupDelayNs": 15.934303501250701,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 9.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 5,
+    "Score": -0.6715735700816952,
+    "WorstS11Db": -15.134066964501454,
+    "AverageS11Db": -19.17031728322962,
+    "WorstS21Db": -0.13524534730588247,
+    "RippleDb": 0.12966604762624093,
+    "TotalPhaseRotationDeg": 169.92815495931043,
+    "AverageGroupDelayNs": 10.491635069604502,
+    "MaxGroupDelayNs": 12.910451593132143,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 9.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.6E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      }
+    ]
+  },
+  {
+    "Rank": 6,
+    "Score": -0.4905122437228777,
+    "WorstS11Db": -15.446987583271117,
+    "AverageS11Db": -21.264801882482985,
+    "WorstS21Db": -0.12570590756139563,
+    "RippleDb": 0.12424630532394312,
+    "TotalPhaseRotationDeg": 175.6870372441994,
+    "AverageGroupDelayNs": 10.847562392220345,
+    "MaxGroupDelayNs": 13.894166199723916,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 9.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 7.5E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 7,
+    "Score": -0.46556700714768695,
+    "WorstS11Db": -15.486275950950482,
+    "AverageS11Db": -19.249419939565875,
+    "WorstS21Db": -0.12455744866520269,
+    "RippleDb": 0.12072276163127206,
+    "TotalPhaseRotationDeg": 163.7099235371791,
+    "AverageGroupDelayNs": 10.107074615691136,
+    "MaxGroupDelayNs": 11.764908641688095,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 7.5E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      }
+    ]
+  },
+  {
+    "Rank": 8,
+    "Score": -0.34612105319031894,
+    "WorstS11Db": -15.442642997212335,
+    "AverageS11Db": -19.658909253451018,
+    "WorstS21Db": -0.12583356433590012,
+    "RippleDb": 0.11948228723294811,
+    "TotalPhaseRotationDeg": 179.5930257663037,
+    "AverageGroupDelayNs": 11.088129526473134,
+    "MaxGroupDelayNs": 13.519888756692337,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.6E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 9,
+    "Score": 0.027327318656155786,
+    "WorstS11Db": -15.339379229119121,
+    "AverageS11Db": -17.547422292433943,
+    "WorstS21Db": -0.1289067874870434,
+    "RippleDb": 0.11431726316888137,
+    "TotalPhaseRotationDeg": 202.30550480558554,
+    "AverageGroupDelayNs": 12.4893207577836,
+    "MaxGroupDelayNs": 14.218822286574845,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 10,
+    "Score": 1.321982748751724,
+    "WorstS11Db": -17.67063169937797,
+    "AverageS11Db": -29.241561133458486,
+    "WorstS21Db": -0.07489633674458399,
+    "RippleDb": 0.07489565819615474,
+    "TotalPhaseRotationDeg": 178.8209996426808,
+    "AverageGroupDelayNs": 11.040802224873826,
+    "MaxGroupDelayNs": 13.994505787019746,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 8.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      }
+    ]
+  },
+  {
+    "Rank": 11,
+    "Score": 1.4226253868374534,
+    "WorstS11Db": -15.378846803593904,
+    "AverageS11Db": -19.295201198971526,
+    "WorstS21Db": -0.12772330418925548,
+    "RippleDb": 0.11995125178778543,
+    "TotalPhaseRotationDeg": 160.06989574335387,
+    "AverageGroupDelayNs": 9.88224877354087,
+    "MaxGroupDelayNs": 11.559398284845477,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 12,
+    "Score": 3.4063301555293024,
+    "WorstS11Db": -15.193753658700986,
+    "AverageS11Db": -19.295712858758108,
+    "WorstS21Db": -0.13337069508258945,
+    "RippleDb": 0.1308453600777424,
+    "TotalPhaseRotationDeg": 146.46025121433888,
+    "AverageGroupDelayNs": 9.041918771074984,
+    "MaxGroupDelayNs": 10.363643007548086,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 8.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      }
+    ]
+  },
+  {
+    "Rank": 13,
+    "Score": 3.5474487552600413,
+    "WorstS11Db": -16.01902992871433,
+    "AverageS11Db": -25.585706096335617,
+    "WorstS21Db": -0.10999410649296505,
+    "RippleDb": 0.10903003250025746,
+    "TotalPhaseRotationDeg": 142.57395558686602,
+    "AverageGroupDelayNs": 8.801254922780796,
+    "MaxGroupDelayNs": 9.466789331624138,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      }
+    ]
+  },
+  {
+    "Rank": 14,
+    "Score": 4.221106546517561,
+    "WorstS11Db": -15.143862735409696,
+    "AverageS11Db": -17.98095700205701,
+    "WorstS21Db": -0.13493585398085273,
+    "RippleDb": 0.12971111467068977,
+    "TotalPhaseRotationDeg": 144.06867774084984,
+    "AverageGroupDelayNs": 8.894880817190593,
+    "MaxGroupDelayNs": 10.84045557304063,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 9.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 1.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 1.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      }
+    ]
+  },
+  {
+    "Rank": 15,
+    "Score": 4.644873645061956,
+    "WorstS11Db": -17.990309570212453,
+    "AverageS11Db": -34.229125513133056,
+    "WorstS21Db": -0.06953855190620442,
+    "RippleDb": 0.0694115466218387,
+    "TotalPhaseRotationDeg": 137.66149120748568,
+    "AverageGroupDelayNs": 8.498237871366992,
+    "MaxGroupDelayNs": 9.356113916773817,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      }
+    ]
+  },
+  {
+    "Rank": 16,
+    "Score": 4.90216684988904,
+    "WorstS11Db": -17.374625650609598,
+    "AverageS11Db": -34.733390753335875,
+    "WorstS21Db": -0.0802281874090976,
+    "RippleDb": 0.08022120683927961,
+    "TotalPhaseRotationDeg": 137.01579965319064,
+    "AverageGroupDelayNs": 8.458393566718723,
+    "MaxGroupDelayNs": 9.337124200104212,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      }
+    ]
+  },
+  {
+    "Rank": 17,
+    "Score": 5.36564912557745,
+    "WorstS11Db": -15.439331319528682,
+    "AverageS11Db": -19.11715220818436,
+    "WorstS21Db": -0.125930959542315,
+    "RippleDb": 0.11858481753916342,
+    "TotalPhaseRotationDeg": 142.7639818554031,
+    "AverageGroupDelayNs": 8.81459157530433,
+    "MaxGroupDelayNs": 10.994088195611408,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 9.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.6E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-08
+      }
+    ]
+  },
+  {
+    "Rank": 18,
+    "Score": 5.437012469961032,
+    "WorstS11Db": -15.080386285409455,
+    "AverageS11Db": -29.478883851627835,
+    "WorstS21Db": -0.13695421357986926,
+    "RippleDb": 0.1368309748516196,
+    "TotalPhaseRotationDeg": 135.85608318483284,
+    "AverageGroupDelayNs": 8.386423415785597,
+    "MaxGroupDelayNs": 8.886995699471484,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.8E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      }
+    ]
+  },
+  {
+    "Rank": 19,
+    "Score": 6.017207374397534,
+    "WorstS11Db": -15.13146025936644,
+    "AverageS11Db": -19.60154769082684,
+    "WorstS21Db": -0.13532782646250346,
+    "RippleDb": 0.13133313693805812,
+    "TotalPhaseRotationDeg": 151.39889784498607,
+    "AverageGroupDelayNs": 9.347525032762704,
+    "MaxGroupDelayNs": 11.41523619968375,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 2.2E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 4.7E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-08
+      }
+    ]
+  },
+  {
+    "Rank": 20,
+    "Score": 6.690842276058218,
+    "WorstS11Db": -15.209909515741662,
+    "AverageS11Db": -29.46984342586651,
+    "WorstS21Db": -0.1328678212714895,
+    "RippleDb": 0.13285059339179084,
+    "TotalPhaseRotationDeg": 132.72008554596624,
+    "AverageGroupDelayNs": 8.192770738669942,
+    "MaxGroupDelayNs": 8.618892358877407,
+    "Structure": [
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 6.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 2.2E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 1E-07
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 5.1E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 4.7E-08
+      },
+      {
+        "Type": "ShuntC",
+        "Value": 1.5E-11
+      },
+      {
+        "Type": "SeriesL",
+        "Value": 6.8E-08
+      }
+    ]
+  }
+]
