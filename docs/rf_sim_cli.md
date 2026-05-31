@@ -8,6 +8,7 @@ Run from the repository root:
 .\rf_sim_cli.cmd --mode optimize-antenna --iters 1000 --output best_antenna.json
 .\rf_sim_cli.cmd --mode optimize-compression --iters 1000 --output best_medium.json
 .\rf_sim_cli.cmd --mode grow-compression --max-cells 12 --target-rl-db -10 --iters-per-step 2000 --output grown_medium.json
+.\rf_sim_cli.cmd --mode grow-compression --seed tests\cli\known_good_seed.json --max-cells 12 --output grown_medium.json
 .\rf_sim_cli.cmd --optimize compression --iters 10000 --launcher-cells 2 --auto-test tests\cli --save-best best_medium.json
 .\rf_sim_cli.cmd --run-tests tests\cli
 ```
@@ -19,6 +20,8 @@ dotnet build rf_sim_cli\rf_sim_cli.csproj
 ```
 
 The CLI prints deterministic JSON metrics. Analysis commands exit with code `0` when their built-in pass flags pass and code `2` when analysis completes but thresholds fail. Regression mode exits with code `0` when all fixtures pass.
+
+CLI optimizer output files such as `grown_medium.json` contain a raw LC structure array. The desktop GUI `Load JSON` action accepts these files directly and keeps the sweep settings currently shown in the GUI. GUI-saved configuration files remain wrapped objects containing sweep settings and the structure.
 
 ## Batch Optimization
 
@@ -63,9 +66,16 @@ Use `grow-compression` to build an adiabatic taper one LC cell at a time:
 .\rf_sim_cli.cmd --mode grow-compression --max-cells 12 --target-rl-db -10 --iters-per-step 2000 --output grown_medium.json
 ```
 
+Start from a verified multi-cell launcher:
+
+```powershell
+.\rf_sim_cli.cmd --mode grow-compression --seed tests\cli\known_good_seed.json --max-cells 12 --output grown_medium.json
+```
+
 The synthesizer:
 
 - searches both `SeriesL + ShuntC` and `ShuntC + SeriesL` seed orientations;
+- loads a multi-cell launcher directly when `--seed` is a JSON path;
 - validates launcher seeds using consistent RF metrics, target return loss, delivered power, bounded slow-wave behavior, distributed energy, input coupling, internal-medium quality, usable-device quality, and resonance limits;
 - includes standard components and deterministic logarithmic samples from the configured L/C ranges;
 - appends one LC cell at a time;
@@ -75,6 +85,12 @@ The synthesizer:
 - stops when the cell limit, runtime limit, or coupling-preserving growth limit is reached.
 
 The JSON output includes `accepted_cells`, `rejected_step_count`, `stop_reason`, `final_structure`, `final_metrics`, `final_validation_reasons`, `best_rejected_seeds`, `growth_report`, and step-by-step best structures. `growth_report` is a concise bench-style progression showing return loss, reflected input power, delivered power, phase, group delay, slow-wave maximum, pass/reject status, and rejection reason at each attempted length. `best_rejected_seeds` records seed return loss, delivered power, reflected input power, values, and rejection reasons. `--output` is written only after a usable RF-device structure is found. Intermediate bootstrap candidates remain visible in the JSON report without being exported as successful devices.
+
+Grow-compression validation uses 50-ohm two-port metrics at `--freq` as its authoritative narrowband device measurements: `target_frequency_s11_db`, `target_frequency_s21_db`, `target_frequency_phase_deg`, and `target_frequency_group_delay_ns`. When `--freq` is omitted, the target is the sweep midpoint. An extension must preserve target-frequency S11/S21 while improving target-frequency phase delay and group delay.
+
+The separate `best_s11_db` and `delivered_power_db` fields come from the antenna-terminated sweep and remain diagnostic for antenna mode. The `broadband_sweep_*` fields come from the 50-ohm two-port sweep and remain diagnostics for bandwidth interpretation. They do not override target-frequency grow-compression validation. A narrowband grow run reports `broadband_sweep_quality = false` when broadband reflection is poor, but broadband quality does not fail an otherwise usable target-frequency design.
+
+The grow result emits `final_status`, `final_verdict`, and the nested `final_metrics.pass_fail_flags`. Top-level `passed` is exactly `final_metrics.pass_fail_flags.overall`, and `final_usable_rf_device` is exactly `final_metrics.pass_fail_flags.usable_rf_device`. Internal slow-wave, resonance, and energy-localization checks still apply before an extended structure is exported. Use `--random-seed 12345` to control deterministic mutation when `--seed` is occupied by a JSON path.
 
 RF metric fields are explicit about their operating point:
 

@@ -118,7 +118,10 @@ internal static class Program
         var steps = new List<GrowingCompressionStep>();
         var growthReport = new List<string>();
         var rejectedSteps = 0;
-        var seed = FindGrowingSeed(options, optimizerConfig, stopwatch, ref rejectedSteps, out var rejectedSeedDiagnostics);
+        var usesKnownSeed = !string.IsNullOrWhiteSpace(options.SeedStructurePath);
+        var seed = usesKnownSeed
+            ? LoadKnownGrowingSeed(options, optimizerConfig, out var rejectedSeedDiagnostics)
+            : FindGrowingSeed(options, optimizerConfig, stopwatch, ref rejectedSteps, out rejectedSeedDiagnostics);
         if (seed is null)
         {
             return new GrowingCompressionResult
@@ -142,18 +145,25 @@ internal static class Program
         }
 
         var current = seed;
-        steps.Add(CreateGrowingStep(1, current, 0, "Coupled seed accepted."));
-        growthReport.Add(FormatGrowingReportLine(1, current.Metrics, "PASS", "coupled seed accepted"));
-        if (PassesGrowingFinalValidation(current.Metrics, options))
+        ApplyGrowingValidation(current.Metrics, options);
+        var initialCellCount = CountGrowingCells(current.Candidate.Structure);
+        steps.Add(CreateGrowingStep(initialCellCount, current, 0, usesKnownSeed ? "Known launcher seed accepted." : "Coupled seed accepted."));
+        var initialFinalPass = PassesGrowingFinalValidation(current.Metrics);
+        growthReport.Add(FormatGrowingReportLine(
+            initialCellCount,
+            current.Metrics,
+            initialFinalPass ? "PASS" : "LAUNCHER ONLY",
+            usesKnownSeed
+                ? initialFinalPass ? "known launcher seed accepted" : "known launcher accepted; final medium validation not yet satisfied"
+                : initialFinalPass ? "coupled seed accepted" : "coupled seed accepted; final medium validation not yet satisfied",
+            usesKnownSeed));
+        if (initialFinalPass)
         {
-            if (PassesGrowingFinalValidation(current.Metrics, options))
-            {
-                SaveGrowingStructure(options.OutputPath, current.Candidate.Structure);
-            }
+            SaveGrowingStructure(options.OutputPath, current.Candidate.Structure);
         }
 
         var stopReason = $"Maximum cell count {options.MaxCells} reached.";
-        for (var cellCount = 2; cellCount <= options.MaxCells; cellCount++)
+        for (var cellCount = initialCellCount + 1; cellCount <= options.MaxCells; cellCount++)
         {
             if (HasRuntimeExpired(options, stopwatch))
             {
@@ -167,6 +177,7 @@ internal static class Program
                 optimizerConfig,
                 random,
                 stopwatch,
+                usesKnownSeed,
                 out var rejectedAttempts,
                 out var bestRejected,
                 out var rejectionReason);
@@ -178,34 +189,69 @@ internal static class Program
                     : $"No acceptable cell {cellCount} extension preserved coupling and adiabatic growth.";
                 growthReport.Add(bestRejected is null
                     ? $"{cellCount} cells: REJECT, reason = {rejectionReason}"
-                    : FormatGrowingReportLine(cellCount, bestRejected.Metrics, "REJECT", rejectionReason));
+                    : FormatGrowingReportLine(cellCount, bestRejected.Metrics, "REJECT", rejectionReason, usesKnownSeed));
                 break;
             }
 
             current = bestStepCandidate;
             steps.Add(CreateGrowingStep(cellCount, current, rejectedAttempts, "Adiabatic cell extension accepted."));
-            growthReport.Add(FormatGrowingReportLine(cellCount, current.Metrics, "PASS", "adiabatic cell extension accepted"));
-            SaveGrowingStructure(options.OutputPath, current.Candidate.Structure);
+            growthReport.Add(FormatGrowingReportLine(
+                cellCount,
+                current.Metrics,
+                "PASS",
+                "adiabatic cell extension accepted",
+                usesKnownSeed));
+            ApplyGrowingValidation(current.Metrics, options);
+            if (PassesGrowingFinalValidation(current.Metrics))
+            {
+                SaveGrowingStructure(options.OutputPath, current.Candidate.Structure);
+            }
         }
 
-        growthReport.Add($"Final accepted structure: {steps.Count} {(steps.Count == 1 ? "cell" : "cells")}.");
+        var finalCellCount = CountGrowingCells(current.Candidate.Structure);
+        growthReport.Add($"Final accepted structure: {finalCellCount} {(finalCellCount == 1 ? "cell" : "cells")}.");
+        ApplyGrowingValidation(current.Metrics, options);
+        var finalStatus = CreateGrowingFinalStatus(current.Metrics);
         return new GrowingCompressionResult
         {
             Mode = "grow-compression",
-            Passed = PassesGrowingFinalValidation(current.Metrics, options),
-            AcceptedCells = steps.Count,
+            Passed = current.Metrics.PassFailFlags.GetValueOrDefault("overall"),
+            AcceptedCells = CountGrowingCells(current.Candidate.Structure),
             RejectedStepCount = rejectedSteps,
             StopReason = stopReason,
             OutputPath = options.OutputPath,
+            SeedStructurePath = options.SeedStructurePath,
             ElapsedSeconds = stopwatch.Elapsed.TotalSeconds,
             FinalStructure = current.Candidate.Structure,
             FinalMetrics = current.Metrics,
-            FinalUsableRfDevice = PassesGrowingFinalValidation(current.Metrics, options),
+            FinalUsableRfDevice = current.Metrics.PassFailFlags.GetValueOrDefault("usable_rf_device"),
+            FinalStatus = finalStatus,
+            FinalVerdict = BuildGrowingFinalVerdict(finalStatus),
             FinalValidationReasons = GetGrowingFinalValidationReasons(current.Metrics, options),
             GrowthReport = growthReport,
             BestRejectedSeeds = rejectedSeedDiagnostics,
             Steps = steps
         };
+    }
+
+    private static BatchCandidateEvaluation? LoadKnownGrowingSeed(
+        CliOptions options,
+        SmallAntennaOptimizerConfig optimizerConfig,
+        out List<GrowingRejectedSeed> rejectedSeedDiagnostics)
+    {
+        var structure = LoadStructure(options.SeedStructurePath!);
+        PropagationAnalysis.ValidateSupportedLadder(structure);
+        var evaluated = EvaluateBatchCandidate(
+            structure,
+            options,
+            optimizerConfig,
+            SmallAntennaObjectiveMode.SmoothCompression);
+        ApplyGrowingValidation(evaluated.Metrics, options);
+        var reasons = GetKnownGrowingSeedRejectionReasons(evaluated.Metrics, options);
+        rejectedSeedDiagnostics = reasons.Count == 0
+            ? new List<GrowingRejectedSeed>()
+            : new List<GrowingRejectedSeed> { CreateRejectedSeed(evaluated, reasons) };
+        return reasons.Count == 0 ? evaluated : null;
     }
 
     private static BatchCandidateEvaluation? FindGrowingSeed(
@@ -256,26 +302,12 @@ internal static class Program
                         options,
                         optimizerConfig,
                         SmallAntennaObjectiveMode.SmoothCompression);
+                    ApplyGrowingValidation(evaluated.Metrics, options);
                     var rejectionReasons = GetGrowingSeedRejectionReasons(evaluated.Metrics, options);
                     if (rejectionReasons.Count > 0)
                     {
                         rejectedSteps++;
-                        rejectedSeeds.Add(new GrowingRejectedSeed
-                        {
-                            BestReturnLossDb = evaluated.Metrics.BestReturnLossDb,
-                            DeliveredPowerDb = evaluated.Metrics.DeliveredPowerDb,
-                            BestMatchReflectionCoefficientMagnitude = evaluated.Metrics.BestMatchReflectionCoefficientMagnitude,
-                            BestMatchReflectedPowerPercent = evaluated.Metrics.BestMatchReflectedPowerPercent,
-                            BestMatchAcceptedPowerPercent = evaluated.Metrics.BestMatchAcceptedPowerPercent,
-                            BestMatchDeliveredPowerPercent = evaluated.Metrics.BestMatchDeliveredPowerPercent,
-                            AverageInputReflectionPercent = evaluated.Metrics.AverageInputReflectionPercent,
-                            ReflectionMetricsConsistent =
-                                evaluated.Metrics.PassFailFlags.GetValueOrDefault("reflection_metrics_consistent"),
-                            PowerBalanceConsistent =
-                                evaluated.Metrics.PassFailFlags.GetValueOrDefault("power_balance_consistent"),
-                            Reasons = rejectionReasons,
-                            Structure = evaluated.Candidate.Structure
-                        });
+                        rejectedSeeds.Add(CreateRejectedSeed(evaluated, rejectionReasons));
                         continue;
                     }
 
@@ -295,12 +327,39 @@ internal static class Program
         return best;
     }
 
+    private static GrowingRejectedSeed CreateRejectedSeed(
+        BatchCandidateEvaluation evaluated,
+        List<string> reasons)
+    {
+        return new GrowingRejectedSeed
+        {
+            BestReturnLossDb = evaluated.Metrics.BestReturnLossDb,
+            DeliveredPowerDb = evaluated.Metrics.DeliveredPowerDb,
+            BestMatchReflectionCoefficientMagnitude = evaluated.Metrics.BestMatchReflectionCoefficientMagnitude,
+            BestMatchReflectedPowerPercent = evaluated.Metrics.BestMatchReflectedPowerPercent,
+            BestMatchAcceptedPowerPercent = evaluated.Metrics.BestMatchAcceptedPowerPercent,
+            BestMatchDeliveredPowerPercent = evaluated.Metrics.BestMatchDeliveredPowerPercent,
+            AverageInputReflectionPercent = evaluated.Metrics.AverageInputReflectionPercent,
+            ReferenceBestS11Db = evaluated.Metrics.ReferenceBestS11Db,
+            ReferenceS21AtBestS11Db = evaluated.Metrics.ReferenceS21AtBestS11Db,
+            TargetFrequencyS11Db = evaluated.Metrics.TargetFrequencyS11Db,
+            TargetFrequencyS21Db = evaluated.Metrics.TargetFrequencyS21Db,
+            ReflectionMetricsConsistent =
+                evaluated.Metrics.PassFailFlags.GetValueOrDefault("reflection_metrics_consistent"),
+            PowerBalanceConsistent =
+                evaluated.Metrics.PassFailFlags.GetValueOrDefault("power_balance_consistent"),
+            Reasons = reasons,
+            Structure = evaluated.Candidate.Structure
+        };
+    }
+
     private static BatchCandidateEvaluation? FindNextGrowingCell(
         BatchCandidateEvaluation current,
         CliOptions options,
         SmallAntennaOptimizerConfig optimizerConfig,
         Random random,
         Stopwatch stopwatch,
+        bool useReferenceNetworkMetrics,
         out int rejectedAttempts,
         out BatchCandidateEvaluation? bestRejected,
         out string rejectionReason)
@@ -310,16 +369,21 @@ internal static class Program
         rejectionReason = "no candidate was evaluated";
         BatchCandidateEvaluation? best = null;
         var appended = OptimizerEngine.CloneStructure(current.Candidate.Structure);
-        var startsWithSeries = appended[0].Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase);
+        var firstNewType = appended[^1].Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
+            ? "ShuntC"
+            : "SeriesL";
+        var secondNewType = firstNewType.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
+            ? "ShuntC"
+            : "SeriesL";
         appended.Add(new RfElement
         {
-            Type = startsWithSeries ? "SeriesL" : "ShuntC",
-            Value = appended[^2].Value
+            Type = firstNewType,
+            Value = FindLastValue(appended, firstNewType)
         });
         appended.Add(new RfElement
         {
-            Type = startsWithSeries ? "ShuntC" : "SeriesL",
-            Value = appended[^2].Value
+            Type = secondNewType,
+            Value = FindLastValue(appended, secondNewType)
         });
 
         for (var iteration = 0; iteration < options.IterationsPerStep; iteration++)
@@ -336,7 +400,12 @@ internal static class Program
                 options,
                 optimizerConfig,
                 SmallAntennaObjectiveMode.SmoothCompression);
-            var rejectionReasons = GetGrowingExtensionRejectionReasons(current.Metrics, evaluated, options);
+            ApplyGrowingValidation(evaluated.Metrics, options);
+            var rejectionReasons = GetGrowingExtensionRejectionReasons(
+                current.Metrics,
+                evaluated,
+                options,
+                useReferenceNetworkMetrics);
             if (rejectionReasons.Count > 0)
             {
                 rejectedAttempts++;
@@ -355,6 +424,14 @@ internal static class Program
         }
 
         return best;
+    }
+
+    private static double FindLastValue(IReadOnlyList<RfElement> structure, string type)
+    {
+        return structure
+            .Where(element => element.Type.Equals(type, StringComparison.OrdinalIgnoreCase))
+            .Select(element => element.Value)
+            .LastOrDefault(type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase) ? 100e-9 : 51e-12);
     }
 
     private static void MutateGrowingTail(List<RfElement> structure, CliOptions options, Random random)
@@ -420,6 +497,22 @@ internal static class Program
         return reasons;
     }
 
+    private static List<string> GetKnownGrowingSeedRejectionReasons(CliMetrics metrics, CliOptions options)
+    {
+        var reasons = new List<string>();
+        if (!metrics.PassFailFlags.GetValueOrDefault("finite_metrics"))
+            reasons.Add("non-finite metrics");
+        if (!metrics.PassFailFlags.GetValueOrDefault("reflection_metrics_consistent"))
+            reasons.Add("reflection metrics are inconsistent");
+        if (!metrics.PassFailFlags.GetValueOrDefault("target_frequency_match"))
+            reasons.Add("target-frequency S11 missed target");
+        if (!metrics.PassFailFlags.GetValueOrDefault("target_frequency_transmission_acceptable"))
+            reasons.Add("target-frequency S21 below minimum");
+        if (!metrics.PassFailFlags.GetValueOrDefault("propagation_supported"))
+            reasons.Add("propagation analysis failed");
+        return reasons;
+    }
+
     private static bool IsBetterGrowingSeed(CliMetrics candidate, CliMetrics currentBest)
     {
         var deliveredPowerComparison = candidate.DeliveredPowerAtBestMatchDb.CompareTo(currentBest.DeliveredPowerAtBestMatchDb);
@@ -436,47 +529,93 @@ internal static class Program
     private static List<string> GetGrowingExtensionRejectionReasons(
         CliMetrics previous,
         BatchCandidateEvaluation evaluated,
-        CliOptions options)
+        CliOptions options,
+        bool useReferenceNetworkMetrics)
     {
         var metrics = evaluated.Metrics;
         var reasons = new List<string>();
-        if (!metrics.PassFailFlags.GetValueOrDefault("target_return_loss"))
-            reasons.Add("input return loss missed target");
+        if (!metrics.PassFailFlags.GetValueOrDefault("target_frequency_match"))
+            reasons.Add("target-frequency S11 missed target");
+        if (!metrics.PassFailFlags.GetValueOrDefault("target_frequency_transmission_acceptable"))
+            reasons.Add("target-frequency S21 below minimum");
+        if (metrics.TargetFrequencyS21Db < previous.TargetFrequencyS21Db - options.MaxDeliveredPowerCollapseDb)
+            reasons.Add("target-frequency S21 collapsed");
         if (!metrics.PassFailFlags.GetValueOrDefault("slow_wave_bounded"))
             reasons.Add("slow-wave factor exceeded bound");
         if (!metrics.PassFailFlags.GetValueOrDefault("propagation_supported"))
             reasons.Add("propagation analysis failed");
-        if (metrics.DeliveredPowerAtBestMatchDb < previous.DeliveredPowerAtBestMatchDb - options.MaxDeliveredPowerCollapseDb)
-            reasons.Add("delivered power collapsed");
-        if (Math.Abs(metrics.TotalPhaseShiftDeg) < Math.Abs(previous.TotalPhaseShiftDeg) + options.MinimumPhaseIncreaseDeg)
+        if (Math.Abs(metrics.TargetFrequencyPhaseDeg) < Math.Abs(previous.TargetFrequencyPhaseDeg) + options.MinimumPhaseIncreaseDeg)
             reasons.Add("phase delay did not increase");
-        if (metrics.TotalGroupDelayNs < previous.TotalGroupDelayNs + options.MinimumGroupDelayIncreaseNs)
+        if (metrics.TargetFrequencyGroupDelayNs < previous.TargetFrequencyGroupDelayNs + options.MinimumGroupDelayIncreaseNs)
             reasons.Add("group delay did not increase");
         if (metrics.ScoreBreakdown.ResonancePenalty > options.MaxResonancePenalty)
             reasons.Add("resonance penalty exceeded limit");
         return reasons;
     }
 
-    private static bool PassesGrowingFinalValidation(CliMetrics metrics, CliOptions options)
+    private static void ApplyGrowingValidation(CliMetrics metrics, CliOptions options)
     {
-        return GetGrowingFinalValidationReasons(metrics, options).Count == 0;
+        metrics.PassFailFlags["target_frequency_match"] =
+            metrics.TargetFrequencyS11Db <= options.TargetReturnLossDb;
+        metrics.PassFailFlags["target_frequency_transmission_acceptable"] =
+            metrics.TargetFrequencyS21Db >= options.MinimumReferenceS21Db;
+        metrics.PassFailFlags["target_frequency_device_quality"] =
+            metrics.PassFailFlags["finite_metrics"]
+            && metrics.PassFailFlags["target_frequency_match"]
+            && metrics.PassFailFlags["target_frequency_transmission_acceptable"];
+        metrics.PassFailFlags["broadband_sweep_quality"] =
+            metrics.BroadbandReferenceReflectionPercent <= options.MaxAverageInputReflectionPercent;
+        metrics.PassFailFlags["usable_rf_device"] =
+            metrics.PassFailFlags["internal_medium_quality"]
+            && metrics.PassFailFlags["target_frequency_device_quality"]
+            && metrics.ScoreBreakdown.ResonancePenalty <= options.MaxResonancePenalty
+            && metrics.EnergyConcentrationRatio <= options.MaxEnergyConcentrationRatio;
+        metrics.PassFailFlags["overall"] = metrics.PassFailFlags["usable_rf_device"];
     }
 
-    private static List<string> GetGrowingFinalValidationReasons(CliMetrics metrics, CliOptions options)
+    private static bool PassesGrowingFinalValidation(CliMetrics metrics) =>
+        metrics.PassFailFlags.GetValueOrDefault("overall");
+
+    private static List<string> GetGrowingFinalValidationReasons(
+        CliMetrics metrics,
+        CliOptions options)
     {
         var reasons = new List<string>();
         if (!metrics.PassFailFlags.GetValueOrDefault("internal_medium_quality"))
             reasons.Add("internal medium quality failed");
-        if (!metrics.PassFailFlags.GetValueOrDefault("target_return_loss"))
-            reasons.Add("input return loss missed target");
-        if (!metrics.PassFailFlags.GetValueOrDefault("input_coupling_acceptable"))
-            reasons.Add("excessive reflected input power");
+        if (!metrics.PassFailFlags.GetValueOrDefault("target_frequency_match"))
+            reasons.Add("target-frequency S11 missed target");
+        if (!metrics.PassFailFlags.GetValueOrDefault("target_frequency_transmission_acceptable"))
+            reasons.Add("target-frequency S21 below minimum");
         if (metrics.ScoreBreakdown.ResonancePenalty > options.MaxResonancePenalty)
             reasons.Add("resonance penalty exceeded limit");
         if (metrics.EnergyConcentrationRatio > options.MaxEnergyConcentrationRatio)
             reasons.Add("energy localization exceeded limit");
         return reasons;
     }
+
+    private static GrowingFinalStatus CreateGrowingFinalStatus(CliMetrics metrics) =>
+        new()
+        {
+            InternalMediumQuality = metrics.PassFailFlags.GetValueOrDefault("internal_medium_quality"),
+            TargetFrequencyDeviceQuality = metrics.PassFailFlags.GetValueOrDefault("target_frequency_device_quality"),
+            BroadbandSweepQuality = metrics.PassFailFlags.GetValueOrDefault("broadband_sweep_quality"),
+            FinalOverall = metrics.PassFailFlags.GetValueOrDefault("overall")
+        };
+
+    private static string BuildGrowingFinalVerdict(GrowingFinalStatus status)
+    {
+        if (status.FinalOverall)
+            return "PASS: Narrowband target-frequency RF device";
+        if (status.InternalMediumQuality && !status.TargetFrequencyDeviceQuality)
+            return "FAIL: Internal medium OK, but target-frequency input coupling failed";
+        if (!status.InternalMediumQuality && status.TargetFrequencyDeviceQuality)
+            return "FAIL: Target-frequency match OK, but energy is localized / resonant";
+        return "FAIL: Internal medium quality and target-frequency device quality failed";
+    }
+
+    private static int CountGrowingCells(IReadOnlyList<RfElement> structure) =>
+        structure.Count(element => element.Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase));
 
     private static GrowingCompressionStep CreateGrowingStep(
         int cellCount,
@@ -505,15 +644,19 @@ internal static class Program
     private static bool HasRuntimeExpired(CliOptions options, Stopwatch stopwatch) =>
         options.RuntimeLimitSeconds > 0 && stopwatch.Elapsed.TotalSeconds >= options.RuntimeLimitSeconds;
 
-    private static string FormatGrowingReportLine(int cellCount, CliMetrics metrics, string status, string reason)
+    private static string FormatGrowingReportLine(
+        int cellCount,
+        CliMetrics metrics,
+        string status,
+        string reason,
+        bool useReferenceNetworkMetrics = false)
     {
         return $"{cellCount} {(cellCount == 1 ? "cell" : "cells")}: "
-               + $"RL = {metrics.BestReturnLossDb:F2} dB, "
-               + $"reflected at best match = {metrics.BestMatchReflectedPowerPercent:F4} %, "
-               + $"sweep-average reflected = {metrics.AverageInputReflectionPercent:F2} %, "
-               + $"delivered power at best match = {metrics.DeliveredPowerAtBestMatchDb:F2} dB, "
-               + $"phase = {metrics.TotalPhaseShiftDeg:F2} deg, "
-               + $"group delay = {metrics.TotalGroupDelayNs:F2} ns, "
+               + $"target S11 = {metrics.TargetFrequencyS11Db:F2} dB, "
+               + $"target S21 = {metrics.TargetFrequencyS21Db:F2} dB, "
+               + $"target phase = {metrics.TargetFrequencyPhaseDeg:F2} deg, "
+               + $"target group delay = {metrics.TargetFrequencyGroupDelayNs:F2} ns, "
+               + $"broadband reflected = {metrics.BroadbandReferenceReflectionPercent:F2} %, "
                + $"slow-wave max = {metrics.MaxSlowWaveFactor:F2}, "
                + $"{status}, reason = {reason}";
     }
@@ -774,6 +917,20 @@ internal static class Program
     {
         var bestMatch = sweep.OrderBy(point => point.InputReturnLossDb).First();
         var strongestRadiation = sweep.OrderByDescending(point => point.RadiatedPowerWatts).First();
+        var referenceSweep = SimulationEngine.Simulate(
+            options.FrequencyStartMHz * 1e6,
+            options.FrequencyStopMHz * 1e6,
+            options.Points,
+            SmallAntennaMode.SourceResistanceOhms,
+            structure);
+        var referenceBestS11 = referenceSweep.OrderBy(point => RfMath.ToDbMagnitude(point.S11)).First();
+        var referencePhase = RfMath.CalculatePhaseMetrics(referenceSweep);
+        var targetFrequencyHz = (options.FrequencyMHz
+                                 ?? (options.FrequencyStartMHz + options.FrequencyStopMHz) / 2.0) * 1e6;
+        var targetFrequencyIndex = FindNearestIndex(referenceSweep, targetFrequencyHz);
+        var targetFrequencyPoint = referenceSweep[targetFrequencyIndex];
+        var referenceUnwrappedPhase = RfMath.GetUnwrappedS21PhaseRadians(referenceSweep);
+        var referenceGroupDelayNs = RfMath.CalculateGroupDelayNs(referenceSweep);
         var selectedFrequencyHz = options.FrequencyMHz.HasValue
             ? options.FrequencyMHz.Value * 1e6
             : strongestRadiation.FrequencyHz;
@@ -833,6 +990,17 @@ internal static class Program
             DeliveredPowerDb = bestMatch.DeliveredPowerDb,
             DeliveredPowerAtBestMatchDb = bestMatch.DeliveredPowerDb,
             PeakDeliveredPowerDb = strongestRadiation.DeliveredPowerDb,
+            ReferenceBestS11Db = RfMath.ToDbMagnitude(referenceBestS11.S11),
+            ReferenceS21AtBestS11Db = RfMath.ToDbMagnitude(referenceBestS11.S21),
+            ReferenceTotalPhaseRotationDeg = referencePhase.TotalPhaseRotationDeg,
+            ReferenceAverageGroupDelayNs = referencePhase.AverageGroupDelayNs,
+            TargetFrequencyMHz = targetFrequencyPoint.FrequencyHz / 1e6,
+            TargetFrequencyS11Db = RfMath.ToDbMagnitude(targetFrequencyPoint.S11),
+            TargetFrequencyS21Db = RfMath.ToDbMagnitude(targetFrequencyPoint.S21),
+            TargetFrequencyPhaseDeg = Math.Abs(referenceUnwrappedPhase[targetFrequencyIndex]) * 180.0 / Math.PI,
+            TargetFrequencyGroupDelayNs = referenceGroupDelayNs[targetFrequencyIndex],
+            BroadbandReferenceReflectionPercent = referenceSweep.Average(point =>
+                point.S11.Magnitude * point.S11.Magnitude) * 100.0,
             RadiatedPowerDb = strongestRadiation.RadiatedPowerDb,
             RadiationEfficiencyPercent = strongestRadiation.RadiationEfficiency * 100.0,
             TotalPhaseShiftDeg = propagation?.Summary.TotalPhaseShiftDeg ?? 0,
@@ -856,6 +1024,19 @@ internal static class Program
         metrics.PassFailFlags["power_balance_consistent"] =
             Math.Abs(metrics.BestMatchAcceptedPowerPercent - metrics.BestMatchDeliveredPowerPercent) <= 1e-8;
         metrics.PassFailFlags["target_return_loss"] = metrics.BestReturnLossDb <= options.TargetReturnLossDb;
+        metrics.PassFailFlags["broadband_sweep_has_matching_point"] =
+            metrics.ReferenceBestS11Db <= options.TargetReturnLossDb;
+        metrics.PassFailFlags["broadband_sweep_s21_at_best_match_acceptable"] =
+            metrics.ReferenceS21AtBestS11Db >= options.MinimumReferenceS21Db;
+        metrics.PassFailFlags["target_frequency_match"] = metrics.TargetFrequencyS11Db <= options.TargetReturnLossDb;
+        metrics.PassFailFlags["target_frequency_transmission_acceptable"] =
+            metrics.TargetFrequencyS21Db >= options.MinimumReferenceS21Db;
+        metrics.PassFailFlags["target_frequency_device_quality"] =
+            metrics.PassFailFlags["finite_metrics"]
+            && metrics.PassFailFlags["target_frequency_match"]
+            && metrics.PassFailFlags["target_frequency_transmission_acceptable"];
+        metrics.PassFailFlags["broadband_sweep_quality"] =
+            metrics.BroadbandReferenceReflectionPercent <= options.MaxAverageInputReflectionPercent;
         metrics.PassFailFlags["propagation_supported"] = propagationSupported;
         metrics.PassFailFlags["slow_wave_bounded"] = metrics.MaxSlowWaveFactor <= options.MaxSlowWaveFactor;
         metrics.PassFailFlags["energy_distributed"] = metrics.EnergyConcentrationRatio <= options.MaxEnergyConcentrationRatio;
@@ -1063,6 +1244,23 @@ internal static class Program
         return nearestIndex;
     }
 
+    private static int FindNearestIndex(IReadOnlyList<SweepPoint> sweep, double frequencyHz)
+    {
+        var nearestIndex = 0;
+        var nearestDelta = double.PositiveInfinity;
+        for (var index = 0; index < sweep.Count; index++)
+        {
+            var delta = Math.Abs(sweep[index].FrequencyHz - frequencyHz);
+            if (delta < nearestDelta)
+            {
+                nearestIndex = index;
+                nearestDelta = delta;
+            }
+        }
+
+        return nearestIndex;
+    }
+
     private static double CalculateAntennaGroupDelayNs(IReadOnlyList<SmallAntennaPoint> sweep, int index)
     {
         if (sweep.Count < 2)
@@ -1131,6 +1329,7 @@ internal sealed class CliOptions
     public string? RunTestsDirectory { get; private set; }
     public string? BatchOptimizeObjective { get; private set; }
     public string? AutoTestDirectory { get; private set; }
+    public string? SeedStructurePath { get; private set; }
     public bool ShowHelp { get; private set; }
     public double FrequencyStartMHz { get; private set; } = 5;
     public double FrequencyStopMHz { get; private set; } = 50;
@@ -1162,6 +1361,7 @@ internal sealed class CliOptions
     public double MinimumGroupDelayIncreaseNs { get; private set; } = 0.01;
     public double MaxResonancePenalty { get; private set; } = 500;
     public double RuntimeLimitSeconds { get; private set; }
+    public double MinimumReferenceS21Db { get; private set; } = -3;
     public bool UseContinuousValues { get; private set; }
     public bool UseSmoothGradient { get; private set; }
     public double LMinNh { get; private set; } = 10;
@@ -1176,7 +1376,7 @@ internal sealed class CliOptions
         rf_sim_cli --input structure.json --mode compression --freq 27.5 --spacing-mm 5
         rf_sim_cli --mode optimize-antenna --iters 1000 --output best_antenna.json
         rf_sim_cli --mode optimize-compression --iters 1000 --output best_medium.json
-        rf_sim_cli --mode grow-compression --max-cells 12 --target-rl-db -10 --iters-per-step 2000 --output grown_medium.json
+        rf_sim_cli --mode grow-compression --seed known_good_seed.json --max-cells 12 --target-rl-db -10 --iters-per-step 2000 --output grown_medium.json
         rf_sim_cli --optimize compression --iters 10000 --auto-test tests/cli --save-best best.json
         rf_sim_cli --run-tests tests/cli
 
@@ -1197,6 +1397,7 @@ internal sealed class CliOptions
           --min-seed-delivered-power-db -6 --max-delivered-power-collapse-db 1
           --min-phase-increase-deg 0.01 --min-group-delay-increase-ns 0.01
           --max-resonance-penalty 500 --runtime-limit-seconds 0
+          --min-reference-s21-db -3
           --rejected-seed-diagnostics 5
         """;
 
@@ -1245,7 +1446,8 @@ internal sealed class CliOptions
             OptimizePreviousCells = GetInt(values, "--optimize-previous-cells", 2),
             RejectedSeedDiagnosticCount = GetInt(values, "--rejected-seed-diagnostics", 5),
             LauncherCellCount = GetInt(values, "--launcher-cells", 2),
-            RandomSeed = GetInt(values, "--seed", 12345),
+            SeedStructurePath = GetSeedStructurePath(values),
+            RandomSeed = GetRandomSeed(values),
             MutationsPerCandidate = GetInt(values, "--mutations-per-candidate", 1),
             MutationLogStep = GetDouble(values, "--mutation-log-step", 0.35),
             LauncherMutationFraction = GetDouble(values, "--launcher-mutation-fraction", 0.65),
@@ -1263,6 +1465,7 @@ internal sealed class CliOptions
             MinimumGroupDelayIncreaseNs = GetDouble(values, "--min-group-delay-increase-ns", 0.01),
             MaxResonancePenalty = GetDouble(values, "--max-resonance-penalty", 500),
             RuntimeLimitSeconds = GetDouble(values, "--runtime-limit-seconds", 0),
+            MinimumReferenceS21Db = GetDouble(values, "--min-reference-s21-db", -3),
             UseContinuousValues = values.ContainsKey("--continuous"),
             UseSmoothGradient = values.ContainsKey("--smooth-gradient"),
             LMinNh = GetDouble(values, "--l-min-nh", 10),
@@ -1344,6 +1547,26 @@ internal sealed class CliOptions
         values.TryGetValue(name, out var value) && value is not null
             ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
             : defaultValue;
+
+    private static int GetRandomSeed(Dictionary<string, string?> values)
+    {
+        if (values.TryGetValue("--random-seed", out var randomSeed) && randomSeed is not null)
+            return int.Parse(randomSeed, CultureInfo.InvariantCulture);
+        if (values.TryGetValue("--seed", out var seed) && seed is not null
+            && int.TryParse(seed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+            return parsed;
+        return 12345;
+    }
+
+    private static string? GetSeedStructurePath(Dictionary<string, string?> values)
+    {
+        if (values.TryGetValue("--seed-structure", out var seedStructure) && seedStructure is not null)
+            return seedStructure;
+        if (values.TryGetValue("--seed", out var seed) && seed is not null
+            && !int.TryParse(seed, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+            return seed;
+        return null;
+    }
 }
 
 internal sealed class CliMetrics
@@ -1362,6 +1585,21 @@ internal sealed class CliMetrics
     public double DeliveredPowerDb { get; set; }
     public double DeliveredPowerAtBestMatchDb { get; set; }
     public double PeakDeliveredPowerDb { get; set; }
+    [JsonPropertyName("broadband_sweep_best_s11_db")]
+    public double ReferenceBestS11Db { get; set; }
+    [JsonPropertyName("broadband_sweep_s21_at_best_s11_db")]
+    public double ReferenceS21AtBestS11Db { get; set; }
+    [JsonPropertyName("broadband_sweep_total_phase_rotation_deg")]
+    public double ReferenceTotalPhaseRotationDeg { get; set; }
+    [JsonPropertyName("broadband_sweep_average_group_delay_ns")]
+    public double ReferenceAverageGroupDelayNs { get; set; }
+    [JsonPropertyName("target_frequency_mhz")]
+    public double TargetFrequencyMHz { get; set; }
+    public double TargetFrequencyS11Db { get; set; }
+    public double TargetFrequencyS21Db { get; set; }
+    public double TargetFrequencyPhaseDeg { get; set; }
+    public double TargetFrequencyGroupDelayNs { get; set; }
+    public double BroadbandReferenceReflectionPercent { get; set; }
     public double RadiatedPowerDb { get; set; }
     public double RadiationEfficiencyPercent { get; set; }
     public double TotalPhaseShiftDeg { get; set; }
@@ -1388,6 +1626,9 @@ internal sealed class CliMetrics
             BestMatchAcceptedPowerPercent, BestMatchDeliveredPowerPercent,
             AverageInputReflectionPercent, FrequencyOfBestMatchMHz, DeliveredPowerDb,
             DeliveredPowerAtBestMatchDb, PeakDeliveredPowerDb, RadiatedPowerDb,
+            ReferenceBestS11Db, ReferenceS21AtBestS11Db, ReferenceTotalPhaseRotationDeg, ReferenceAverageGroupDelayNs,
+            TargetFrequencyMHz, TargetFrequencyS11Db, TargetFrequencyS21Db, TargetFrequencyPhaseDeg,
+            TargetFrequencyGroupDelayNs, BroadbandReferenceReflectionPercent,
             RadiationEfficiencyPercent, TotalPhaseShiftDeg, TotalGroupDelayNs, AverageSlowWaveFactor,
             MaxSlowWaveFactor, EnergyConcentrationRatio, PhaseSmoothnessError, LcSmoothnessError,
             CompressionRatio, OptimizerScore
@@ -1410,6 +1651,20 @@ internal sealed class CliMetrics
             ["delivered_power_db"] = DeliveredPowerDb,
             ["delivered_power_at_best_match_db"] = DeliveredPowerAtBestMatchDb,
             ["peak_delivered_power_db"] = PeakDeliveredPowerDb,
+            ["reference_best_s11_db"] = ReferenceBestS11Db,
+            ["reference_s21_at_best_s11_db"] = ReferenceS21AtBestS11Db,
+            ["reference_total_phase_rotation_deg"] = ReferenceTotalPhaseRotationDeg,
+            ["reference_average_group_delay_ns"] = ReferenceAverageGroupDelayNs,
+            ["broadband_sweep_best_s11_db"] = ReferenceBestS11Db,
+            ["broadband_sweep_s21_at_best_s11_db"] = ReferenceS21AtBestS11Db,
+            ["broadband_sweep_total_phase_rotation_deg"] = ReferenceTotalPhaseRotationDeg,
+            ["broadband_sweep_average_group_delay_ns"] = ReferenceAverageGroupDelayNs,
+            ["target_frequency_mhz"] = TargetFrequencyMHz,
+            ["target_frequency_s11_db"] = TargetFrequencyS11Db,
+            ["target_frequency_s21_db"] = TargetFrequencyS21Db,
+            ["target_frequency_phase_deg"] = TargetFrequencyPhaseDeg,
+            ["target_frequency_group_delay_ns"] = TargetFrequencyGroupDelayNs,
+            ["broadband_reference_reflection_percent"] = BroadbandReferenceReflectionPercent,
             ["radiated_power_db"] = RadiatedPowerDb,
             ["radiation_efficiency_percent"] = RadiationEfficiencyPercent,
             ["total_phase_shift_deg"] = TotalPhaseShiftDeg,
@@ -1532,10 +1787,13 @@ internal sealed class GrowingCompressionResult
     public int RejectedStepCount { get; set; }
     public string StopReason { get; set; } = string.Empty;
     public string? OutputPath { get; set; }
+    public string? SeedStructurePath { get; set; }
     public double ElapsedSeconds { get; set; }
     public List<RfElement>? FinalStructure { get; set; }
     public CliMetrics? FinalMetrics { get; set; }
     public bool FinalUsableRfDevice { get; set; }
+    public GrowingFinalStatus? FinalStatus { get; set; }
+    public string? FinalVerdict { get; set; }
     public List<string> FinalValidationReasons { get; set; } = new();
     public List<string> GrowthReport { get; set; } = new();
     public List<GrowingRejectedSeed> BestRejectedSeeds { get; set; } = new();
@@ -1560,8 +1818,20 @@ internal sealed class GrowingRejectedSeed
     public double BestMatchAcceptedPowerPercent { get; set; }
     public double BestMatchDeliveredPowerPercent { get; set; }
     public double AverageInputReflectionPercent { get; set; }
+    public double ReferenceBestS11Db { get; set; }
+    public double ReferenceS21AtBestS11Db { get; set; }
+    public double TargetFrequencyS11Db { get; set; }
+    public double TargetFrequencyS21Db { get; set; }
     public bool ReflectionMetricsConsistent { get; set; }
     public bool PowerBalanceConsistent { get; set; }
     public List<string> Reasons { get; set; } = new();
     public List<RfElement> Structure { get; set; } = new();
+}
+
+internal sealed class GrowingFinalStatus
+{
+    public bool InternalMediumQuality { get; set; }
+    public bool TargetFrequencyDeviceQuality { get; set; }
+    public bool BroadbandSweepQuality { get; set; }
+    public bool FinalOverall { get; set; }
 }

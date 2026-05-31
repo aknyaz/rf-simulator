@@ -1,0 +1,852 @@
+{
+  "mode": "grow-compression",
+  "passed": true,
+  "accepted_cells": 8,
+  "rejected_step_count": 7836,
+  "stop_reason": "No acceptable cell 9 extension preserved coupling and adiabatic growth.",
+  "output_path": "grown_medium.json",
+  "seed_structure_path": "tests\\cli\\known_good_seed.json",
+  "elapsed_seconds": 26.3054847,
+  "final_structure": [
+    {
+      "type": "SeriesL",
+      "value": 1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.1E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.1E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.2E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.1E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.1E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 4.1411122872274225E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.5722235317757853E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.3E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.5722235317757853E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.1007099844970964E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.5722235317757853E-07
+    }
+  ],
+  "final_metrics": {
+    "mode": "compression",
+    "best_return_loss_db": -0.034735088101690306,
+    "best_s11_db": -0.034735088101690306,
+    "best_return_loss_positive_db": 0.034735088101690306,
+    "best_match_reflection_coefficient_magnitude": 0.9960089606481303,
+    "best_match_reflected_power_percent": 99.20338496913688,
+    "best_match_accepted_power_percent": 0.7966150308631237,
+    "best_match_delivered_power_percent": 0.7966150308631568,
+    "average_input_reflection_percent": 99.27259693732768,
+    "frequency_of_best_match_mhz": 10.4,
+    "delivered_power_db": -20.987515034007778,
+    "delivered_power_at_best_match_db": -20.987515034007778,
+    "peak_delivered_power_db": -20.987515034007778,
+    "reference_best_s11_db": -18.48634994112067,
+    "reference_s21_at_best_s11_db": -0.06197900242655199,
+    "reference_total_phase_rotation_deg": 417.9802155370215,
+    "reference_average_group_delay_ns": 25.799374580411435,
+    "radiated_power_db": -22.74842762456459,
+    "radiation_efficiency_percent": 66.66666666666667,
+    "total_phase_shift_deg": -5.907980616195415,
+    "total_group_delay_ns": 22.452933391286813,
+    "average_slow_wave_factor": 11.8267096070084,
+    "max_slow_wave_factor": 82.17534437876147,
+    "slow_wave_factor_peak_cell": 0,
+    "energy_concentration_ratio": 0.35717087643795364,
+    "phase_smoothness_error": 10.561296785720648,
+    "lc_smoothness_error": 9.583933298289502,
+    "compression_ratio": 168.28050226710377,
+    "optimizer_score": 151376.763159229,
+    "score_breakdown": {
+      "input_match_score": 49653.25238215581,
+      "radiated_power_score": -2.0362438723217027,
+      "smooth_gradient_score": 2987.4758616021536,
+      "phase_compression_score": 644.8828793055887,
+      "resonance_penalty": 0,
+      "energy_localization_penalty": 603.270293215464,
+      "input_coupling_score": 97489.91798682231,
+      "total_score": 151376.763159229
+    },
+    "pass_fail_flags": {
+      "finite_metrics": true,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "target_return_loss": false,
+      "reference_target_s11": true,
+      "reference_s21_acceptable": true,
+      "propagation_supported": true,
+      "slow_wave_bounded": true,
+      "energy_distributed": true,
+      "input_coupling_acceptable": false,
+      "internal_medium_quality": true,
+      "usable_rf_device": false,
+      "overall": false
+    },
+    "output_path": null,
+    "structure": [
+      {
+        "type": "SeriesL",
+        "value": 1E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.1E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.1E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.2E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.1E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.1E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 4.1411122872274225E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.5722235317757853E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.3E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.5722235317757853E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.1007099844970964E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.5722235317757853E-07
+      }
+    ]
+  },
+  "final_usable_rf_device": true,
+  "final_validation_reasons": [],
+  "growth_report": [
+    "5 cells: reference S11 = -29.52 dB, reference S21 = -0.00 dB, phase = 192.68 deg, group delay = 11.90 ns, slow-wave max = 4.08, PASS, reason = known launcher seed accepted",
+    "6 cells: reference S11 = -21.77 dB, reference S21 = -0.03 dB, phase = 256.99 deg, group delay = 15.86 ns, slow-wave max = 23.50, PASS, reason = adiabatic cell extension accepted",
+    "7 cells: reference S11 = -22.31 dB, reference S21 = -0.03 dB, phase = 373.10 deg, group delay = 23.04 ns, slow-wave max = 35.15, PASS, reason = adiabatic cell extension accepted",
+    "8 cells: reference S11 = -18.49 dB, reference S21 = -0.06 dB, phase = 417.98 deg, group delay = 25.80 ns, slow-wave max = 82.18, PASS, reason = adiabatic cell extension accepted",
+    "9 cells: reference S11 = -27.21 dB, reference S21 = -0.01 dB, phase = 587.61 deg, group delay = 36.27 ns, slow-wave max = 1.77, REJECT, reason = phase delay did not increase",
+    "Final accepted structure: 8 cells."
+  ],
+  "best_rejected_seeds": [],
+  "steps": [
+    {
+      "cell_count": 5,
+      "rejected_attempts_before_acceptance": 0,
+      "reason": "Known launcher seed accepted.",
+      "metrics": {
+        "mode": "compression",
+        "best_return_loss_db": -0.03308694803780827,
+        "best_s11_db": -0.03308694803780827,
+        "best_return_loss_positive_db": 0.03308694803780827,
+        "best_match_reflection_coefficient_magnitude": 0.9961979704206236,
+        "best_match_reflected_power_percent": 99.24103962701697,
+        "best_match_accepted_power_percent": 0.7589603729830308,
+        "best_match_delivered_power_percent": 0.7589603729830326,
+        "average_input_reflection_percent": 99.30312390000151,
+        "frequency_of_best_match_mhz": 17.9375,
+        "delivered_power_db": -21.19780898997901,
+        "delivered_power_at_best_match_db": -21.19780898997901,
+        "peak_delivered_power_db": -21.19780898997901,
+        "reference_best_s11_db": -29.523366684852796,
+        "reference_s21_at_best_s11_db": -0.004849423262394461,
+        "reference_total_phase_rotation_deg": 192.67692677329305,
+        "reference_average_group_delay_ns": 11.895291880646548,
+        "radiated_power_db": -22.95872158053582,
+        "radiation_efficiency_percent": 66.66666666666666,
+        "total_phase_shift_deg": -0.7048778032666494,
+        "total_group_delay_ns": 12.107503678690186,
+        "average_slow_wave_factor": 1.3089712689489696,
+        "max_slow_wave_factor": 4.078809999707564,
+        "slow_wave_factor_peak_cell": 0,
+        "energy_concentration_ratio": 0.3679401545133167,
+        "phase_smoothness_error": 3.7166659070150945,
+        "lc_smoothness_error": 1.2500013189755532,
+        "compression_ratio": 145.18953152314293,
+        "optimizer_score": 149137.73250541033,
+        "score_breakdown": {
+          "input_match_score": 49669.677892687134,
+          "radiated_power_score": -1.9653424578670036,
+          "smooth_gradient_score": 342.99186822779245,
+          "phase_compression_score": 408.4245062967175,
+          "resonance_penalty": 0,
+          "energy_localization_penalty": 1108.2850105090897,
+          "input_coupling_score": 97610.31857014747,
+          "total_score": 149137.73250541033
+        },
+        "pass_fail_flags": {
+          "finite_metrics": true,
+          "reflection_metrics_consistent": true,
+          "power_balance_consistent": true,
+          "target_return_loss": false,
+          "reference_target_s11": true,
+          "reference_s21_acceptable": true,
+          "propagation_supported": true,
+          "slow_wave_bounded": true,
+          "energy_distributed": true,
+          "input_coupling_acceptable": false,
+          "internal_medium_quality": true,
+          "usable_rf_device": false,
+          "overall": false
+        },
+        "output_path": null,
+        "structure": [
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.2E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 4.7E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          }
+        ]
+      },
+      "best_structure_at_length": [
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.2E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 4.7E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        }
+      ]
+    },
+    {
+      "cell_count": 6,
+      "rejected_attempts_before_acceptance": 1863,
+      "reason": "Adiabatic cell extension accepted.",
+      "metrics": {
+        "mode": "compression",
+        "best_return_loss_db": -0.0352160442316602,
+        "best_s11_db": -0.0352160442316602,
+        "best_return_loss_positive_db": 0.0352160442316602,
+        "best_match_reflection_coefficient_magnitude": 0.9959538110465699,
+        "best_match_reflected_power_percent": 99.19239937381866,
+        "best_match_accepted_power_percent": 0.8076006261813373,
+        "best_match_delivered_power_percent": 0.8076006261812775,
+        "average_input_reflection_percent": 99.27859581559686,
+        "frequency_of_best_match_mhz": 16.1375,
+        "delivered_power_db": -20.92803352993668,
+        "delivered_power_at_best_match_db": -20.92803352993668,
+        "peak_delivered_power_db": -20.92803352993668,
+        "reference_best_s11_db": -21.769048891656727,
+        "reference_s21_at_best_s11_db": -0.028995351848062557,
+        "reference_total_phase_rotation_deg": 256.9851694427691,
+        "reference_average_group_delay_ns": 15.863870047729536,
+        "radiated_power_db": -22.688946120493494,
+        "radiation_efficiency_percent": 66.66666666666667,
+        "total_phase_shift_deg": -2.758313273082191,
+        "total_group_delay_ns": 14.371646271038754,
+        "average_slow_wave_factor": 4.744651094881002,
+        "max_slow_wave_factor": 23.498398114829502,
+        "slow_wave_factor_peak_cell": 0,
+        "energy_concentration_ratio": 0.32174282878636135,
+        "phase_smoothness_error": 8.6266024595259,
+        "lc_smoothness_error": 2.1586200938383575,
+        "compression_ratio": 143.61703870337476,
+        "optimizer_score": 148768.0028386959,
+        "score_breakdown": {
+          "input_match_score": 49648.45964256906,
+          "radiated_power_score": -2.022389112408153,
+          "smooth_gradient_score": 514.9945310945676,
+          "phase_compression_score": 570.7647961097915,
+          "resonance_penalty": 0,
+          "energy_localization_penalty": 522.2753958400849,
+          "input_coupling_score": 97513.5308621948,
+          "total_score": 148768.0028386959
+        },
+        "pass_fail_flags": {
+          "finite_metrics": true,
+          "reflection_metrics_consistent": true,
+          "power_balance_consistent": true,
+          "target_return_loss": false,
+          "reference_target_s11": true,
+          "reference_s21_acceptable": true,
+          "propagation_supported": true,
+          "slow_wave_bounded": true,
+          "energy_distributed": true,
+          "input_coupling_acceptable": false,
+          "internal_medium_quality": true,
+          "usable_rf_device": false,
+          "overall": false
+        },
+        "output_path": null,
+        "structure": [
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.2E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 4.7E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 4.1411122872274225E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.5722235317757853E-07
+          }
+        ]
+      },
+      "best_structure_at_length": [
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.2E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 4.7E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 4.1411122872274225E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.5722235317757853E-07
+        }
+      ]
+    },
+    {
+      "cell_count": 7,
+      "rejected_attempts_before_acceptance": 1979,
+      "reason": "Adiabatic cell extension accepted.",
+      "metrics": {
+        "mode": "compression",
+        "best_return_loss_db": -0.033935373981727544,
+        "best_s11_db": -0.033935373981727544,
+        "best_return_loss_positive_db": 0.033935373981727544,
+        "best_match_reflection_coefficient_magnitude": 0.9961006679034446,
+        "best_match_reflected_power_percent": 99.22165405976885,
+        "best_match_accepted_power_percent": 0.778345940231151,
+        "best_match_delivered_power_percent": 0.7783459402311146,
+        "average_input_reflection_percent": 99.32643564660422,
+        "frequency_of_best_match_mhz": 11.4125,
+        "delivered_power_db": -21.08827335476889,
+        "delivered_power_at_best_match_db": -21.08827335476889,
+        "peak_delivered_power_db": -21.08827335476889,
+        "reference_best_s11_db": -22.312273859071357,
+        "reference_s21_at_best_s11_db": -0.025576146158829645,
+        "reference_total_phase_rotation_deg": 373.0959295328726,
+        "reference_average_group_delay_ns": 23.040165832823938,
+        "radiated_power_db": -22.849185945325704,
+        "radiation_efficiency_percent": 66.66666666666667,
+        "total_phase_shift_deg": -3.022551398937833,
+        "total_group_delay_ns": 20.478979861289673,
+        "average_slow_wave_factor": 6.301487253386962,
+        "max_slow_wave_factor": 35.15212685937819,
+        "slow_wave_factor_peak_cell": 0,
+        "energy_concentration_ratio": 0.3266019102576358,
+        "phase_smoothness_error": 7.918345094357771,
+        "lc_smoothness_error": 2.956555669804413,
+        "compression_ratio": 175.41267742710085,
+        "optimizer_score": 149682.76332660636,
+        "score_breakdown": {
+          "input_match_score": 49661.22206498637,
+          "radiated_power_score": -1.9105227823262294,
+          "smooth_gradient_score": 747.3366014303363,
+          "phase_compression_score": 607.2750838632396,
+          "resonance_penalty": 0,
+          "energy_localization_penalty": 966.2270550915566,
+          "input_coupling_score": 97702.6130440172,
+          "total_score": 149682.76332660636
+        },
+        "pass_fail_flags": {
+          "finite_metrics": true,
+          "reflection_metrics_consistent": true,
+          "power_balance_consistent": true,
+          "target_return_loss": false,
+          "reference_target_s11": true,
+          "reference_s21_acceptable": true,
+          "propagation_supported": true,
+          "slow_wave_bounded": true,
+          "energy_distributed": true,
+          "input_coupling_acceptable": false,
+          "internal_medium_quality": true,
+          "usable_rf_device": false,
+          "overall": false
+        },
+        "output_path": null,
+        "structure": [
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.2E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 4.1411122872274225E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.5722235317757853E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 1E-10
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.5722235317757853E-07
+          }
+        ]
+      },
+      "best_structure_at_length": [
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.2E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 4.1411122872274225E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.5722235317757853E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 1E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.5722235317757853E-07
+        }
+      ]
+    },
+    {
+      "cell_count": 8,
+      "rejected_attempts_before_acceptance": 1994,
+      "reason": "Adiabatic cell extension accepted.",
+      "metrics": {
+        "mode": "compression",
+        "best_return_loss_db": -0.034735088101690306,
+        "best_s11_db": -0.034735088101690306,
+        "best_return_loss_positive_db": 0.034735088101690306,
+        "best_match_reflection_coefficient_magnitude": 0.9960089606481303,
+        "best_match_reflected_power_percent": 99.20338496913688,
+        "best_match_accepted_power_percent": 0.7966150308631237,
+        "best_match_delivered_power_percent": 0.7966150308631568,
+        "average_input_reflection_percent": 99.27259693732768,
+        "frequency_of_best_match_mhz": 10.4,
+        "delivered_power_db": -20.987515034007778,
+        "delivered_power_at_best_match_db": -20.987515034007778,
+        "peak_delivered_power_db": -20.987515034007778,
+        "reference_best_s11_db": -18.48634994112067,
+        "reference_s21_at_best_s11_db": -0.06197900242655199,
+        "reference_total_phase_rotation_deg": 417.9802155370215,
+        "reference_average_group_delay_ns": 25.799374580411435,
+        "radiated_power_db": -22.74842762456459,
+        "radiation_efficiency_percent": 66.66666666666667,
+        "total_phase_shift_deg": -5.907980616195415,
+        "total_group_delay_ns": 22.452933391286813,
+        "average_slow_wave_factor": 11.8267096070084,
+        "max_slow_wave_factor": 82.17534437876147,
+        "slow_wave_factor_peak_cell": 0,
+        "energy_concentration_ratio": 0.35717087643795364,
+        "phase_smoothness_error": 10.561296785720648,
+        "lc_smoothness_error": 9.583933298289502,
+        "compression_ratio": 168.28050226710377,
+        "optimizer_score": 151376.763159229,
+        "score_breakdown": {
+          "input_match_score": 49653.25238215581,
+          "radiated_power_score": -2.0362438723217027,
+          "smooth_gradient_score": 2987.4758616021536,
+          "phase_compression_score": 644.8828793055887,
+          "resonance_penalty": 0,
+          "energy_localization_penalty": 603.270293215464,
+          "input_coupling_score": 97489.91798682231,
+          "total_score": 151376.763159229
+        },
+        "pass_fail_flags": {
+          "finite_metrics": true,
+          "reflection_metrics_consistent": true,
+          "power_balance_consistent": true,
+          "target_return_loss": false,
+          "reference_target_s11": true,
+          "reference_s21_acceptable": true,
+          "propagation_supported": true,
+          "slow_wave_bounded": true,
+          "energy_distributed": true,
+          "input_coupling_acceptable": false,
+          "internal_medium_quality": true,
+          "usable_rf_device": false,
+          "overall": false
+        },
+        "output_path": null,
+        "structure": [
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.2E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 5.1E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 1E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 4.1411122872274225E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.5722235317757853E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 1.3E-10
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.5722235317757853E-07
+          },
+          {
+            "type": "ShuntC",
+            "value": 1.1007099844970964E-11
+          },
+          {
+            "type": "SeriesL",
+            "value": 2.5722235317757853E-07
+          }
+        ]
+      },
+      "best_structure_at_length": [
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.2E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 5.1E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 1E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 4.1411122872274225E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.5722235317757853E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 1.3E-10
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.5722235317757853E-07
+        },
+        {
+          "type": "ShuntC",
+          "value": 1.1007099844970964E-11
+        },
+        {
+          "type": "SeriesL",
+          "value": 2.5722235317757853E-07
+        }
+      ]
+    }
+  ]
+}

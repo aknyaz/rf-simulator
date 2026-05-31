@@ -1,0 +1,94 @@
+[
+  {
+    "type": "SeriesL",
+    "value": 1E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 5.1E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 1E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 5.1E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 2.2E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 5.1E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 1E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 4.7E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 1E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 4.1411122872274225E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 1.0943968560540821E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 4.1411122872274225E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 2.5722235317757853E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 1.1E-10
+  },
+  {
+    "type": "SeriesL",
+    "value": 3.3E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 1.2E-10
+  },
+  {
+    "type": "SeriesL",
+    "value": 3.3E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 1.2E-10
+  },
+  {
+    "type": "SeriesL",
+    "value": 3.3E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 1.2E-10
+  },
+  {
+    "type": "SeriesL",
+    "value": 1.2983793833157082E-07
+  },
+  {
+    "type": "ShuntC",
+    "value": 5.1E-11
+  },
+  {
+    "type": "SeriesL",
+    "value": 2.5722235317757853E-07
+  }
+]

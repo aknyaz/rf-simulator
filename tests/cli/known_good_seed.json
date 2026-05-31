@@ -1,0 +1,11 @@
+[
+  { "type": "SeriesL", "value": 1e-7 },
+  { "type": "ShuntC", "value": 5.1e-11 },
+  { "type": "SeriesL", "value": 1e-7 },
+  { "type": "ShuntC", "value": 5.1e-11 },
+  { "type": "SeriesL", "value": 2.2e-7 },
+  { "type": "ShuntC", "value": 5.1e-11 },
+  { "type": "SeriesL", "value": 1e-7 },
+  { "type": "ShuntC", "value": 4.7e-11 },
+  { "type": "SeriesL", "value": 1e-7 }
+]

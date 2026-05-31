@@ -1415,8 +1415,23 @@ public partial class Form1 : Form
 
             var json = File.ReadAllText(dialog.FileName);
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var config = JsonSerializer.Deserialize<SimulationConfig>(json, options)
-                         ?? throw new InvalidOperationException("Configuration JSON is empty.");
+            using var document = JsonDocument.Parse(json);
+            var config = document.RootElement.ValueKind switch
+            {
+                JsonValueKind.Object => JsonSerializer.Deserialize<SimulationConfig>(json, options)
+                                        ?? throw new InvalidOperationException("Configuration JSON is empty."),
+                JsonValueKind.Array => new SimulationConfig
+                {
+                    StartMHz = (double)_startMHzInput.Value,
+                    StopMHz = (double)_stopMHzInput.Value,
+                    Points = (int)_pointsInput.Value,
+                    Z0 = (double)_z0Input.Value,
+                    Structure = JsonSerializer.Deserialize<List<RfElement>>(json, options)
+                                ?? throw new InvalidOperationException("Structure JSON is empty.")
+                },
+                _ => throw new InvalidOperationException(
+                    "JSON must contain a simulator configuration object or an LC structure array.")
+            };
 
             config.Structure ??= new List<RfElement>();
             SimulationEngine.ValidateStructure(config.Structure);
