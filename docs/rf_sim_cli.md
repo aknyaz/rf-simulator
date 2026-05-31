@@ -25,6 +25,8 @@ The CLI prints deterministic JSON metrics. Analysis commands exit with code `0` 
 
 CLI optimizer output files such as `grown_medium.json` contain a raw LC structure array. The desktop GUI `Load JSON` action accepts these files directly and keeps the sweep settings currently shown in the GUI. GUI-saved configuration files remain wrapped objects containing sweep settings and the structure.
 
+The desktop GUI also provides a `Manual RF Tuning` tab for human-guided adjustment. It includes an ordered element editor with lock controls, logarithmic slider and numeric value input, LC-cell add/remove/duplicate actions, insert/reset operations, baseline comparison and revert, live target-frequency metrics, and live S-parameter and propagation plots. The S-parameter engine accepts `SeriesL`, `ShuntC`, `SeriesC`, `ShuntL`, `SeriesR`, and `ShuntR`; spatial slow-wave plots remain limited to alternating LC ladders.
+
 ## Batch Optimization
 
 Use batch optimization for repeatable automated experimentation:

@@ -186,9 +186,13 @@ public partial class Form1 : Form
         var antennaTab = new TabPage("Small Antenna Mode");
         antennaTab.Controls.Add(BuildSmallAntennaModePanel());
 
+        var manualTuningTab = new TabPage("Manual RF Tuning");
+        manualTuningTab.Controls.Add(BuildManualTuningPanel());
+
         tabs.TabPages.Add(sParameterTab);
         tabs.TabPages.Add(propagationTab);
         tabs.TabPages.Add(antennaTab);
+        tabs.TabPages.Add(manualTuningTab);
         return tabs;
     }
 
@@ -1257,6 +1261,7 @@ public partial class Form1 : Form
 
         _structureInput.Text = JsonSerializer.Serialize(_bestAntennaCandidate.Structure, new JsonSerializerOptions { WriteIndented = true });
         UpdateStructureSummary(_bestAntennaCandidate.Structure);
+        SyncManualTuningFromStructure(_bestAntennaCandidate.Structure);
         _presetCombo.SelectedIndex = -1;
         RunSimulation();
         UpdateSmallAntennaMode();
@@ -1444,6 +1449,7 @@ public partial class Form1 : Form
             _presetCombo.SelectedIndex = -1;
             _structureInput.Text = JsonSerializer.Serialize(config.Structure, new JsonSerializerOptions { WriteIndented = true });
             UpdateStructureSummary(config.Structure);
+            SyncManualTuningFromStructure(config.Structure);
             RunSimulation();
             _statusLabel.Text = $"Loaded: {Path.GetFileName(dialog.FileName)}";
         }
@@ -1729,6 +1735,7 @@ public partial class Form1 : Form
 
         _structureInput.Text = JsonSerializer.Serialize(candidate.Structure, new JsonSerializerOptions { WriteIndented = true });
         UpdateStructureSummary(candidate.Structure);
+        SyncManualTuningFromStructure(candidate.Structure);
         _presetCombo.SelectedIndex = -1;
         RunSimulation();
         _statusLabel.Text =
@@ -1746,6 +1753,7 @@ public partial class Form1 : Form
         var best = _candidateResults[0];
         _structureInput.Text = JsonSerializer.Serialize(best.Structure, new JsonSerializerOptions { WriteIndented = true });
         UpdateStructureSummary(best.Structure);
+        SyncManualTuningFromStructure(best.Structure);
         _presetCombo.SelectedIndex = -1;
         RunSimulation();
         _optimizerStatusLabel.Text = "Best result applied to simulator.";

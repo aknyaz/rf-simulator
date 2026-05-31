@@ -107,7 +107,11 @@ public static class SimulationEngine
                 var section = element.Type.Trim().ToLowerInvariant() switch
                 {
                     "seriesl" => AbcdMatrix.SeriesImpedance(Complex.ImaginaryOne * omega * element.Value),
+                    "seriesc" => AbcdMatrix.SeriesImpedance(1.0 / (Complex.ImaginaryOne * omega * element.Value)),
+                    "seriesr" => AbcdMatrix.SeriesImpedance(element.Value),
                     "shuntc" => AbcdMatrix.ShuntAdmittance(Complex.ImaginaryOne * omega * element.Value),
+                    "shuntl" => AbcdMatrix.ShuntAdmittance(1.0 / (Complex.ImaginaryOne * omega * element.Value)),
+                    "shuntr" => AbcdMatrix.ShuntAdmittance(1.0 / element.Value),
                     _ => throw new InvalidOperationException($"Unsupported element type: {element.Type}")
                 };
 
