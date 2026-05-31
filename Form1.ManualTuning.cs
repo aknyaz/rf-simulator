@@ -605,14 +605,39 @@ public partial class Form1
                 structure);
             var targetMHz = (double)_manualTargetMHzInput.Value;
             var metrics = CalculateManualTargetMetrics(structure, sweep);
-            _manualBaselineMetrics ??= _manualBaseline.Count > 0 ? CalculateManualTargetMetrics(_manualBaseline) : metrics;
+            var baselineSweep = _manualBaseline.Count > 0
+                ? SimulationEngine.Simulate(
+                    (double)_startMHzInput.Value * 1e6,
+                    (double)_stopMHzInput.Value * 1e6,
+                    (int)_pointsInput.Value,
+                    (double)_z0Input.Value,
+                    _manualBaseline)
+                : sweep;
+            _manualBaselineMetrics = _manualBaseline.Count > 0
+                ? CalculateManualTargetMetrics(_manualBaseline, baselineSweep)
+                : metrics;
             _manualMetricsText.Text = FormatManualMetrics(metrics, _manualBaselineMetrics);
-            _manualSmithPlot.Model = AddManualTargetMarker(PlotFactory.BuildSmithModel(sweep), sweep, targetMHz, false);
-            _manualS11Plot.Model = AddManualTargetMarker(PlotFactory.BuildS11DbModel(sweep), sweep, targetMHz, true);
-            _manualS21Plot.Model = AddManualTargetMarker(PlotFactory.BuildS21DbModel(sweep), sweep, targetMHz, true);
-            _manualPhasePlot.Model = AddManualTargetMarker(PlotFactory.BuildS21PhaseModel(sweep), sweep, targetMHz, true);
-            _manualGroupDelayPlot.Model = AddManualTargetMarker(PlotFactory.BuildGroupDelayModel(sweep), sweep, targetMHz, true);
-            TryUpdateManualPropagationPlots(structure, sweep, metrics);
+            _manualSmithPlot.Model = AddManualSmithBaseline(
+                AddManualTargetMarker(PlotFactory.BuildSmithModel(sweep), sweep, targetMHz, false),
+                baselineSweep);
+            _manualS11Plot.Model = AddManualFrequencyBaseline(
+                AddManualTargetMarker(PlotFactory.BuildS11DbModel(sweep), sweep, targetMHz, true),
+                baselineSweep,
+                point => RfMath.ToDbMagnitude(point.S11));
+            _manualS21Plot.Model = AddManualFrequencyBaseline(
+                AddManualTargetMarker(PlotFactory.BuildS21DbModel(sweep), sweep, targetMHz, true),
+                baselineSweep,
+                point => RfMath.ToDbMagnitude(point.S21));
+            _manualPhasePlot.Model = AddManualFrequencyBaseline(
+                AddManualTargetMarker(PlotFactory.BuildS21PhaseModel(sweep), sweep, targetMHz, true),
+                baselineSweep,
+                BuildManualPhaseDegrees(baselineSweep));
+            _manualGroupDelayPlot.Model = AddManualFrequencyBaseline(
+                AddManualTargetMarker(PlotFactory.BuildGroupDelayModel(sweep), sweep, targetMHz, true),
+                baselineSweep,
+                RfMath.CalculateGroupDelayNs(baselineSweep));
+            TryUpdateManualPropagationPlots(metrics, _manualBaselineMetrics);
+            InvalidateManualPlots();
             _manualStatusLabel.Text = $"Live update: {structure.Count} elements at {targetMHz:F3} MHz";
         }
         catch (Exception ex)
@@ -671,9 +696,8 @@ public partial class Form1
     }
 
     private void TryUpdateManualPropagationPlots(
-        IReadOnlyList<RfElement> structure,
-        IReadOnlyList<SweepPoint> sweep,
-        ManualTargetMetrics metrics)
+        ManualTargetMetrics metrics,
+        ManualTargetMetrics? baselineMetrics)
     {
         var propagation = metrics.Propagation;
         if (propagation is null)
@@ -690,6 +714,100 @@ public partial class Form1
         _manualLocalPhasePlot.Model = PlotFactory.BuildLocalPhaseShiftModel(propagation);
         _manualSlowWavePlot.Model = PlotFactory.BuildSlowWaveFactorModel(propagation);
         _manualEnergyPlot.Model = PlotFactory.BuildStoredEnergyModel(propagation);
+        if (baselineMetrics?.Propagation is { } baseline)
+        {
+            AddManualIndexBaseline(
+                _manualNodeVoltagePlot.Model,
+                baseline.Nodes.Select(node => new DataPoint(node.Index, node.VoltageMagnitude)));
+            AddManualIndexBaseline(
+                _manualNodePhasePlot.Model,
+                baseline.Nodes.Select(node => new DataPoint(node.Index, node.PhaseDeg)));
+            AddManualIndexBaseline(
+                _manualLocalPhasePlot.Model,
+                baseline.Cells.Select(cell => new DataPoint(cell.Index, cell.DeltaPhaseDeg)));
+            AddManualIndexBaseline(
+                _manualSlowWavePlot.Model,
+                baseline.Cells.Where(cell => double.IsFinite(cell.SlowWaveFactor))
+                    .Select(cell => new DataPoint(cell.Index, cell.SlowWaveFactor)));
+            AddManualEnergyBaseline(_manualEnergyPlot.Model, baseline);
+        }
+    }
+
+    private static PlotModel AddManualSmithBaseline(PlotModel model, IReadOnlyList<SweepPoint> baselineSweep)
+    {
+        model.Series.Add(BuildManualBaselineSeries(
+            baselineSweep.Select(point => new DataPoint(point.S11.Real, point.S11.Imaginary))));
+        model.IsLegendVisible = true;
+        return model;
+    }
+
+    private static PlotModel AddManualFrequencyBaseline(
+        PlotModel model,
+        IReadOnlyList<SweepPoint> baselineSweep,
+        Func<SweepPoint, double> selector)
+    {
+        model.Series.Add(BuildManualBaselineSeries(
+            baselineSweep.Select(point => new DataPoint(point.FrequencyHz / 1e6, selector(point)))));
+        model.IsLegendVisible = true;
+        return model;
+    }
+
+    private static PlotModel AddManualFrequencyBaseline(
+        PlotModel model,
+        IReadOnlyList<SweepPoint> baselineSweep,
+        IReadOnlyList<double> values)
+    {
+        model.Series.Add(BuildManualBaselineSeries(
+            baselineSweep.Select((point, index) => new DataPoint(point.FrequencyHz / 1e6, values[index]))));
+        model.IsLegendVisible = true;
+        return model;
+    }
+
+    private static void AddManualIndexBaseline(PlotModel model, IEnumerable<DataPoint> points)
+    {
+        model.Series.Add(BuildManualBaselineSeries(points));
+        model.IsLegendVisible = true;
+    }
+
+    private static void AddManualEnergyBaseline(PlotModel model, PropagationResult baseline)
+    {
+        model.Series.Add(BuildManualBaselineSeries(
+            baseline.Cells.Select(cell => new DataPoint(cell.Index, cell.InductorEnergyJoules)),
+            "Baseline L energy"));
+        model.Series.Add(BuildManualBaselineSeries(
+            baseline.Capacitors.Select(capacitor => new DataPoint(capacitor.Index, capacitor.CapacitorEnergyJoules)),
+            "Baseline C energy"));
+        model.IsLegendVisible = true;
+    }
+
+    private static LineSeries BuildManualBaselineSeries(IEnumerable<DataPoint> points, string title = "Baseline")
+    {
+        var series = new LineSeries
+        {
+            Title = title,
+            Color = OxyColors.DodgerBlue,
+            LineStyle = LineStyle.Dash,
+            StrokeThickness = 1.4
+        };
+        foreach (var point in points)
+            series.Points.Add(point);
+        return series;
+    }
+
+    private static IReadOnlyList<double> BuildManualPhaseDegrees(IReadOnlyList<SweepPoint> sweep) =>
+        RfMath.GetUnwrappedS21PhaseRadians(sweep).Select(value => value * 180.0 / Math.PI).ToList();
+
+    private void InvalidateManualPlots()
+    {
+        foreach (var plot in new[]
+                 {
+                     _manualSmithPlot, _manualS11Plot, _manualS21Plot, _manualPhasePlot, _manualGroupDelayPlot,
+                     _manualNodeVoltagePlot, _manualNodePhasePlot, _manualLocalPhasePlot, _manualSlowWavePlot,
+                     _manualEnergyPlot
+                 })
+        {
+            plot.InvalidatePlot(true);
+        }
     }
 
     private static PlotModel AddManualTargetMarker(PlotModel model, IReadOnlyList<SweepPoint> sweep, double targetMHz, bool frequencyAxis)
