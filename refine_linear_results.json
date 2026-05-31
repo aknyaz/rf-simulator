@@ -1,0 +1,922 @@
+{
+  "mode": "refine-linear-slowwave",
+  "passed": true,
+  "input_path": "refined_medium.json",
+  "output_path": "refined_linear_medium.json",
+  "iterations": 20000,
+  "random_seed": 12345,
+  "accepted_candidates": 1,
+  "rejected_candidates": 19999,
+  "initial_adiabatic_score": 120.28772700835414,
+  "final_adiabatic_score": 108.4872901156883,
+  "initial_metrics": {
+    "mode": "compression",
+    "best_return_loss_db": -0.06682404131312225,
+    "best_s11_db": -0.06682404131312225,
+    "best_return_loss_positive_db": 0.06682404131312225,
+    "best_match_reflection_coefficient_magnitude": 0.9923361164009775,
+    "best_match_reflected_power_percent": 98.47309679137744,
+    "best_match_accepted_power_percent": 1.5269032086225542,
+    "best_match_delivered_power_percent": 1.5269032086225753,
+    "average_input_reflection_percent": 99.43022416975145,
+    "frequency_of_best_match_mhz": 48.5375,
+    "delivered_power_db": -18.161884922778462,
+    "delivered_power_at_best_match_db": -18.161884922778462,
+    "peak_delivered_power_db": -18.161884922778462,
+    "broadband_sweep_best_s11_db": -29.670763986305833,
+    "broadband_sweep_s21_at_best_s11_db": -0.004687510646432205,
+    "broadband_sweep_total_phase_rotation_deg": 766.4793772737632,
+    "broadband_sweep_average_group_delay_ns": 47.365584948675235,
+    "target_frequency_mhz": 27.5,
+    "target_frequency_s11_db": -25.285587029120634,
+    "target_frequency_s21_db": -0.012878621522994202,
+    "target_frequency_phase_deg": 424.5665830812946,
+    "target_frequency_group_delay_ns": 47.850192082710706,
+    "broadband_reference_reflection_percent": 14.34038556890549,
+    "radiated_power_db": -19.922797513335276,
+    "radiation_efficiency_percent": 66.66666666666666,
+    "total_phase_shift_deg": -424.5976392268371,
+    "total_group_delay_ns": 44.35217225727706,
+    "average_slow_wave_factor": 214.29489886331768,
+    "max_slow_wave_factor": 385.5341953978218,
+    "slow_wave_factor_peak_cell": 8,
+    "energy_concentration_ratio": 0.15732584284985293,
+    "slow_wave_jump_penalty": 468.64140692911883,
+    "normalized_swf_jump_penalty": 1.730980820778708,
+    "slow_wave_curvature_penalty": 651.3245258445895,
+    "max_slow_wave_jump": 234.5883437901429,
+    "local_phase_jump_penalty": 77.38227105770314,
+    "max_local_phase_jump_deg": 38.73387307699406,
+    "voltage_ripple_ratio": 1.4198940045158253,
+    "max_energy_fraction": 0.15732584284985293,
+    "energy_entropy": 0.9442652699107045,
+    "energy_ripple_penalty": 0.5325779824420939,
+    "adiabatic_quality_score_0_to_100": 22.61230427506611,
+    "slow_wave_linearity_error": 0.19060427275921904,
+    "compression_region_monotonicity_error": 0,
+    "recovery_region_smoothness_error": 0.8105426563097464,
+    "slow_wave_peak_width_cells": 3,
+    "slow_wave_peak_cell": 8,
+    "slow_wave_profile_correlation": 0.7818184065067731,
+    "target_profile_type": "launcher_linear_ramp_broad_peak_linear_recovery",
+    "target_frequency_network_diagnostics": {
+      "input_impedance_ohms": {
+        "real": 44.83949048183277,
+        "imaginary": 0.04610043859678914,
+        "magnitude": 44.83951418024966,
+        "phase_deg": 0.058906994844195794
+      },
+      "output_impedance_before_load_ohms": {
+        "real": 50,
+        "imaginary": 0,
+        "magnitude": 50,
+        "phase_deg": 0
+      },
+      "load_impedance_ohms": {
+        "real": 50,
+        "imaginary": 0,
+        "magnitude": 50,
+        "phase_deg": 0
+      },
+      "input_reflection_coefficient": {
+        "real": -0.054412838614987136,
+        "imaginary": 0.0005125385435463485,
+        "magnitude": 0.05441525247482783,
+        "phase_deg": 179.46032172443267
+      },
+      "output_reflection_coefficient": {
+        "real": 0,
+        "imaginary": 0,
+        "magnitude": 0,
+        "phase_deg": 0
+      },
+      "input_reflected_power_percent": 0.29610197018992557,
+      "output_reflected_power_percent": 0,
+      "power_entering_structure_watts": 0.02,
+      "power_delivered_to_load_watts": 0.02,
+      "reflected_power_from_input_watts": 5.939626755643901E-05,
+      "reflected_power_from_output_load_watts": 0,
+      "cells": [
+        {
+          "cell_index": 0,
+          "effective_impedance_ohms": {
+            "real": 44.83949048183277,
+            "imaginary": 0.04610043859678914,
+            "magnitude": 44.83951418024966,
+            "phase_deg": 0.058906994844195794
+          },
+          "distance_to_load_impedance_ohms": 5.160715428846412,
+          "slow_wave_factor": 151.91995358514464,
+          "local_phase_shift_deg": -25.084145720786147,
+          "node_voltage_magnitude": 0.946990368258084,
+          "node_current_magnitude": 0.02111955014613433
+        },
+        {
+          "cell_index": 1,
+          "effective_impedance_ohms": {
+            "real": 54.44741004870957,
+            "imaginary": 2.9932124288398385,
+            "magnitude": 54.52962297372394,
+            "phase_deg": 3.1466324165974444
+          },
+          "distance_to_load_impedance_ohms": 5.360855975077502,
+          "slow_wave_factor": 151.93659320884808,
+          "local_phase_shift_deg": -25.086893159393558,
+          "node_voltage_magnitude": 1.0451024833597164,
+          "node_current_magnitude": 0.019165774974518303
+        },
+        {
+          "cell_index": 2,
+          "effective_impedance_ohms": {
+            "real": 47.205075822233255,
+            "imaginary": 27.54836006621586,
+            "magnitude": 54.65556994232763,
+            "phase_deg": 30.267362837533316
+          },
+          "distance_to_load_impedance_ohms": 27.68977687698732,
+          "slow_wave_factor": 151.9469072732464,
+          "local_phase_shift_deg": -25.088596158165185,
+          "node_voltage_magnitude": 1.1250066134586163,
+          "node_current_magnitude": 0.020583567505484245
+        },
+        {
+          "cell_index": 3,
+          "effective_impedance_ohms": {
+            "real": 40.4055627910557,
+            "imaginary": 17.04130043548242,
+            "magnitude": 43.8521997737208,
+            "phase_deg": 22.867891214683112
+          },
+          "distance_to_load_impedance_ohms": 19.55656273195134,
+          "slow_wave_factor": 151.95332851569214,
+          "local_phase_shift_deg": -25.089656396648778,
+          "node_voltage_magnitude": 0.9756314725787071,
+          "node_current_magnitude": 0.022248176319842716
+        },
+        {
+          "cell_index": 4,
+          "effective_impedance_ohms": {
+            "real": 38.87382886236973,
+            "imaginary": 7.868199735798098,
+            "magnitude": 39.662112116013475,
+            "phase_deg": 11.442285928936968
+          },
+          "distance_to_load_impedance_ohms": 13.627187944189005,
+          "slow_wave_factor": 152.21600664657024,
+          "local_phase_shift_deg": -25.133028293210856,
+          "node_voltage_magnitude": 0.8996263688047956,
+          "node_current_magnitude": 0.022682260747318442
+        },
+        {
+          "cell_index": 5,
+          "effective_impedance_ohms": {
+            "real": 41.07841519118754,
+            "imaginary": 2.049679235404059,
+            "magnitude": 41.12951956426957,
+            "phase_deg": 2.8565039117416924
+          },
+          "distance_to_load_impedance_ohms": 9.15400789102128,
+          "slow_wave_factor": 155.59148247691618,
+          "local_phase_shift_deg": -25.69036737611108,
+          "node_voltage_magnitude": 0.9075316800498557,
+          "node_current_magnitude": 0.022065214708665244
+        },
+        {
+          "cell_index": 6,
+          "effective_impedance_ohms": {
+            "real": 48.343456404288595,
+            "imaginary": 0.925224434202911,
+            "magnitude": 48.35230932816962,
+            "phase_deg": 1.0964252065987776
+          },
+          "distance_to_load_impedance_ohms": 1.8974132228216833,
+          "slow_wave_factor": 246.8741096319054,
+          "local_phase_shift_deg": -40.76242780857188,
+          "node_voltage_magnitude": 0.9834751026156943,
+          "node_current_magnitude": 0.020339775209924266
+        },
+        {
+          "cell_index": 7,
+          "effective_impedance_ohms": {
+            "real": 57.413125199853106,
+            "imaginary": 37.25236299426928,
+            "magnitude": 68.43979466560965,
+            "phase_deg": 32.97742261822356
+          },
+          "distance_to_load_impedance_ohms": 37.98279839460886,
+          "slow_wave_factor": 336.61434862041074,
+          "local_phase_shift_deg": -55.5798180109999,
+          "node_voltage_magnitude": 1.277374087370272,
+          "node_current_magnitude": 0.018664201048693978
+        },
+        {
+          "cell_index": 8,
+          "effective_impedance_ohms": {
+            "real": 37.69999913423289,
+            "imaginary": 33.441241397976846,
+            "magnitude": 50.39450923423028,
+            "phase_deg": 41.57416726874288
+          },
+          "distance_to_load_impedance_ohms": 35.631540066851336,
+          "slow_wave_factor": 385.5341953978218,
+          "local_phase_shift_deg": -63.657180702631884,
+          "node_voltage_magnitude": 1.1607202143771367,
+          "node_current_magnitude": 0.023032672249712505
+        },
+        {
+          "cell_index": 9,
+          "effective_impedance_ohms": {
+            "real": 38.0099227621482,
+            "imaginary": 14.96967672191063,
+            "magnitude": 40.85150486264839,
+            "phase_deg": 21.496306962379943
+          },
+          "distance_to_load_impedance_ohms": 19.17949877677112,
+          "slow_wave_factor": 385.51658725600964,
+          "local_phase_shift_deg": -63.654273347905495,
+          "node_voltage_magnitude": 0.9370754576998344,
+          "node_current_magnitude": 0.022938578660700138
+        },
+        {
+          "cell_index": 10,
+          "effective_impedance_ohms": {
+            "real": 60.41713068215593,
+            "imaginary": 22.995007820001568,
+            "magnitude": 64.64518593450437,
+            "phase_deg": 20.83703008889055
+          },
+          "distance_to_load_impedance_ohms": 25.244543891523325,
+          "slow_wave_factor": 150.92824346586676,
+          "local_phase_shift_deg": -24.920400270911436,
+          "node_voltage_magnitude": 1.1761728189640903,
+          "node_current_magnitude": 0.018194283177648166
+        },
+        {
+          "cell_index": 11,
+          "effective_impedance_ohms": {
+            "real": 50,
+            "imaginary": 23.157116930004783,
+            "magnitude": 55.10219654886649,
+            "phase_deg": 24.850851981500863
+          },
+          "distance_to_load_impedance_ohms": 23.157116930004783,
+          "slow_wave_factor": 150.50703028138008,
+          "local_phase_shift_deg": -24.850851981500867,
+          "node_voltage_magnitude": 1.10204393097733,
+          "node_current_magnitude": 0.020000000000000004
+        }
+      ]
+    },
+    "section_classification": {
+      "recovery_section_likely": true,
+      "interpretation": "Output recovery section likely: tail slow-wave factor falls and local impedance moves toward the load.",
+      "sections": [
+        {
+          "name": "launcher",
+          "start_cell": 0,
+          "end_cell": 4
+        },
+        {
+          "name": "compression",
+          "start_cell": 5,
+          "end_cell": 8
+        },
+        {
+          "name": "recovery_output_matching",
+          "start_cell": 9,
+          "end_cell": 11
+        }
+      ]
+    },
+    "phase_smoothness_error": 1.207587581601181,
+    "lc_smoothness_error": 3.3026726734324043,
+    "compression_ratio": 221.60744564414168,
+    "optimizer_score": 832315.0534947275,
+    "score_breakdown": {
+      "input_match_score": 49333.99231311749,
+      "radiated_power_score": -1.6589920977889738,
+      "smooth_gradient_score": 977.5249305563541,
+      "phase_compression_score": 682552.5025333589,
+      "resonance_penalty": 0,
+      "energy_localization_penalty": 1339.2793925655099,
+      "input_coupling_score": 98113.41331722704,
+      "total_score": 832315.0534947275
+    },
+    "pass_fail_flags": {
+      "finite_metrics": true,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "target_return_loss": false,
+      "broadband_sweep_has_matching_point": true,
+      "broadband_sweep_s21_at_best_match_acceptable": true,
+      "target_frequency_match": true,
+      "target_frequency_transmission_acceptable": true,
+      "target_frequency_device_quality": true,
+      "broadband_sweep_quality": true,
+      "propagation_supported": true,
+      "slow_wave_bounded": false,
+      "energy_distributed": true,
+      "input_coupling_acceptable": false,
+      "internal_medium_quality": false,
+      "usable_rf_device": false,
+      "overall": false
+    },
+    "output_path": null,
+    "structure": [
+      {
+        "type": "SeriesL",
+        "value": 1.2141583245604593E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.529923018182583E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.4425448406441373E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 9.021143504806372E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.3467401747856344E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 4.0265670323821895E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.076981098502164E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 3.449614261278438E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.0034264061641939E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 4.124781148948695E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.1196423329487294E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.2678850561349276E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.3735674893996383E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.0485128968469431E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 3.5392561782755694E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.1197512446887545E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.820607869571149E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.0539334128476931E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.8580866500042687E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.0760202732924907E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.5804453981147986E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.094398595543055E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.340207137151737E-07
+      }
+    ]
+  },
+  "final_metrics": {
+    "mode": "compression",
+    "best_return_loss_db": -0.06682091222385175,
+    "best_s11_db": -0.06682091222385175,
+    "best_return_loss_positive_db": 0.06682091222385175,
+    "best_match_reflection_coefficient_magnitude": 0.9923364738898455,
+    "best_match_reflected_power_percent": 98.4731677412132,
+    "best_match_accepted_power_percent": 1.5268322587868033,
+    "best_match_delivered_power_percent": 1.5268322587868188,
+    "average_input_reflection_percent": 99.43023750905093,
+    "frequency_of_best_match_mhz": 48.5375,
+    "delivered_power_db": -18.16208672887788,
+    "delivered_power_at_best_match_db": -18.16208672887788,
+    "peak_delivered_power_db": -18.16208672887788,
+    "broadband_sweep_best_s11_db": -29.66301288457234,
+    "broadband_sweep_s21_at_best_s11_db": -0.004695888713278996,
+    "broadband_sweep_total_phase_rotation_deg": 766.4763382622443,
+    "broadband_sweep_average_group_delay_ns": 47.365394129570134,
+    "target_frequency_mhz": 27.5,
+    "target_frequency_s11_db": -25.281289122223782,
+    "target_frequency_s21_db": -0.012891391841060878,
+    "target_frequency_phase_deg": 424.56453608216964,
+    "target_frequency_group_delay_ns": 47.84946476770561,
+    "broadband_reference_reflection_percent": 14.339463752781892,
+    "radiated_power_db": -19.922999319434695,
+    "radiation_efficiency_percent": 66.66666666666666,
+    "total_phase_shift_deg": -424.5969105723838,
+    "total_group_delay_ns": 44.35221121473504,
+    "average_slow_wave_factor": 214.2945311106079,
+    "max_slow_wave_factor": 385.52280018161,
+    "slow_wave_factor_peak_cell": 9,
+    "energy_concentration_ratio": 0.1573233269388774,
+    "slow_wave_jump_penalty": 468.63172542129365,
+    "normalized_swf_jump_penalty": 1.7310699616084668,
+    "slow_wave_curvature_penalty": 651.3310572756541,
+    "max_slow_wave_jump": 234.58481370844302,
+    "local_phase_jump_penalty": 77.37973935012019,
+    "max_local_phase_jump_deg": 38.73329021028251,
+    "voltage_ripple_ratio": 1.4198001595356258,
+    "max_energy_fraction": 0.1573233269388774,
+    "energy_entropy": 0.9442640068931095,
+    "energy_ripple_penalty": 0.532581049690808,
+    "adiabatic_quality_score_0_to_100": 22.612362894412758,
+    "slow_wave_linearity_error": 0.17421772761453064,
+    "compression_region_monotonicity_error": 4.180234124613146E-06,
+    "recovery_region_smoothness_error": 0.6073158613271205,
+    "slow_wave_peak_width_cells": 3,
+    "slow_wave_peak_cell": 9,
+    "slow_wave_profile_correlation": 0.8451192333208929,
+    "target_profile_type": "launcher_linear_ramp_broad_peak_linear_recovery",
+    "target_frequency_network_diagnostics": {
+      "input_impedance_ohms": {
+        "real": 44.83708487807261,
+        "imaginary": 0.048053624313338206,
+        "magnitude": 44.837110628521735,
+        "phase_deg": 0.06140606189703985
+      },
+      "output_impedance_before_load_ohms": {
+        "real": 50,
+        "imaginary": 0,
+        "magnitude": 50,
+        "phase_deg": 0
+      },
+      "load_impedance_ohms": {
+        "real": 50,
+        "imaginary": 0,
+        "magnitude": 50,
+        "phase_deg": 0
+      },
+      "input_reflection_coefficient": {
+        "real": -0.05443956290338999,
+        "imaginary": 0.0005342808953061297,
+        "magnitude": 0.054442184610715656,
+        "phase_deg": 179.43770566911724
+      },
+      "output_reflection_coefficient": {
+        "real": 0,
+        "imaginary": 0,
+        "magnitude": 0,
+        "phase_deg": 0
+      },
+      "input_reflected_power_percent": 0.29639514651872445,
+      "output_reflected_power_percent": 0,
+      "power_entering_structure_watts": 0.020000000000000004,
+      "power_delivered_to_load_watts": 0.02,
+      "reflected_power_from_input_watts": 5.94552517843843E-05,
+      "reflected_power_from_output_load_watts": 0,
+      "cells": [
+        {
+          "cell_index": 0,
+          "effective_impedance_ohms": {
+            "real": 44.83708487807261,
+            "imaginary": 0.048053624313338206,
+            "magnitude": 44.837110628521735,
+            "phase_deg": 0.06140606189703985
+          },
+          "distance_to_load_impedance_ohms": 5.163138745669747,
+          "slow_wave_factor": 151.92981387479477,
+          "local_phase_shift_deg": -25.08577379489094,
+          "node_voltage_magnitude": 0.9469650086353314,
+          "node_current_magnitude": 0.021120116692643187
+        },
+        {
+          "cell_index": 1,
+          "effective_impedance_ohms": {
+            "real": 54.443817005166835,
+            "imaginary": 2.9920955441214225,
+            "magnitude": 54.52597404757888,
+            "phase_deg": 3.1456678121790165
+          },
+          "distance_to_load_impedance_ohms": 5.357251657385643,
+          "slow_wave_factor": 151.9448127281671,
+          "local_phase_shift_deg": -25.088250318973248,
+          "node_voltage_magnitude": 1.0450670319837256,
+          "node_current_magnitude": 0.019166407390940138
+        },
+        {
+          "cell_index": 2,
+          "effective_impedance_ohms": {
+            "real": 47.206789193290845,
+            "imaginary": 27.54558391214457,
+            "magnitude": 54.65565056790377,
+            "phase_deg": 30.263943983597045
+          },
+          "distance_to_load_impedance_ohms": 27.686841995282066,
+          "slow_wave_factor": 151.9475742383178,
+          "local_phase_shift_deg": -25.088706283587463,
+          "node_voltage_magnitude": 1.1249878567400453,
+          "node_current_magnitude": 0.020583193961663106
+        },
+        {
+          "cell_index": 3,
+          "effective_impedance_ohms": {
+            "real": 40.40813440477838,
+            "imaginary": 17.040212078998152,
+            "magnitude": 43.85414636920743,
+            "phase_deg": 22.865275371939866
+          },
+          "distance_to_load_impedance_ohms": 19.55435279660339,
+          "slow_wave_factor": 151.94596266275266,
+          "local_phase_shift_deg": -25.08844018953358,
+          "node_voltage_magnitude": 0.9756437338293167,
+          "node_current_magnitude": 0.022247468360582973
+        },
+        {
+          "cell_index": 4,
+          "effective_impedance_ohms": {
+            "real": 38.87650756801432,
+            "imaginary": 7.868405381038472,
+            "magnitude": 39.66477837989555,
+            "phase_deg": 11.441809466908499
+          },
+          "distance_to_load_impedance_ohms": 13.625119710475865,
+          "slow_wave_factor": 152.20589000785174,
+          "local_phase_shift_deg": -25.13135789222777,
+          "node_voltage_magnitude": 0.8996558496293522,
+          "node_current_magnitude": 0.02268147929663842
+        },
+        {
+          "cell_index": 5,
+          "effective_impedance_ohms": {
+            "real": 41.0806678996945,
+            "imaginary": 2.051406897183117,
+            "magnitude": 41.13185560296059,
+            "phase_deg": 2.858751136604875
+          },
+          "distance_to_load_impedance_ohms": 9.152199482821091,
+          "slow_wave_factor": 155.58589074974586,
+          "local_phase_shift_deg": -25.689444102401072,
+          "node_voltage_magnitude": 0.9075583406876834,
+          "node_current_magnitude": 0.022064609713896767
+        },
+        {
+          "cell_index": 6,
+          "effective_impedance_ohms": {
+            "real": 48.34372742969173,
+            "imaginary": 0.9285543551552125,
+            "magnitude": 48.35264413645656,
+            "phase_deg": 1.1003641503126675
+          },
+          "distance_to_load_impedance_ohms": 1.8988027853448255,
+          "slow_wave_factor": 246.88284580433114,
+          "local_phase_shift_deg": -40.76387027492998,
+          "node_voltage_magnitude": 0.983479155730855,
+          "node_current_magnitude": 0.020339718195252512
+        },
+        {
+          "cell_index": 7,
+          "effective_impedance_ohms": {
+            "real": 57.41060844715257,
+            "imaginary": 37.24929574960845,
+            "magnitude": 68.43601388241476,
+            "phase_deg": 32.97641529910343
+          },
+          "distance_to_load_impedance_ohms": 37.97929898508933,
+          "slow_wave_factor": 336.6294456377333,
+          "local_phase_shift_deg": -55.58231074334698,
+          "node_voltage_magnitude": 1.2773315188309131,
+          "node_current_magnitude": 0.018664610142630395
+        },
+        {
+          "cell_index": 8,
+          "effective_impedance_ohms": {
+            "real": 37.70260418943622,
+            "imaginary": 33.44119523829176,
+            "magnitude": 50.396427468927214,
+            "phase_deg": 41.57216266349053
+          },
+          "distance_to_load_impedance_ohms": 35.6305975628703,
+          "slow_wave_factor": 385.51406675056216,
+          "local_phase_shift_deg": -63.65385717659658,
+          "node_voltage_magnitude": 1.1607242943434497,
+          "node_current_magnitude": 0.023031876516626387
+        },
+        {
+          "cell_index": 9,
+          "effective_impedance_ohms": {
+            "real": 38.01009934255998,
+            "imaginary": 14.972297578527263,
+            "magnitude": 40.852629619294426,
+            "phase_deg": 21.49963628028892
+          },
+          "distance_to_load_impedance_ohms": 19.181434058882402,
+          "slow_wave_factor": 385.52280018161,
+          "local_phase_shift_deg": -63.65529919031418,
+          "node_voltage_magnitude": 0.9370990813087451,
+          "node_current_magnitude": 0.02293852537869825
+        },
+        {
+          "cell_index": 10,
+          "effective_impedance_ohms": {
+            "real": 60.41359504641001,
+            "imaginary": 22.99278712568577,
+            "magnitude": 64.64109162319829,
+            "phase_deg": 20.836305228662845
+          },
+          "distance_to_load_impedance_ohms": 25.24106221215178,
+          "slow_wave_factor": 150.937986473167,
+          "local_phase_shift_deg": -24.92200898003167,
+          "node_voltage_magnitude": 1.1761327402980961,
+          "node_current_magnitude": 0.018194815569544116
+        },
+        {
+          "cell_index": 11,
+          "effective_impedance_ohms": {
+            "real": 50,
+            "imaginary": 23.15366152658903,
+            "magnitude": 55.10074447852632,
+            "phase_deg": 24.84759162555038
+          },
+          "distance_to_load_impedance_ohms": 23.15366152658903,
+          "slow_wave_factor": 150.48728421826186,
+          "local_phase_shift_deg": -24.847591625550372,
+          "node_voltage_magnitude": 1.1020148895705266,
+          "node_current_magnitude": 0.020000000000000004
+        }
+      ]
+    },
+    "section_classification": {
+      "recovery_section_likely": true,
+      "interpretation": "Output recovery section likely: tail slow-wave factor falls and local impedance moves toward the load.",
+      "sections": [
+        {
+          "name": "launcher",
+          "start_cell": 0,
+          "end_cell": 4
+        },
+        {
+          "name": "compression",
+          "start_cell": 5,
+          "end_cell": 8
+        },
+        {
+          "name": "recovery_output_matching",
+          "start_cell": 9,
+          "end_cell": 11
+        }
+      ]
+    },
+    "phase_smoothness_error": 1.2075445360335977,
+    "lc_smoothness_error": 3.30272190546625,
+    "compression_ratio": 221.60764029667644,
+    "optimizer_score": 832317.1442347204,
+    "score_breakdown": {
+      "input_match_score": 49334.023394916694,
+      "radiated_power_score": -1.6589589550107966,
+      "smooth_gradient_score": 977.5270377093595,
+      "phase_compression_score": 682554.4090274441,
+      "resonance_penalty": 0,
+      "energy_localization_penalty": 1339.3776267655066,
+      "input_coupling_score": 98113.46610683965,
+      "total_score": 832317.1442347204
+    },
+    "pass_fail_flags": {
+      "finite_metrics": true,
+      "reflection_metrics_consistent": true,
+      "power_balance_consistent": true,
+      "target_return_loss": false,
+      "broadband_sweep_has_matching_point": true,
+      "broadband_sweep_s21_at_best_match_acceptable": true,
+      "target_frequency_match": true,
+      "target_frequency_transmission_acceptable": true,
+      "target_frequency_device_quality": true,
+      "broadband_sweep_quality": true,
+      "propagation_supported": true,
+      "slow_wave_bounded": false,
+      "energy_distributed": true,
+      "input_coupling_acceptable": false,
+      "internal_medium_quality": false,
+      "usable_rf_device": false,
+      "overall": false
+    },
+    "output_path": null,
+    "structure": [
+      {
+        "type": "SeriesL",
+        "value": 1.2141583245604593E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.529923018182583E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.4425448406441373E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 9.021143504806372E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.3467401747856344E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 4.0265670323821895E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.076981098502164E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 3.449614261278438E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.0034264061641939E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 4.124781148948695E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.1196423329487294E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.2678850561349276E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.3735674893996383E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.0485128968469431E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 3.5392561782755694E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.1197512446887545E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.820607869571149E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.0539334128476931E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 2.8580866500042687E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 1.0760202732924907E-10
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.5804453981147986E-07
+      },
+      {
+        "type": "ShuntC",
+        "value": 5.094398595543055E-11
+      },
+      {
+        "type": "SeriesL",
+        "value": 1.340007157321194E-07
+      }
+    ]
+  },
+  "final_structure": [
+    {
+      "type": "SeriesL",
+      "value": 1.2141583245604593E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.529923018182583E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.4425448406441373E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 9.021143504806372E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.3467401747856344E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 4.0265670323821895E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.076981098502164E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 3.449614261278438E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.0034264061641939E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 4.124781148948695E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.1196423329487294E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.2678850561349276E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.3735674893996383E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.0485128968469431E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 3.5392561782755694E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.1197512446887545E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.820607869571149E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.0539334128476931E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.8580866500042687E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.0760202732924907E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.5804453981147986E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.094398595543055E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.340007157321194E-07
+    }
+  ]
+}

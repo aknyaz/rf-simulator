@@ -48,6 +48,20 @@ internal static class Program
                 return growthResult.Passed ? 0 : 5;
             }
 
+            if (options.Mode.Equals("refine-adiabatic", StringComparison.OrdinalIgnoreCase))
+            {
+                var refineResult = RunAdiabaticRefinement(options);
+                WriteJson(refineResult);
+                return refineResult.Passed ? 0 : 6;
+            }
+
+            if (options.Mode.Equals("refine-linear-slowwave", StringComparison.OrdinalIgnoreCase))
+            {
+                var refineResult = RunLinearSlowWaveRefinement(options);
+                WriteJson(refineResult);
+                return refineResult.Passed ? 0 : 7;
+            }
+
             var result = Run(options);
             WriteJson(result);
             return result.PassFailFlags.GetValueOrDefault("overall") ? 0 : 2;
@@ -108,6 +122,204 @@ internal static class Program
         metrics.OutputPath = options.OutputPath;
         metrics.Structure = candidate.Structure;
         return metrics;
+    }
+
+    private static AdiabaticRefinementResult RunAdiabaticRefinement(CliOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.InputPath))
+            throw new InvalidOperationException("refine-adiabatic requires --input structure.json.");
+
+        var optimizerConfig = options.CreateOptimizerConfig(SmallAntennaObjectiveMode.SmoothCompression);
+        var random = new Random(options.RandomSeed);
+        var initial = EvaluateBatchCandidate(
+            LoadStructure(options.InputPath),
+            options,
+            optimizerConfig,
+            SmallAntennaObjectiveMode.SmoothCompression);
+        ApplyGrowingValidation(initial.Metrics, options);
+
+        var working = initial;
+        var accepted = 0;
+        var rejected = 0;
+        for (var iteration = 0; iteration < options.Iterations; iteration++)
+        {
+            var structure = MutateAdiabaticStructure(working.Candidate.Structure, options, random);
+            var evaluated = EvaluateBatchCandidate(
+                structure,
+                options,
+                optimizerConfig,
+                SmallAntennaObjectiveMode.SmoothCompression);
+            ApplyGrowingValidation(evaluated.Metrics, options);
+            if (!PassesAdiabaticRefinementConstraints(initial.Metrics, evaluated.Metrics, options)
+                || CalculateAdiabaticRefinementScore(evaluated.Metrics) >= CalculateAdiabaticRefinementScore(working.Metrics))
+            {
+                rejected++;
+                continue;
+            }
+
+            working = evaluated;
+            accepted++;
+        }
+
+        var passed = PassesAdiabaticRefinementConstraints(initial.Metrics, working.Metrics, options);
+        if (passed && !string.IsNullOrWhiteSpace(options.OutputPath))
+            SaveStructure(options.OutputPath, working.Candidate.Structure);
+
+        return new AdiabaticRefinementResult
+        {
+            Mode = "refine-adiabatic",
+            Passed = passed,
+            InputPath = options.InputPath,
+            OutputPath = options.OutputPath,
+            Iterations = options.Iterations,
+            RandomSeed = options.RandomSeed,
+            AcceptedCandidates = accepted,
+            RejectedCandidates = rejected,
+            InitialAdiabaticScore = CalculateAdiabaticRefinementScore(initial.Metrics),
+            FinalAdiabaticScore = CalculateAdiabaticRefinementScore(working.Metrics),
+            InitialMetrics = initial.Metrics,
+            FinalMetrics = working.Metrics,
+            FinalStructure = working.Candidate.Structure
+        };
+    }
+
+    private static List<RfElement> MutateAdiabaticStructure(
+        IReadOnlyList<RfElement> structure,
+        CliOptions options,
+        Random random)
+    {
+        var mutated = OptimizerEngine.CloneStructure(structure);
+        for (var mutation = 0; mutation < options.MutationsPerCandidate; mutation++)
+        {
+            var element = mutated[random.Next(mutated.Count)];
+            var scale = Math.Exp((random.NextDouble() * 2.0 - 1.0) * options.MutationLogStep);
+            element.Value = ClampMutationValue(element, element.Value * scale, options);
+        }
+        return mutated;
+    }
+
+    private static bool PassesAdiabaticRefinementConstraints(
+        CliMetrics baseline,
+        CliMetrics candidate,
+        CliOptions options)
+    {
+        return candidate.PassFailFlags.GetValueOrDefault("finite_metrics")
+               && candidate.PassFailFlags.GetValueOrDefault("propagation_supported")
+               && candidate.TargetFrequencyS11Db <= options.TargetReturnLossDb
+               && candidate.TargetFrequencyS21Db >= options.RefineMinimumS21Db
+               && candidate.TargetFrequencyGroupDelayNs >= baseline.TargetFrequencyGroupDelayNs * options.RefineMinimumRetentionFraction
+               && Math.Abs(candidate.TargetFrequencyPhaseDeg) >= Math.Abs(baseline.TargetFrequencyPhaseDeg) * options.RefineMinimumRetentionFraction
+               && candidate.ScoreBreakdown.ResonancePenalty <= options.RefineMaxResonancePenalty;
+    }
+
+    private static double CalculateAdiabaticRefinementScore(CliMetrics metrics)
+    {
+        return metrics.NormalizedSlowWaveJumpPenalty * 20.0
+               + metrics.SlowWaveCurvaturePenalty * 0.05
+               + metrics.LocalPhaseJumpPenalty * 5.0
+               + Math.Max(0, metrics.VoltageRippleRatio - 1.0) * 20.0
+               + metrics.EnergyRipplePenalty * 10.0
+               + metrics.MaxEnergyFraction * 100.0;
+    }
+
+    private static AdiabaticRefinementResult RunLinearSlowWaveRefinement(CliOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.InputPath))
+            throw new InvalidOperationException("refine-linear-slowwave requires --input structure.json.");
+
+        var optimizerConfig = options.CreateOptimizerConfig(SmallAntennaObjectiveMode.SmoothCompression);
+        var random = new Random(options.RandomSeed);
+        var initial = EvaluateBatchCandidate(
+            LoadStructure(options.InputPath),
+            options,
+            optimizerConfig,
+            SmallAntennaObjectiveMode.SmoothCompression);
+        ApplyGrowingValidation(initial.Metrics, options);
+
+        var working = initial;
+        var accepted = 0;
+        var rejected = 0;
+        for (var iteration = 0; iteration < options.Iterations; iteration++)
+        {
+            var structure = MutateAdiabaticStructure(working.Candidate.Structure, options, random);
+            var evaluated = EvaluateBatchCandidate(
+                structure,
+                options,
+                optimizerConfig,
+                SmallAntennaObjectiveMode.SmoothCompression);
+            ApplyGrowingValidation(evaluated.Metrics, options);
+            if (!PassesLinearSlowWaveConstraints(initial.Metrics, working.Metrics, evaluated.Metrics, options)
+                || CalculateLinearSlowWaveRefinementScore(evaluated.Metrics)
+                >= CalculateLinearSlowWaveRefinementScore(working.Metrics))
+            {
+                rejected++;
+                continue;
+            }
+
+            working = evaluated;
+            accepted++;
+        }
+
+        var passed = PassesLinearSlowWaveFinalConstraints(initial.Metrics, working.Metrics, options);
+        if (passed && !string.IsNullOrWhiteSpace(options.OutputPath))
+            SaveStructure(options.OutputPath, working.Candidate.Structure);
+
+        return new AdiabaticRefinementResult
+        {
+            Mode = "refine-linear-slowwave",
+            Passed = passed,
+            InputPath = options.InputPath,
+            OutputPath = options.OutputPath,
+            Iterations = options.Iterations,
+            RandomSeed = options.RandomSeed,
+            AcceptedCandidates = accepted,
+            RejectedCandidates = rejected,
+            InitialAdiabaticScore = CalculateLinearSlowWaveRefinementScore(initial.Metrics),
+            FinalAdiabaticScore = CalculateLinearSlowWaveRefinementScore(working.Metrics),
+            InitialMetrics = initial.Metrics,
+            FinalMetrics = working.Metrics,
+            FinalStructure = working.Candidate.Structure
+        };
+    }
+
+    private static bool PassesLinearSlowWaveConstraints(
+        CliMetrics baseline,
+        CliMetrics current,
+        CliMetrics candidate,
+        CliOptions options)
+    {
+        return PassesLinearSlowWaveFinalConstraints(baseline, candidate, options)
+               && candidate.SlowWaveJumpPenalty < current.SlowWaveJumpPenalty
+               && candidate.MaxSlowWaveJump < current.MaxSlowWaveJump
+               && candidate.VoltageRippleRatio <= current.VoltageRippleRatio
+               && candidate.MaxEnergyFraction <= Math.Max(options.LinearSlowWavePreferredMaxEnergyFraction, baseline.MaxEnergyFraction);
+    }
+
+    private static bool PassesLinearSlowWaveFinalConstraints(
+        CliMetrics baseline,
+        CliMetrics candidate,
+        CliOptions options)
+    {
+        return candidate.PassFailFlags.GetValueOrDefault("finite_metrics")
+               && candidate.PassFailFlags.GetValueOrDefault("propagation_supported")
+               && candidate.TargetFrequencyS11Db <= options.TargetReturnLossDb
+               && candidate.TargetFrequencyS21Db >= options.RefineMinimumS21Db
+               && candidate.TargetFrequencyGroupDelayNs >= baseline.TargetFrequencyGroupDelayNs * options.LinearSlowWaveMinimumRetentionFraction
+               && Math.Abs(candidate.TargetFrequencyPhaseDeg) >= Math.Abs(baseline.TargetFrequencyPhaseDeg) * options.LinearSlowWaveMinimumRetentionFraction
+               && candidate.ScoreBreakdown.ResonancePenalty <= options.RefineMaxResonancePenalty
+               && candidate.SectionClassification?.RecoverySectionLikely == true;
+    }
+
+    private static double CalculateLinearSlowWaveRefinementScore(CliMetrics metrics)
+    {
+        return metrics.SlowWaveLinearityError * 100.0
+               + metrics.CompressionRegionMonotonicityError * 50.0
+               + metrics.RecoveryRegionSmoothnessError * 50.0
+               + metrics.NormalizedSlowWaveJumpPenalty * 10.0
+               + metrics.MaxSlowWaveJump * 0.1
+               + Math.Max(0, 3 - metrics.SlowWavePeakWidthCells) * 25.0
+               + Math.Max(0, metrics.VoltageRippleRatio - 1.0) * 10.0
+               + metrics.MaxEnergyFraction * 100.0;
     }
 
     private static GrowingCompressionResult RunGrowingCompressionSynthesis(CliOptions options)
@@ -494,6 +706,14 @@ internal static class Program
             reasons.Add("usable RF-device validation failed");
         if (metrics.ScoreBreakdown.ResonancePenalty > options.MaxResonancePenalty)
             reasons.Add("resonance penalty exceeded limit");
+        if (metrics.MaxSlowWaveJump > options.MaxSlowWaveJump)
+            reasons.Add("slow-wave jump exceeded limit");
+        if (metrics.MaxLocalPhaseJumpDeg > options.MaxLocalPhaseJumpDeg)
+            reasons.Add("local phase jump exceeded limit");
+        if (metrics.VoltageRippleRatio > options.MaxVoltageRippleRatio)
+            reasons.Add("node-voltage ripple exceeded limit");
+        if (metrics.MaxEnergyFraction > options.MaxEnergyConcentrationRatio)
+            reasons.Add("localized energy spike");
         return reasons;
     }
 
@@ -550,6 +770,16 @@ internal static class Program
             reasons.Add("group delay did not increase");
         if (metrics.ScoreBreakdown.ResonancePenalty > options.MaxResonancePenalty)
             reasons.Add("resonance penalty exceeded limit");
+        if (metrics.MaxSlowWaveJump > options.MaxSlowWaveJump)
+            reasons.Add("slow-wave jump exceeded limit");
+        if (metrics.MaxLocalPhaseJumpDeg > options.MaxLocalPhaseJumpDeg)
+            reasons.Add("local phase jump exceeded limit");
+        if (metrics.VoltageRippleRatio > options.MaxVoltageRippleRatio)
+            reasons.Add("node-voltage ripple exceeded limit");
+        if (metrics.MaxEnergyFraction > options.MaxEnergyConcentrationRatio)
+            reasons.Add("localized energy spike");
+        if (metrics.AdiabaticQualityScore0To100 + options.MaxAdiabaticQualityDrop < previous.AdiabaticQualityScore0To100)
+            reasons.Add("adiabatic quality collapsed");
         return reasons;
     }
 
@@ -931,9 +1161,11 @@ internal static class Program
         var targetFrequencyPoint = referenceSweep[targetFrequencyIndex];
         var referenceUnwrappedPhase = RfMath.GetUnwrappedS21PhaseRadians(referenceSweep);
         var referenceGroupDelayNs = RfMath.CalculateGroupDelayNs(referenceSweep);
-        var selectedFrequencyHz = options.FrequencyMHz.HasValue
-            ? options.FrequencyMHz.Value * 1e6
-            : strongestRadiation.FrequencyHz;
+        var selectedFrequencyHz = objectiveMode == SmallAntennaObjectiveMode.SmoothCompression
+            ? targetFrequencyHz
+            : options.FrequencyMHz.HasValue
+                ? options.FrequencyMHz.Value * 1e6
+                : strongestRadiation.FrequencyHz;
         var selectedIndex = FindNearestIndex(sweep, selectedFrequencyHz);
         var groupDelayNs = CalculateAntennaGroupDelayNs(sweep, selectedIndex);
 
@@ -943,13 +1175,20 @@ internal static class Program
         {
             try
             {
-                propagation = PropagationAnalysis.AnalyzeTerminated(
-                    structure,
-                    selectedFrequencyHz,
-                    SmallAntennaMode.SourceResistanceOhms,
-                    options.AntennaConfig.AntennaImpedance,
-                    options.SpacingMm * 1e-3,
-                    Array.Empty<SweepPoint>());
+                propagation = objectiveMode == SmallAntennaObjectiveMode.SmoothCompression
+                    ? PropagationAnalysis.Analyze(
+                        structure,
+                        selectedFrequencyHz,
+                        SmallAntennaMode.SourceResistanceOhms,
+                        options.SpacingMm * 1e-3,
+                        referenceSweep)
+                    : PropagationAnalysis.AnalyzeTerminated(
+                        structure,
+                        selectedFrequencyHz,
+                        SmallAntennaMode.SourceResistanceOhms,
+                        options.AntennaConfig.AntennaImpedance,
+                        options.SpacingMm * 1e-3,
+                        Array.Empty<SweepPoint>());
             }
             catch
             {
@@ -963,6 +1202,7 @@ internal static class Program
         var slowWavePeak = slowWave.OrderByDescending(cell => cell.SlowWaveFactor).FirstOrDefault();
         var energies = propagation is null ? new List<double>() : BuildEnergyProfile(propagation);
         var totalEnergy = energies.Sum();
+        var adiabaticMetrics = CalculateAdiabaticMetrics(propagation, energies);
         var physicalLengthMeters = propagation?.Summary.PhysicalLengthMeters ?? 0;
         var compressionRatio = groupDelayNs > 0 && physicalLengthMeters > 0
             ? 299_792_458.0 * groupDelayNs * 1e-9 / physicalLengthMeters
@@ -1009,6 +1249,30 @@ internal static class Program
             MaxSlowWaveFactor = slowWave.Count > 0 ? slowWave.Max(cell => cell.SlowWaveFactor) : 0,
             SlowWaveFactorPeakCell = slowWave.Count > 0 ? slowWavePeak.Index : -1,
             EnergyConcentrationRatio = totalEnergy > 0 ? energies.Max() / totalEnergy : 0,
+            SlowWaveJumpPenalty = adiabaticMetrics.SlowWaveJumpPenalty,
+            NormalizedSlowWaveJumpPenalty = adiabaticMetrics.NormalizedSlowWaveJumpPenalty,
+            SlowWaveCurvaturePenalty = adiabaticMetrics.SlowWaveCurvaturePenalty,
+            MaxSlowWaveJump = adiabaticMetrics.MaxSlowWaveJump,
+            LocalPhaseJumpPenalty = adiabaticMetrics.LocalPhaseJumpPenalty,
+            MaxLocalPhaseJumpDeg = adiabaticMetrics.MaxLocalPhaseJumpDeg,
+            VoltageRippleRatio = adiabaticMetrics.VoltageRippleRatio,
+            MaxEnergyFraction = adiabaticMetrics.MaxEnergyFraction,
+            EnergyEntropy = adiabaticMetrics.EnergyEntropy,
+            EnergyRipplePenalty = adiabaticMetrics.EnergyRipplePenalty,
+            AdiabaticQualityScore0To100 = adiabaticMetrics.AdiabaticQualityScore0To100,
+            SlowWaveLinearityError = adiabaticMetrics.SlowWaveLinearityError,
+            CompressionRegionMonotonicityError = adiabaticMetrics.CompressionRegionMonotonicityError,
+            RecoveryRegionSmoothnessError = adiabaticMetrics.RecoveryRegionSmoothnessError,
+            SlowWavePeakWidthCells = adiabaticMetrics.SlowWavePeakWidthCells,
+            SlowWavePeakCell = adiabaticMetrics.SlowWavePeakCell,
+            SlowWaveProfileCorrelation = adiabaticMetrics.SlowWaveProfileCorrelation,
+            TargetProfileType = adiabaticMetrics.TargetProfileType,
+            TargetFrequencyNetworkDiagnostics = propagation is null
+                ? null
+                : BuildCliPropagationDiagnostics(propagation),
+            SectionClassification = propagation is null
+                ? null
+                : BuildCliSectionClassification(propagation),
             PhaseSmoothnessError = propagation is null ? 0 : CalculatePhaseSmoothnessError(propagation),
             LcSmoothnessError = CalculateLcSmoothnessError(structure),
             CompressionRatio = compressionRatio,
@@ -1291,6 +1555,221 @@ internal static class Program
         return energies;
     }
 
+    private static AdiabaticMetrics CalculateAdiabaticMetrics(
+        PropagationResult? propagation,
+        IReadOnlyList<double> energies)
+    {
+        if (propagation is null)
+            return new AdiabaticMetrics();
+
+        var slowWave = propagation.Cells
+            .Select(cell => cell.SlowWaveFactor)
+            .Where(value => double.IsFinite(value) && value > 0)
+            .ToList();
+        var localPhase = propagation.Cells
+            .Select(cell => Math.Abs(cell.DeltaPhaseDeg))
+            .Where(double.IsFinite)
+            .ToList();
+        var voltages = propagation.Nodes
+            .Select(node => node.VoltageMagnitude)
+            .Where(value => double.IsFinite(value) && value > 0)
+            .ToList();
+        var slowWaveJumps = AdjacentAbsoluteDifferences(slowWave);
+        var phaseJumps = AdjacentAbsoluteDifferences(localPhase);
+        var normalizedSlowWaveJump = 0.0;
+        for (var index = 0; index < slowWave.Count - 1; index++)
+            normalizedSlowWaveJump += Math.Abs(slowWave[index + 1] - slowWave[index]) / Math.Max(slowWave[index], 1.0);
+
+        var slowWaveCurvature = 0.0;
+        for (var index = 1; index < slowWave.Count - 1; index++)
+            slowWaveCurvature += Math.Abs(slowWave[index + 1] - 2.0 * slowWave[index] + slowWave[index - 1]);
+
+        var phaseAlternationPenalty = 0.0;
+        for (var index = 1; index < localPhase.Count - 1; index++)
+        {
+            var left = localPhase[index] - localPhase[index - 1];
+            var right = localPhase[index + 1] - localPhase[index];
+            if (left * right < 0)
+                phaseAlternationPenalty += Math.Min(Math.Abs(left), Math.Abs(right));
+        }
+
+        var totalEnergy = energies.Sum();
+        var fractions = totalEnergy > 0
+            ? energies.Select(energy => energy / totalEnergy).ToList()
+            : new List<double>();
+        var energyEntropy = fractions.Count > 1
+            ? -fractions.Where(fraction => fraction > 0).Sum(fraction => fraction * Math.Log(fraction))
+              / Math.Log(fractions.Count)
+            : 0;
+        var energyMean = energies.Count > 0 ? energies.Average() : 0;
+        var energyRipple = energyMean > 0
+            ? Math.Sqrt(energies.Average(energy => Math.Pow((energy - energyMean) / energyMean, 2)))
+            : 0;
+        var voltageRipple = voltages.Count > 0 ? voltages.Max() / Math.Max(voltages.Min(), 1e-30) : 0;
+        var profileMetrics = CalculateLinearSlowWaveProfileMetrics(propagation);
+        var normalizedPenalty = normalizedSlowWaveJump
+                                + slowWaveCurvature / Math.Max(slowWave.Sum(), 1.0)
+                                + (phaseJumps.Sum() + phaseAlternationPenalty) / 180.0
+                                + Math.Max(0, voltageRipple - 1.0)
+                                + energyRipple
+                                + (1.0 - energyEntropy);
+
+        return new AdiabaticMetrics
+        {
+            SlowWaveJumpPenalty = slowWaveJumps.Sum(),
+            NormalizedSlowWaveJumpPenalty = normalizedSlowWaveJump,
+            SlowWaveCurvaturePenalty = slowWaveCurvature,
+            MaxSlowWaveJump = slowWaveJumps.Count > 0 ? slowWaveJumps.Max() : 0,
+            LocalPhaseJumpPenalty = phaseJumps.Sum() + phaseAlternationPenalty,
+            MaxLocalPhaseJumpDeg = phaseJumps.Count > 0 ? phaseJumps.Max() : 0,
+            VoltageRippleRatio = voltageRipple,
+            MaxEnergyFraction = fractions.Count > 0 ? fractions.Max() : 0,
+            EnergyEntropy = energyEntropy,
+            EnergyRipplePenalty = energyRipple,
+            AdiabaticQualityScore0To100 = 100.0 / (1.0 + normalizedPenalty),
+            SlowWaveLinearityError = profileMetrics.SlowWaveLinearityError,
+            CompressionRegionMonotonicityError = profileMetrics.CompressionRegionMonotonicityError,
+            RecoveryRegionSmoothnessError = profileMetrics.RecoveryRegionSmoothnessError,
+            SlowWavePeakWidthCells = profileMetrics.SlowWavePeakWidthCells,
+            SlowWavePeakCell = profileMetrics.SlowWavePeakCell,
+            SlowWaveProfileCorrelation = profileMetrics.SlowWaveProfileCorrelation,
+            TargetProfileType = profileMetrics.TargetProfileType
+        };
+    }
+
+    private static LinearSlowWaveProfileMetrics CalculateLinearSlowWaveProfileMetrics(PropagationResult propagation)
+    {
+        const string profileType = "launcher_linear_ramp_broad_peak_linear_recovery";
+        var slowWave = propagation.Cells
+            .Select(cell => double.IsFinite(cell.SlowWaveFactor) && cell.SlowWaveFactor > 0 ? cell.SlowWaveFactor : 0)
+            .ToList();
+        if (slowWave.Count == 0)
+            return new LinearSlowWaveProfileMetrics { TargetProfileType = profileType };
+
+        var peak = slowWave.Max();
+        var peakIndex = slowWave.IndexOf(peak);
+        var target = new List<double>(slowWave.Count);
+        for (var index = 0; index < slowWave.Count; index++)
+        {
+            var value = index <= peakIndex
+                ? Interpolate(slowWave[0], peak, peakIndex == 0 ? 1.0 : (double)index / peakIndex)
+                : Interpolate(peak, slowWave[^1], peakIndex == slowWave.Count - 1
+                    ? 1.0
+                    : (double)(index - peakIndex) / (slowWave.Count - 1 - peakIndex));
+            target.Add(value);
+        }
+
+        var scale = Math.Max(peak, 1.0);
+        var linearityError = Math.Sqrt(slowWave
+            .Zip(target, (actual, ideal) => Math.Pow((actual - ideal) / scale, 2))
+            .Average());
+        var monotonicityError = 0.0;
+        for (var index = 0; index < peakIndex; index++)
+            monotonicityError += Math.Max(0, slowWave[index] - slowWave[index + 1]) / scale;
+
+        var recoveryError = 0.0;
+        for (var index = peakIndex; index < slowWave.Count - 1; index++)
+        {
+            var actualDrop = slowWave[index] - slowWave[index + 1];
+            var idealDrop = target[index] - target[index + 1];
+            recoveryError += Math.Abs(actualDrop - idealDrop) / scale;
+        }
+
+        return new LinearSlowWaveProfileMetrics
+        {
+            SlowWaveLinearityError = linearityError,
+            CompressionRegionMonotonicityError = monotonicityError,
+            RecoveryRegionSmoothnessError = recoveryError,
+            SlowWavePeakWidthCells = slowWave.Count(value => value >= peak * 0.8),
+            SlowWavePeakCell = peakIndex,
+            SlowWaveProfileCorrelation = CalculateCorrelation(slowWave, target),
+            TargetProfileType = profileType
+        };
+    }
+
+    private static double Interpolate(double start, double stop, double fraction) =>
+        start + (stop - start) * Math.Clamp(fraction, 0, 1);
+
+    private static double CalculateCorrelation(IReadOnlyList<double> left, IReadOnlyList<double> right)
+    {
+        if (left.Count != right.Count || left.Count == 0)
+            return 0;
+        var leftMean = left.Average();
+        var rightMean = right.Average();
+        var covariance = 0.0;
+        var leftVariance = 0.0;
+        var rightVariance = 0.0;
+        for (var index = 0; index < left.Count; index++)
+        {
+            var leftDelta = left[index] - leftMean;
+            var rightDelta = right[index] - rightMean;
+            covariance += leftDelta * rightDelta;
+            leftVariance += leftDelta * leftDelta;
+            rightVariance += rightDelta * rightDelta;
+        }
+        var denominator = Math.Sqrt(leftVariance * rightVariance);
+        return denominator > 0 ? covariance / denominator : 0;
+    }
+
+    private static CliPropagationDiagnostics BuildCliPropagationDiagnostics(PropagationResult propagation)
+    {
+        var diagnostics = propagation.Diagnostics;
+        return new CliPropagationDiagnostics
+        {
+            InputImpedanceOhms = BuildCliComplex(diagnostics.InputImpedanceOhms),
+            OutputImpedanceBeforeLoadOhms = BuildCliComplex(diagnostics.OutputImpedanceBeforeLoadOhms),
+            LoadImpedanceOhms = BuildCliComplex(diagnostics.LoadImpedanceOhms),
+            InputReflectionCoefficient = BuildCliComplex(diagnostics.InputReflectionCoefficient),
+            OutputReflectionCoefficient = BuildCliComplex(diagnostics.OutputReflectionCoefficient),
+            InputReflectedPowerPercent = Math.Pow(diagnostics.InputReflectionCoefficient.Magnitude, 2) * 100.0,
+            OutputReflectedPowerPercent = Math.Pow(diagnostics.OutputReflectionCoefficient.Magnitude, 2) * 100.0,
+            PowerEnteringStructureWatts = diagnostics.PowerEnteringStructureWatts,
+            PowerDeliveredToLoadWatts = diagnostics.PowerDeliveredToLoadWatts,
+            ReflectedPowerFromInputWatts = diagnostics.ReflectedPowerFromInputWatts,
+            ReflectedPowerFromOutputLoadWatts = diagnostics.ReflectedPowerFromOutputLoadWatts,
+            Cells = diagnostics.Cells.Select(cell => new CliPropagationCellDiagnostic
+            {
+                CellIndex = cell.CellIndex,
+                EffectiveImpedanceOhms = BuildCliComplex(cell.EffectiveImpedanceOhms),
+                DistanceToLoadImpedanceOhms = cell.DistanceToLoadImpedanceOhms,
+                SlowWaveFactor = cell.SlowWaveFactor,
+                LocalPhaseShiftDeg = cell.LocalPhaseShiftDeg,
+                NodeVoltageMagnitude = cell.NodeVoltageMagnitude,
+                NodeCurrentMagnitude = cell.NodeCurrentMagnitude
+            }).ToList()
+        };
+    }
+
+    private static CliSectionClassification BuildCliSectionClassification(PropagationResult propagation) =>
+        new()
+        {
+            RecoverySectionLikely = propagation.Classification.RecoverySectionLikely,
+            Interpretation = propagation.Classification.Interpretation,
+            Sections = propagation.Classification.Sections.Select(section => new CliPropagationSection
+            {
+                Name = section.Name,
+                StartCell = section.StartCell,
+                EndCell = section.EndCell
+            }).ToList()
+        };
+
+    private static CliComplex BuildCliComplex(Complex value) =>
+        new()
+        {
+            Real = value.Real,
+            Imaginary = value.Imaginary,
+            Magnitude = value.Magnitude,
+            PhaseDeg = Math.Atan2(value.Imaginary, value.Real) * 180.0 / Math.PI
+        };
+
+    private static List<double> AdjacentAbsoluteDifferences(IReadOnlyList<double> values)
+    {
+        var differences = new List<double>(Math.Max(0, values.Count - 1));
+        for (var index = 0; index < values.Count - 1; index++)
+            differences.Add(Math.Abs(values[index + 1] - values[index]));
+        return differences;
+    }
+
     private static double CalculatePhaseSmoothnessError(PropagationResult propagation)
     {
         var phase = propagation.Cells.Select(cell => Math.Max(1e-30, Math.Abs(cell.DeltaPhaseRad))).ToList();
@@ -1360,6 +1839,15 @@ internal sealed class CliOptions
     public double MinimumPhaseIncreaseDeg { get; private set; } = 0.01;
     public double MinimumGroupDelayIncreaseNs { get; private set; } = 0.01;
     public double MaxResonancePenalty { get; private set; } = 500;
+    public double MaxSlowWaveJump { get; private set; } = 250;
+    public double MaxLocalPhaseJumpDeg { get; private set; } = 45;
+    public double MaxVoltageRippleRatio { get; private set; } = 10;
+    public double MaxAdiabaticQualityDrop { get; private set; } = 10;
+    public double RefineMinimumS21Db { get; private set; } = -1;
+    public double RefineMinimumRetentionFraction { get; private set; } = 0.9;
+    public double RefineMaxResonancePenalty { get; private set; }
+    public double LinearSlowWaveMinimumRetentionFraction { get; private set; } = 0.85;
+    public double LinearSlowWavePreferredMaxEnergyFraction { get; private set; } = 0.2;
     public double RuntimeLimitSeconds { get; private set; }
     public double MinimumReferenceS21Db { get; private set; } = -3;
     public bool UseContinuousValues { get; private set; }
@@ -1377,6 +1865,8 @@ internal sealed class CliOptions
         rf_sim_cli --mode optimize-antenna --iters 1000 --output best_antenna.json
         rf_sim_cli --mode optimize-compression --iters 1000 --output best_medium.json
         rf_sim_cli --mode grow-compression --seed known_good_seed.json --max-cells 12 --target-rl-db -10 --iters-per-step 2000 --output grown_medium.json
+        rf_sim_cli --mode refine-adiabatic --input grown_medium.json --target-mhz 27.5 --iters 10000 --output refined_medium.json
+        rf_sim_cli --mode refine-linear-slowwave --input refined_medium.json --target-mhz 27.5 --iters 20000 --output refined_linear_medium.json
         rf_sim_cli --optimize compression --iters 10000 --auto-test tests/cli --save-best best.json
         rf_sim_cli --run-tests tests/cli
 
@@ -1397,8 +1887,17 @@ internal sealed class CliOptions
           --min-seed-delivered-power-db -6 --max-delivered-power-collapse-db 1
           --min-phase-increase-deg 0.01 --min-group-delay-increase-ns 0.01
           --max-resonance-penalty 500 --runtime-limit-seconds 0
+          --max-slow-wave-jump 250 --max-local-phase-jump-deg 45
+          --max-voltage-ripple-ratio 10 --max-adiabatic-quality-drop 10
           --min-reference-s21-db -3
           --rejected-seed-diagnostics 5
+
+        Optional refine-adiabatic arguments:
+          --target-mhz 27.5 --target-rl-db -10 --refine-min-s21-db -1
+          --refine-min-retention 0.9 --refine-max-resonance-penalty 0
+
+        Optional refine-linear-slowwave arguments:
+          --linear-slowwave-min-retention 0.85 --linear-slowwave-preferred-max-energy 0.2
         """;
 
     public static CliOptions Parse(string[] args)
@@ -1436,7 +1935,7 @@ internal sealed class CliOptions
             AutoTestDirectory = GetNullable(values, "--auto-test"),
             FrequencyStartMHz = GetDouble(values, "--freq-start", 5),
             FrequencyStopMHz = GetDouble(values, "--freq-stop", 50),
-            FrequencyMHz = GetNullableDouble(values, "--freq"),
+            FrequencyMHz = GetNullableDouble(values, "--target-mhz") ?? GetNullableDouble(values, "--freq"),
             Points = GetInt(values, "--points", 401),
             SpacingMm = GetDouble(values, "--spacing-mm", 5),
             Iterations = GetInt(values, "--iters", 100),
@@ -1464,6 +1963,15 @@ internal sealed class CliOptions
             MinimumPhaseIncreaseDeg = GetDouble(values, "--min-phase-increase-deg", 0.01),
             MinimumGroupDelayIncreaseNs = GetDouble(values, "--min-group-delay-increase-ns", 0.01),
             MaxResonancePenalty = GetDouble(values, "--max-resonance-penalty", 500),
+            MaxSlowWaveJump = GetDouble(values, "--max-slow-wave-jump", 250),
+            MaxLocalPhaseJumpDeg = GetDouble(values, "--max-local-phase-jump-deg", 45),
+            MaxVoltageRippleRatio = GetDouble(values, "--max-voltage-ripple-ratio", 10),
+            MaxAdiabaticQualityDrop = GetDouble(values, "--max-adiabatic-quality-drop", 10),
+            RefineMinimumS21Db = GetDouble(values, "--refine-min-s21-db", -1),
+            RefineMinimumRetentionFraction = GetDouble(values, "--refine-min-retention", 0.9),
+            RefineMaxResonancePenalty = GetDouble(values, "--refine-max-resonance-penalty", 0),
+            LinearSlowWaveMinimumRetentionFraction = GetDouble(values, "--linear-slowwave-min-retention", 0.85),
+            LinearSlowWavePreferredMaxEnergyFraction = GetDouble(values, "--linear-slowwave-preferred-max-energy", 0.2),
             RuntimeLimitSeconds = GetDouble(values, "--runtime-limit-seconds", 0),
             MinimumReferenceS21Db = GetDouble(values, "--min-reference-s21-db", -3),
             UseContinuousValues = values.ContainsKey("--continuous"),
@@ -1608,6 +2116,28 @@ internal sealed class CliMetrics
     public double MaxSlowWaveFactor { get; set; }
     public int SlowWaveFactorPeakCell { get; set; }
     public double EnergyConcentrationRatio { get; set; }
+    public double SlowWaveJumpPenalty { get; set; }
+    [JsonPropertyName("normalized_swf_jump_penalty")]
+    public double NormalizedSlowWaveJumpPenalty { get; set; }
+    public double SlowWaveCurvaturePenalty { get; set; }
+    public double MaxSlowWaveJump { get; set; }
+    public double LocalPhaseJumpPenalty { get; set; }
+    public double MaxLocalPhaseJumpDeg { get; set; }
+    public double VoltageRippleRatio { get; set; }
+    public double MaxEnergyFraction { get; set; }
+    public double EnergyEntropy { get; set; }
+    public double EnergyRipplePenalty { get; set; }
+    [JsonPropertyName("adiabatic_quality_score_0_to_100")]
+    public double AdiabaticQualityScore0To100 { get; set; }
+    public double SlowWaveLinearityError { get; set; }
+    public double CompressionRegionMonotonicityError { get; set; }
+    public double RecoveryRegionSmoothnessError { get; set; }
+    public int SlowWavePeakWidthCells { get; set; }
+    public int SlowWavePeakCell { get; set; }
+    public double SlowWaveProfileCorrelation { get; set; }
+    public string TargetProfileType { get; set; } = string.Empty;
+    public CliPropagationDiagnostics? TargetFrequencyNetworkDiagnostics { get; set; }
+    public CliSectionClassification? SectionClassification { get; set; }
     public double PhaseSmoothnessError { get; set; }
     public double LcSmoothnessError { get; set; }
     public double CompressionRatio { get; set; }
@@ -1631,6 +2161,11 @@ internal sealed class CliMetrics
             TargetFrequencyGroupDelayNs, BroadbandReferenceReflectionPercent,
             RadiationEfficiencyPercent, TotalPhaseShiftDeg, TotalGroupDelayNs, AverageSlowWaveFactor,
             MaxSlowWaveFactor, EnergyConcentrationRatio, PhaseSmoothnessError, LcSmoothnessError,
+            SlowWaveJumpPenalty, NormalizedSlowWaveJumpPenalty, SlowWaveCurvaturePenalty, MaxSlowWaveJump,
+            LocalPhaseJumpPenalty, MaxLocalPhaseJumpDeg, VoltageRippleRatio, MaxEnergyFraction,
+            EnergyEntropy, EnergyRipplePenalty, AdiabaticQualityScore0To100,
+            SlowWaveLinearityError, CompressionRegionMonotonicityError, RecoveryRegionSmoothnessError,
+            SlowWavePeakWidthCells, SlowWavePeakCell, SlowWaveProfileCorrelation,
             CompressionRatio, OptimizerScore
         }.All(double.IsFinite);
     }
@@ -1673,6 +2208,23 @@ internal sealed class CliMetrics
             ["max_slow_wave_factor"] = MaxSlowWaveFactor,
             ["slow_wave_factor_peak_cell"] = SlowWaveFactorPeakCell,
             ["energy_concentration_ratio"] = EnergyConcentrationRatio,
+            ["slow_wave_jump_penalty"] = SlowWaveJumpPenalty,
+            ["normalized_swf_jump_penalty"] = NormalizedSlowWaveJumpPenalty,
+            ["slow_wave_curvature_penalty"] = SlowWaveCurvaturePenalty,
+            ["max_slow_wave_jump"] = MaxSlowWaveJump,
+            ["local_phase_jump_penalty"] = LocalPhaseJumpPenalty,
+            ["max_local_phase_jump_deg"] = MaxLocalPhaseJumpDeg,
+            ["voltage_ripple_ratio"] = VoltageRippleRatio,
+            ["max_energy_fraction"] = MaxEnergyFraction,
+            ["energy_entropy"] = EnergyEntropy,
+            ["energy_ripple_penalty"] = EnergyRipplePenalty,
+            ["adiabatic_quality_score_0_to_100"] = AdiabaticQualityScore0To100,
+            ["slow_wave_linearity_error"] = SlowWaveLinearityError,
+            ["compression_region_monotonicity_error"] = CompressionRegionMonotonicityError,
+            ["recovery_region_smoothness_error"] = RecoveryRegionSmoothnessError,
+            ["slow_wave_peak_width_cells"] = SlowWavePeakWidthCells,
+            ["slow_wave_peak_cell"] = SlowWavePeakCell,
+            ["slow_wave_profile_correlation"] = SlowWaveProfileCorrelation,
             ["phase_smoothness_error"] = PhaseSmoothnessError,
             ["lc_smoothness_error"] = LcSmoothnessError,
             ["compression_ratio"] = CompressionRatio,
@@ -1834,4 +2386,103 @@ internal sealed class GrowingFinalStatus
     public bool TargetFrequencyDeviceQuality { get; set; }
     public bool BroadbandSweepQuality { get; set; }
     public bool FinalOverall { get; set; }
+}
+
+internal sealed class AdiabaticMetrics
+{
+    public double SlowWaveJumpPenalty { get; set; }
+    public double NormalizedSlowWaveJumpPenalty { get; set; }
+    public double SlowWaveCurvaturePenalty { get; set; }
+    public double MaxSlowWaveJump { get; set; }
+    public double LocalPhaseJumpPenalty { get; set; }
+    public double MaxLocalPhaseJumpDeg { get; set; }
+    public double VoltageRippleRatio { get; set; }
+    public double MaxEnergyFraction { get; set; }
+    public double EnergyEntropy { get; set; }
+    public double EnergyRipplePenalty { get; set; }
+    public double AdiabaticQualityScore0To100 { get; set; }
+    public double SlowWaveLinearityError { get; set; }
+    public double CompressionRegionMonotonicityError { get; set; }
+    public double RecoveryRegionSmoothnessError { get; set; }
+    public int SlowWavePeakWidthCells { get; set; }
+    public int SlowWavePeakCell { get; set; }
+    public double SlowWaveProfileCorrelation { get; set; }
+    public string TargetProfileType { get; set; } = string.Empty;
+}
+
+internal sealed class LinearSlowWaveProfileMetrics
+{
+    public double SlowWaveLinearityError { get; set; }
+    public double CompressionRegionMonotonicityError { get; set; }
+    public double RecoveryRegionSmoothnessError { get; set; }
+    public int SlowWavePeakWidthCells { get; set; }
+    public int SlowWavePeakCell { get; set; }
+    public double SlowWaveProfileCorrelation { get; set; }
+    public string TargetProfileType { get; set; } = string.Empty;
+}
+
+internal sealed class CliPropagationDiagnostics
+{
+    public CliComplex InputImpedanceOhms { get; set; } = new();
+    public CliComplex OutputImpedanceBeforeLoadOhms { get; set; } = new();
+    public CliComplex LoadImpedanceOhms { get; set; } = new();
+    public CliComplex InputReflectionCoefficient { get; set; } = new();
+    public CliComplex OutputReflectionCoefficient { get; set; } = new();
+    public double InputReflectedPowerPercent { get; set; }
+    public double OutputReflectedPowerPercent { get; set; }
+    public double PowerEnteringStructureWatts { get; set; }
+    public double PowerDeliveredToLoadWatts { get; set; }
+    public double ReflectedPowerFromInputWatts { get; set; }
+    public double ReflectedPowerFromOutputLoadWatts { get; set; }
+    public List<CliPropagationCellDiagnostic> Cells { get; set; } = new();
+}
+
+internal sealed class CliPropagationCellDiagnostic
+{
+    public int CellIndex { get; set; }
+    public CliComplex EffectiveImpedanceOhms { get; set; } = new();
+    public double DistanceToLoadImpedanceOhms { get; set; }
+    public double SlowWaveFactor { get; set; }
+    public double LocalPhaseShiftDeg { get; set; }
+    public double NodeVoltageMagnitude { get; set; }
+    public double NodeCurrentMagnitude { get; set; }
+}
+
+internal sealed class CliSectionClassification
+{
+    public bool RecoverySectionLikely { get; set; }
+    public string Interpretation { get; set; } = string.Empty;
+    public List<CliPropagationSection> Sections { get; set; } = new();
+}
+
+internal sealed class CliPropagationSection
+{
+    public string Name { get; set; } = string.Empty;
+    public int StartCell { get; set; }
+    public int EndCell { get; set; }
+}
+
+internal sealed class CliComplex
+{
+    public double Real { get; set; }
+    public double Imaginary { get; set; }
+    public double Magnitude { get; set; }
+    public double PhaseDeg { get; set; }
+}
+
+internal sealed class AdiabaticRefinementResult
+{
+    public string Mode { get; set; } = string.Empty;
+    public bool Passed { get; set; }
+    public string? InputPath { get; set; }
+    public string? OutputPath { get; set; }
+    public int Iterations { get; set; }
+    public int RandomSeed { get; set; }
+    public int AcceptedCandidates { get; set; }
+    public int RejectedCandidates { get; set; }
+    public double InitialAdiabaticScore { get; set; }
+    public double FinalAdiabaticScore { get; set; }
+    public CliMetrics? InitialMetrics { get; set; }
+    public CliMetrics? FinalMetrics { get; set; }
+    public List<RfElement> FinalStructure { get; set; } = new();
 }

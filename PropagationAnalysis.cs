@@ -67,6 +67,7 @@ public static class PropagationAnalysis
         var inputCurrent = total.C * outputVoltage + total.D * outputCurrent;
 
         var nodeVoltages = new List<Complex> { inputVoltage };
+        var nodeCurrents = new List<Complex> { inputCurrent };
         var inductorCurrents = new List<Complex>();
         var inductorValues = new List<double>();
         var capacitorVoltages = new List<Complex>();
@@ -84,6 +85,7 @@ public static class PropagationAnalysis
                 inductorValues.Add(element.Value);
                 stateVoltage -= z * stateCurrent;
                 nodeVoltages.Add(stateVoltage);
+                nodeCurrents.Add(stateCurrent);
             }
             else if (IsShuntC(element))
             {
@@ -91,6 +93,7 @@ public static class PropagationAnalysis
                 capacitorVoltages.Add(stateVoltage);
                 capacitorValues.Add(element.Value);
                 stateCurrent -= y * stateVoltage;
+                nodeCurrents[^1] = stateCurrent;
             }
         }
 
@@ -115,6 +118,7 @@ public static class PropagationAnalysis
             var phaseVelocity = beta > 0 ? omega / beta : double.NaN;
             var slowWaveFactor = phaseVelocity > 0 ? SpeedOfLight / phaseVelocity : double.NaN;
             var inductorEnergy = 0.5 * inductorValues[i] * Math.Pow(inductorCurrents[i].Magnitude, 2);
+            var effectiveImpedance = nodeVoltages[i] / inductorCurrents[i];
 
             cells.Add(new PropagationCell(
                 i,
@@ -125,7 +129,8 @@ public static class PropagationAnalysis
                 phaseVelocity,
                 slowWaveFactor,
                 inductorCurrents[i],
-                inductorEnergy));
+                inductorEnergy,
+                effectiveImpedance));
         }
 
         var capacitors = new List<PropagationCapacitor>(capacitorValues.Count);
@@ -156,7 +161,26 @@ public static class PropagationAnalysis
             physicalLengthMeters,
             compressionRatio);
 
-        return new PropagationResult(nodes, cells, capacitors, summary, BuildWarning(cells));
+        var inputImpedance = inputVoltage / inputCurrent;
+        var outputImpedanceBeforeLoad = outputVoltage / outputCurrent;
+        var inputReflection = ReflectionCoefficient(inputImpedance, referenceImpedanceOhms);
+        var outputReflection = ReflectionCoefficient(outputImpedanceBeforeLoad, referenceImpedanceOhms);
+        var powerEnteringStructure = RealPower(inputVoltage, inputCurrent);
+        var powerDeliveredToLoad = RealPower(outputVoltage, outputCurrent);
+        var diagnostics = new PropagationDiagnostics(
+            inputImpedance,
+            outputImpedanceBeforeLoad,
+            loadImpedance,
+            inputReflection,
+            outputReflection,
+            powerEnteringStructure,
+            powerDeliveredToLoad,
+            ReflectedPowerFromNetPower(powerEnteringStructure, inputReflection),
+            ReflectedPowerFromNetPower(powerDeliveredToLoad, outputReflection),
+            BuildCellDiagnostics(cells, nodeVoltages, nodeCurrents, loadImpedance));
+        var classification = ClassifySections(cells, diagnostics.Cells, loadImpedance);
+
+        return new PropagationResult(nodes, cells, capacitors, summary, diagnostics, classification, BuildWarning(cells));
     }
 
     public static void ValidateSupportedLadder(IReadOnlyList<RfElement> structure)
@@ -199,6 +223,12 @@ public static class PropagationAnalysis
         sb.AppendLine($"Equivalent free-space length: {s.EquivalentFreeSpaceLengthMeters:F4} m");
         sb.AppendLine($"Physical structure length: {s.PhysicalLengthMeters * 1e3:F3} mm");
         sb.AppendLine($"Compression ratio: {s.CompressionRatio:F3}");
+        sb.AppendLine($"Input impedance: {FormatComplex(result.Diagnostics.InputImpedanceOhms)} ohm");
+        sb.AppendLine($"Output impedance before load: {FormatComplex(result.Diagnostics.OutputImpedanceBeforeLoadOhms)} ohm");
+        sb.AppendLine($"Load impedance: {FormatComplex(result.Diagnostics.LoadImpedanceOhms)} ohm");
+        sb.AppendLine($"Input reflected power: {result.Diagnostics.InputReflectionCoefficient.Magnitude * result.Diagnostics.InputReflectionCoefficient.Magnitude * 100.0:F3} %");
+        sb.AppendLine($"Output/load reflected power: {result.Diagnostics.OutputReflectionCoefficient.Magnitude * result.Diagnostics.OutputReflectionCoefficient.Magnitude * 100.0:F3} %");
+        sb.AppendLine($"Section classification: {result.Classification.Interpretation}");
 
         if (!string.IsNullOrWhiteSpace(result.Warning))
         {
@@ -243,6 +273,86 @@ public static class PropagationAnalysis
     }
 
     private static double Phase(Complex value) => Math.Atan2(value.Imaginary, value.Real);
+
+    private static Complex ReflectionCoefficient(Complex impedance, double referenceImpedanceOhms) =>
+        (impedance - referenceImpedanceOhms) / (impedance + referenceImpedanceOhms);
+
+    private static double RealPower(Complex voltage, Complex current) =>
+        Math.Max(0, (voltage * Complex.Conjugate(current)).Real);
+
+    private static double ReflectedPowerFromNetPower(double netPower, Complex reflectionCoefficient)
+    {
+        var reflectedFraction = reflectionCoefficient.Magnitude * reflectionCoefficient.Magnitude;
+        return reflectedFraction < 1.0
+            ? netPower / Math.Max(1.0 - reflectedFraction, 1e-30) * reflectedFraction
+            : double.PositiveInfinity;
+    }
+
+    private static string FormatComplex(Complex value) => $"{value.Real:F3} {(value.Imaginary < 0 ? "-" : "+")} j{Math.Abs(value.Imaginary):F3}";
+
+    private static IReadOnlyList<PropagationCellDiagnostic> BuildCellDiagnostics(
+        IReadOnlyList<PropagationCell> cells,
+        IReadOnlyList<Complex> nodeVoltages,
+        IReadOnlyList<Complex> nodeCurrents,
+        Complex loadImpedance)
+    {
+        var diagnostics = new List<PropagationCellDiagnostic>(cells.Count);
+        for (var index = 0; index < cells.Count; index++)
+        {
+            var impedance = cells[index].EffectiveImpedanceOhms;
+            diagnostics.Add(new PropagationCellDiagnostic(
+                index,
+                impedance,
+                (impedance - loadImpedance).Magnitude,
+                cells[index].SlowWaveFactor,
+                cells[index].DeltaPhaseDeg,
+                nodeVoltages[index].Magnitude,
+                nodeCurrents[index].Magnitude));
+        }
+        return diagnostics;
+    }
+
+    private static PropagationSectionClassification ClassifySections(
+        IReadOnlyList<PropagationCell> cells,
+        IReadOnlyList<PropagationCellDiagnostic> diagnostics,
+        Complex loadImpedance)
+    {
+        if (cells.Count == 0)
+            return new PropagationSectionClassification(Array.Empty<PropagationSection>(), false, "No propagation cells available.");
+
+        var slowWave = cells.Select(cell => double.IsFinite(cell.SlowWaveFactor) ? cell.SlowWaveFactor : 0).ToList();
+        var smoothed = new List<double>(slowWave.Count);
+        for (var index = 0; index < slowWave.Count; index++)
+        {
+            var left = Math.Max(0, index - 1);
+            var right = Math.Min(slowWave.Count - 1, index + 1);
+            smoothed.Add(slowWave.Skip(left).Take(right - left + 1).Average());
+        }
+
+        var peakIndex = smoothed.IndexOf(smoothed.Max());
+        var launcherEnd = Math.Max(0, peakIndex / 2);
+        var tailStart = Math.Min(cells.Count, peakIndex + 1);
+        var tailExists = tailStart < cells.Count;
+        var tailSlowWaveDrops = tailExists && smoothed[^1] < smoothed[peakIndex] * 0.8;
+        var tailImpedanceImproves = tailExists
+                                   && diagnostics[^1].DistanceToLoadImpedanceOhms
+                                   < diagnostics[Math.Min(peakIndex, diagnostics.Count - 1)].DistanceToLoadImpedanceOhms;
+        var recoveryLikely = tailSlowWaveDrops && tailImpedanceImproves;
+        var sections = new List<PropagationSection>
+        {
+            new("launcher", 0, launcherEnd),
+            new("compression", Math.Min(launcherEnd + 1, peakIndex), peakIndex)
+        };
+        if (tailExists)
+            sections.Add(new PropagationSection("recovery_output_matching", tailStart, cells.Count - 1));
+
+        var interpretation = !tailExists
+            ? "No distinct output recovery section detected."
+            : recoveryLikely
+                ? "Output recovery section likely: tail slow-wave factor falls and local impedance moves toward the load."
+                : "Tail cells exist after peak compression, but recovery intent is unconfirmed; treat the tail as a possible optimizer artifact.";
+        return new PropagationSectionClassification(sections, recoveryLikely, interpretation);
+    }
 
     private static bool IsSeriesL(RfElement element) =>
         element.Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase);
@@ -289,6 +399,8 @@ public sealed record PropagationResult(
     IReadOnlyList<PropagationCell> Cells,
     IReadOnlyList<PropagationCapacitor> Capacitors,
     PropagationSummary Summary,
+    PropagationDiagnostics Diagnostics,
+    PropagationSectionClassification Classification,
     string Warning);
 
 public readonly record struct PropagationNode(
@@ -307,7 +419,8 @@ public readonly record struct PropagationCell(
     double PhaseVelocityMetersPerSecond,
     double SlowWaveFactor,
     Complex InductorCurrent,
-    double InductorEnergyJoules);
+    double InductorEnergyJoules,
+    Complex EffectiveImpedanceOhms);
 
 public readonly record struct PropagationCapacitor(
     int Index,
@@ -325,3 +438,34 @@ public readonly record struct PropagationSummary(
     double EquivalentFreeSpaceLengthMeters,
     double PhysicalLengthMeters,
     double CompressionRatio);
+
+public sealed record PropagationDiagnostics(
+    Complex InputImpedanceOhms,
+    Complex OutputImpedanceBeforeLoadOhms,
+    Complex LoadImpedanceOhms,
+    Complex InputReflectionCoefficient,
+    Complex OutputReflectionCoefficient,
+    double PowerEnteringStructureWatts,
+    double PowerDeliveredToLoadWatts,
+    double ReflectedPowerFromInputWatts,
+    double ReflectedPowerFromOutputLoadWatts,
+    IReadOnlyList<PropagationCellDiagnostic> Cells);
+
+public readonly record struct PropagationCellDiagnostic(
+    int CellIndex,
+    Complex EffectiveImpedanceOhms,
+    double DistanceToLoadImpedanceOhms,
+    double SlowWaveFactor,
+    double LocalPhaseShiftDeg,
+    double NodeVoltageMagnitude,
+    double NodeCurrentMagnitude);
+
+public sealed record PropagationSectionClassification(
+    IReadOnlyList<PropagationSection> Sections,
+    bool RecoverySectionLikely,
+    string Interpretation);
+
+public readonly record struct PropagationSection(
+    string Name,
+    int StartCell,
+    int EndCell);

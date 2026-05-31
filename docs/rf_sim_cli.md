@@ -9,6 +9,8 @@ Run from the repository root:
 .\rf_sim_cli.cmd --mode optimize-compression --iters 1000 --output best_medium.json
 .\rf_sim_cli.cmd --mode grow-compression --max-cells 12 --target-rl-db -10 --iters-per-step 2000 --output grown_medium.json
 .\rf_sim_cli.cmd --mode grow-compression --seed tests\cli\known_good_seed.json --max-cells 12 --output grown_medium.json
+.\rf_sim_cli.cmd --mode refine-adiabatic --input grown_medium.json --target-mhz 27.5 --iters 10000 --output refined_medium.json
+.\rf_sim_cli.cmd --mode refine-linear-slowwave --input refined_medium.json --target-mhz 27.5 --iters 20000 --output refined_linear_medium.json
 .\rf_sim_cli.cmd --optimize compression --iters 10000 --launcher-cells 2 --auto-test tests\cli --save-best best_medium.json
 .\rf_sim_cli.cmd --run-tests tests\cli
 ```
@@ -91,6 +93,32 @@ Grow-compression validation uses 50-ohm two-port metrics at `--freq` as its auth
 The separate `best_s11_db` and `delivered_power_db` fields come from the antenna-terminated sweep and remain diagnostic for antenna mode. The `broadband_sweep_*` fields come from the 50-ohm two-port sweep and remain diagnostics for bandwidth interpretation. They do not override target-frequency grow-compression validation. A narrowband grow run reports `broadband_sweep_quality = false` when broadband reflection is poor, but broadband quality does not fail an otherwise usable target-frequency design.
 
 The grow result emits `final_status`, `final_verdict`, and the nested `final_metrics.pass_fail_flags`. Top-level `passed` is exactly `final_metrics.pass_fail_flags.overall`, and `final_usable_rf_device` is exactly `final_metrics.pass_fail_flags.usable_rf_device`. Internal slow-wave, resonance, and energy-localization checks still apply before an extended structure is exported. Use `--random-seed 12345` to control deterministic mutation when `--seed` is occupied by a JSON path.
+
+## Adiabatic Refinement
+
+Use `refine-adiabatic` after growth to smooth an existing medium without adding cells:
+
+```powershell
+.\rf_sim_cli.cmd --mode refine-adiabatic --input grown_medium.json --target-mhz 27.5 --iters 10000 --output refined_medium.json
+```
+
+The refinement loop mutates LC values deterministically and keeps only candidates with a lower adiabatic score while requiring target-frequency S11 at or below `-10 dB`, S21 at or above `-1 dB`, at least `90%` of the initial phase and group delay, and zero resonance penalty. Adjust these with `--target-rl-db`, `--refine-min-s21-db`, `--refine-min-retention`, and `--refine-max-resonance-penalty`.
+
+Propagation JSON includes `slow_wave_jump_penalty`, `normalized_swf_jump_penalty`, `slow_wave_curvature_penalty`, `max_slow_wave_jump`, `local_phase_jump_penalty`, `max_local_phase_jump_deg`, `voltage_ripple_ratio`, `max_energy_fraction`, `energy_entropy`, `energy_ripple_penalty`, and `adiabatic_quality_score_0_to_100`. Grow mode also rejects extensions that introduce excessive SWF jumps, local phase jumps, voltage ripple, localized energy spikes, or a large adiabatic-quality drop.
+
+Target-frequency propagation output also includes `target_frequency_network_diagnostics` with input impedance, output impedance immediately before the load, load impedance, input/output reflection coefficients, entering and delivered power, reflected power, and per-cell effective impedance estimates. `section_classification` labels launcher, compression, and recovery/output-matching regions. Recovery is reported as likely only when the post-peak SWF tail drops and its local impedance moves closer to the load; otherwise the tail is explicitly marked as a possible optimizer artifact.
+
+## Linear Slow-Wave Refinement
+
+Use `refine-linear-slowwave` after adiabatic refinement to turn a sharp compression pocket into a gradual ramp with a broader peak and controlled output recovery:
+
+```powershell
+.\rf_sim_cli.cmd --mode refine-linear-slowwave --input refined_medium.json --target-mhz 27.5 --iters 20000 --output refined_linear_medium.json
+```
+
+The target profile is `launcher_linear_ramp_broad_peak_linear_recovery`. A candidate is accepted only when SWF jump penalty and maximum SWF jump both improve, voltage ripple does not worsen, a likely recovery section remains present, target S11 is at or below `-10 dB`, target S21 is at or above `-1 dB`, resonance penalty remains zero, and at least `85%` of baseline phase and group delay remain. Energy concentration is held at or below the better of `0.20` or the baseline value. Use `--linear-slowwave-min-retention` and `--linear-slowwave-preferred-max-energy` to adjust these controls.
+
+The JSON report adds `slow_wave_linearity_error`, `compression_region_monotonicity_error`, `recovery_region_smoothness_error`, `slow_wave_peak_width_cells`, `slow_wave_peak_cell`, `slow_wave_profile_correlation`, and `target_profile_type`.
 
 RF metric fields are explicit about their operating point:
 
