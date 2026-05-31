@@ -1,0 +1,100 @@
+{
+  "StartMHz": 5,
+  "StopMHz": 50,
+  "Points": 401,
+  "Z0": 50,
+  "Structure": [
+    {
+      "Type": "SeriesL",
+      "Value": 1E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 5.1E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.1E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 6.199999999999999E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.2000000000000002E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 7.2E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.3E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 8.2E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.4E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 9.199999999999999E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.5000000000000002E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.02E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.6E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.12E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.7000000000000001E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.22E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.8000000000000002E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.32E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.9E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.42E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 2.0000000000000002E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.52E-10
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 2.1E-07
+    }
+  ]
+}

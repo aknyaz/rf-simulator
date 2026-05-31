@@ -430,6 +430,9 @@ public partial class Form1 : Form
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         ConfigureNumeric(_propagationSpacingMmInput, 0.001m, 1000, 5, 3, 0.5m);
+        new ToolTip().SetToolTip(
+            _propagationSpacingMmInput,
+            "Spacing affects spatial interpretation only; it does not change circuit S-parameters.");
         ConfigureNumeric(_propagationFrequencyMHzInput, 0.001m, 10000, 27.5m, 6, 0.1m);
 
         _propagationSweepFrequencyCombo.DropDownStyle = ComboBoxStyle.DropDownList;

@@ -27,6 +27,8 @@ CLI optimizer output files such as `grown_medium.json` contain a raw LC structur
 
 The desktop GUI also provides a `Manual RF Tuning` tab for human-guided adjustment. It includes an ordered element editor with lock controls, logarithmic slider and numeric value input, LC-cell add/remove/duplicate actions, insert/reset operations, baseline comparison and revert, live target-frequency metrics, and live S-parameter and propagation plots. The S-parameter engine accepts `SeriesL`, `ShuntC`, `SeriesC`, `ShuntL`, `SeriesR`, and `ShuntR`; spatial slow-wave plots remain limited to alternating LC ladders.
 
+Note: spacing affects spatial interpretation only; it does not change circuit S-parameters.
+
 ## Batch Optimization
 
 Use batch optimization for repeatable automated experimentation:

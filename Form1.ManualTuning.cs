@@ -126,6 +126,9 @@ public partial class Form1
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         ConfigureNumeric(_manualTargetMHzInput, 0.001m, 10000, 27.5m, 4, 0.1m);
         ConfigureNumeric(_manualSpacingMmInput, 0.001m, 1000, 5, 3, 0.5m);
+        new ToolTip().SetToolTip(
+            _manualSpacingMmInput,
+            "Spacing affects spatial interpretation only; it does not change circuit S-parameters.");
         _manualTargetMHzInput.ValueChanged += (_, _) => ScheduleManualLiveSimulation();
         _manualSpacingMmInput.ValueChanged += (_, _) => ScheduleManualLiveSimulation();
         panel.Controls.Add(new Label { Text = "Target MHz", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
