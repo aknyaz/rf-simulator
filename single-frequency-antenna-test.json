@@ -1,0 +1,122 @@
+{
+  "frequency_hz": 10000000,
+  "antenna_type": "short_dipole",
+  "antenna_length_m": 1,
+  "lambda0_m": 29.9792458,
+  "antenna_length_ratio": 0.0333564095198152,
+  "r_rad_ohm": 20,
+  "r_loss_ohm": 1,
+  "x_ant_ohm": -30,
+  "z_ant": "21.0000-j30.0000",
+  "z_in": "54.0701-j40.4938",
+  "input_reflection_coefficient": "0.1655-j0.3247",
+  "input_reflection_magnitude": 0.3644450447487946,
+  "vswr": 2.1468561191683144,
+  "available_power_watts": 1,
+  "reflected_power_ratio": 0.13282019064195089,
+  "accepted_power_ratio": 0.8671798093580492,
+  "input_return_loss_db": -8.767359007370793,
+  "delivered_power_ratio": 0.8671798093580493,
+  "radiated_power_ratio": 0.8258855327219516,
+  "loss_power_ratio": 0.04129427663609758,
+  "power_conservation_error": 0,
+  "radiation_efficiency": 0.9523809523809523,
+  "total_phase_deg": -176.99260704302029,
+  "lambda_eff_m": 0.12203899564432003,
+  "compression_ratio": 245.65300330210727,
+  "average_swf": 245.65300330210724,
+  "structure": [
+    {
+      "type": "SeriesL",
+      "value": 1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.1E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 6.199999999999999E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.2000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 7.2E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.3E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 8.2E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.4E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 9.199999999999999E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.5000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.02E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.6E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.12E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.7000000000000001E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.22E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.8000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.32E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.9E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.42E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.0000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.52E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.1E-07
+    }
+  ]
+}

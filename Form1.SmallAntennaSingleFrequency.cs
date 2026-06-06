@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
@@ -533,36 +534,306 @@ public partial class Form1
 
     private static string FormatSingleAntennaDiagnostic(SingleFrequencyAntennaResult result)
     {
+        var diagnostics = AnalyzeSingleAntennaPropagationDiagnostics(result);
+        return FormatPropagationDiagnosticReport(diagnostics);
+    }
+
+    private static SingleAntennaPropagationDiagnostics AnalyzeSingleAntennaPropagationDiagnostics(SingleFrequencyAntennaResult result)
+    {
+        var good = new List<string>();
+        var warnings = new List<string>();
         var failures = new List<string>();
+        var notes = new List<string>();
+
         if (result.Propagation is null)
-            failures.Add("Effective wavelength compression cannot be evaluated without an LC propagation result.");
+        {
+            failures.Add("Travelling-wave propagation cannot be evaluated because the loaded propagation solver did not return a result.");
+            return new SingleAntennaPropagationDiagnostics
+            {
+                Verdict = "FAIL",
+                Interpretation = "Propagation analysis unavailable.",
+                GoodSigns = good,
+                WarningSigns = warnings,
+                FailureSigns = failures,
+                HeuristicMetrics = notes,
+                ReflectedPowerPercent = result.ReflectedPowerRatio * 100.0,
+                AcceptedPowerPercent = result.AcceptedPowerRatio * 100.0
+            };
+        }
+
+        var propagation = result.Propagation;
+        var phase = propagation.Nodes.Select(node => node.PhaseDeg).Where(double.IsFinite).ToList();
+        var localPhase = propagation.Cells.Select(cell => cell.DeltaPhaseDeg).Where(double.IsFinite).ToList();
+        var localPhaseAbs = localPhase.Select(Math.Abs).ToList();
+        var slowWave = propagation.Cells
+            .Select(cell => cell.SlowWaveFactor)
+            .Where(value => double.IsFinite(value) && value > 0)
+            .ToList();
+        var energies = propagation.Cells.Select((cell, index) =>
+            cell.InductorEnergyJoules + (index < propagation.Capacitors.Count
+                ? propagation.Capacitors[index].CapacitorEnergyJoules
+                : 0)).ToList();
+
+        var phaseMonotonicity = CalculateMonotonicityFraction(phase);
+        var localPhaseSmoothness = CalculateSmoothnessRatio(localPhaseAbs);
+        var phaseFlatteningFraction = localPhaseAbs.Count == 0
+            ? 1.0
+            : localPhaseAbs.Count(value => value < 1.0) / (double)localPhaseAbs.Count;
+        var maxSwf = slowWave.Count > 0 ? slowWave.Max() : 0;
+        var medianSwf = Median(slowWave);
+        var swfPeakWidth = slowWave.Count > 0 && maxSwf > 0
+            ? slowWave.Count(value => value >= 0.5 * maxSwf)
+            : 0;
+        var swfSpike = slowWave.Count > 2 && maxSwf > 3.0 * Math.Max(medianSwf, 1e-30) && swfPeakWidth <= 2;
+        var energyTotal = energies.Sum();
+        var maxEnergyFraction = energyTotal > 0 ? energies.Max() / energyTotal : 1.0;
+        var energyEntropy = CalculateNormalizedEntropy(energies);
+        var reflected = result.ReflectedPowerRatio;
+        var accepted = result.AcceptedPowerRatio;
+        var terminalReflectionSevere = reflected > 0.80;
+        var terminalReflectionModerate = reflected > 0.25 && reflected <= 0.80;
+        var travellingWaveScore = 0;
+
+        if (phaseMonotonicity >= 0.85)
+        {
+            good.Add("Smooth node phase accumulation is present.");
+            travellingWaveScore++;
+        }
+        else if (phaseMonotonicity >= 0.60)
+        {
+            warnings.Add("Partial standing-wave formation: node phase is only partly monotonic.");
+        }
+        else
+        {
+            failures.Add("Node phase is not monotonic enough; travelling-wave propagation is likely lost.");
+        }
+
+        if (localPhaseSmoothness >= 0.55 && phaseFlatteningFraction < 0.50)
+        {
+            good.Add("Local phase shift remains distributed across the structure.");
+            travellingWaveScore++;
+        }
+        else if (phaseFlatteningFraction >= 0.70)
+        {
+            failures.Add("Local phase shift is near zero over most cells; propagation has partially collapsed.");
+        }
+        else
+        {
+            warnings.Add("Local phase distribution is uneven; reflection influence or localized compression may be present.");
+        }
+
+        if (slowWave.Count == 0 || result.CompressionRatio <= 1)
+        {
+            failures.Add("Effective wavelength compression is no longer meaningful.");
+        }
+        else if (swfSpike)
+        {
+            failures.Add("Single-cell or narrow SWF spike detected; compression is resonance-localized.");
+        }
+        else if (swfPeakWidth >= Math.Max(2, slowWave.Count / 3))
+        {
+            good.Add("Broad slow-wave compression region is present.");
+            travellingWaveScore++;
+        }
+        else
+        {
+            warnings.Add("SWF is becoming localized; compression region is narrowing.");
+        }
+
+        if (energyEntropy >= 0.70 && maxEnergyFraction <= 0.30)
+        {
+            good.Add("Stored energy is distributed across many cells.");
+            travellingWaveScore++;
+        }
+        else if (maxEnergyFraction >= 0.55)
+        {
+            failures.Add("Strong resonance localization: stored energy is trapped in one cell or terminal region.");
+        }
+        else
+        {
+            warnings.Add("Stored-energy hill is narrowing; monitor for resonance localization.");
+        }
+
+        if (terminalReflectionSevere)
+        {
+            failures.Add("Severe terminal/source reflection: most available power is reflected.");
+        }
+        else if (terminalReflectionModerate)
+        {
+            warnings.Add("Moderate terminal reflection observed; standing-wave influence may be visible near the output.");
+        }
+        else
+        {
+            good.Add("Terminal load is reasonably matched to the medium.");
+            travellingWaveScore++;
+        }
+
+        if (accepted > 0.50)
+        {
+            good.Add("Good wave penetration into the terminal region.");
+        }
+        else if (accepted > 0.10)
+        {
+            warnings.Add("Wave penetration into the terminal region is limited by mismatch.");
+        }
+        else
+        {
+            failures.Add("Wave penetration into the terminal region is poor.");
+        }
+
         if (result.RadiatedPowerRatio < 1e-6)
-            failures.Add("Antenna radiated power is extremely small.");
+            warnings.Add("Antenna radiated power is extremely small at this operating point.");
         if (result.AntennaVoltageRms > 1000)
-            failures.Add("Antenna voltage is very high compared with radiated power.");
-        if (result.Propagation is not null)
+            warnings.Add("Antenna voltage is very high compared with radiated power.");
+
+        notes.Add($"Phase monotonicity: {phaseMonotonicity * 100.0:F1} %");
+        notes.Add($"Local phase smoothness ratio: {localPhaseSmoothness:F3}");
+        notes.Add($"Phase-flattened cells: {phaseFlatteningFraction * 100.0:F1} %");
+        notes.Add($"SWF peak width: {swfPeakWidth} of {slowWave.Count} cells");
+        notes.Add($"Max energy fraction: {maxEnergyFraction * 100.0:F1} %");
+        notes.Add($"Energy entropy: {energyEntropy:F3}");
+        notes.Add($"Reflected / accepted power: {reflected * 100.0:F1} % / {accepted * 100.0:F1} %");
+
+        string verdict;
+        string interpretation;
+        if (failures.Count > 0 && travellingWaveScore >= 3)
         {
-            var slowWave = result.Propagation.Cells
-                .Select(cell => cell.SlowWaveFactor)
-                .Where(value => double.IsFinite(value) && value > 0)
-                .ToList();
-            if (slowWave.Count > 1 && slowWave.Max() > 4.0 * Math.Max(slowWave.Average(), 1e-30))
-                failures.Add("SWF has an isolated spike.");
-            var energies = result.Propagation.Cells.Select((cell, index) =>
-                cell.InductorEnergyJoules + (index < result.Propagation.Capacitors.Count
-                    ? result.Propagation.Capacitors[index].CapacitorEnergyJoules
-                    : 0)).ToList();
-            var totalEnergy = energies.Sum();
-            if (totalEnergy > 0 && energies.Max() / totalEnergy > 0.35)
-                failures.Add("Stored energy is localized in one element/cell.");
+            verdict = "FAIL";
+            interpretation = "Distributed behavior is present, but a severe propagation/load issue was detected.";
         }
-        if (result.CompressionRatio <= 1)
-            failures.Add("Effective wavelength compression is not present.");
-        if (failures.Count == 0)
+        else if (failures.Count > 0)
         {
-            return "PASS:\r\n- Node phase is usable\r\n- No severe SWF or energy localization diagnostic tripped\r\n- Antenna receives measurable power\r\n- Effective wavelength compression exists";
+            verdict = "FAIL";
+            interpretation = "Propagation has partially collapsed into standing-wave or localized-resonance behavior.";
         }
-        return "FAIL:\r\n- " + string.Join("\r\n- ", failures);
+        else if (warnings.Count > 0)
+        {
+            verdict = "WARNING";
+            interpretation = "Distributed travelling-wave slow-wave propagation is present with reflection/localization concerns.";
+        }
+        else
+        {
+            verdict = "PASS";
+            interpretation = "Distributed travelling-wave slow-wave propagation is still present.";
+        }
+
+        return new SingleAntennaPropagationDiagnostics
+        {
+            Verdict = verdict,
+            Interpretation = interpretation,
+            PhaseMonotonicityPercent = phaseMonotonicity * 100.0,
+            LocalPhaseSmoothnessRatio = localPhaseSmoothness,
+            PhaseFlattenedCellsPercent = phaseFlatteningFraction * 100.0,
+            SwfPeakWidthCells = swfPeakWidth,
+            SwfTotalCells = slowWave.Count,
+            MaxEnergyFraction = maxEnergyFraction,
+            EnergyEntropy = energyEntropy,
+            ReflectedPowerPercent = reflected * 100.0,
+            AcceptedPowerPercent = accepted * 100.0,
+            GoodSigns = good,
+            WarningSigns = warnings,
+            FailureSigns = failures,
+            HeuristicMetrics = notes
+        };
+    }
+
+    private static string FormatPropagationDiagnosticReport(SingleAntennaPropagationDiagnostics diagnostics)
+    {
+        var verdictLine = diagnostics.Verdict + ": " + diagnostics.Interpretation;
+        var sb = new StringBuilder();
+        sb.AppendLine("Propagation interpretation:");
+        sb.AppendLine(verdictLine);
+        AppendDiagnosticSection(sb, "Good signs", diagnostics.GoodSigns);
+        AppendDiagnosticSection(sb, "Warning signs", diagnostics.WarningSigns);
+        AppendDiagnosticSection(sb, "Failure signs", diagnostics.FailureSigns);
+        AppendDiagnosticSection(sb, "Heuristic metrics", diagnostics.HeuristicMetrics);
+        return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendDiagnosticSection(StringBuilder sb, string title, IReadOnlyList<string> items)
+    {
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine(title + ":");
+        foreach (var item in items)
+        {
+            sb.AppendLine("- " + item);
+        }
+    }
+
+    private static double CalculateMonotonicityFraction(IReadOnlyList<double> values)
+    {
+        if (values.Count < 2)
+        {
+            return 0;
+        }
+
+        var deltas = values.Zip(values.Skip(1), (left, right) => right - left)
+            .Where(delta => Math.Abs(delta) > 1e-9)
+            .ToList();
+        if (deltas.Count == 0)
+        {
+            return 0;
+        }
+
+        var positive = deltas.Count(delta => delta > 0);
+        var negative = deltas.Count - positive;
+        return Math.Max(positive, negative) / (double)deltas.Count;
+    }
+
+    private static double CalculateSmoothnessRatio(IReadOnlyList<double> values)
+    {
+        if (values.Count < 2)
+        {
+            return values.Count == 1 && values[0] > 0 ? 1.0 : 0.0;
+        }
+
+        var mean = values.Average();
+        if (mean <= 1e-30)
+        {
+            return 0;
+        }
+
+        var rmsError = Math.Sqrt(values.Average(value => Math.Pow(value - mean, 2)));
+        return 1.0 / (1.0 + rmsError / mean);
+    }
+
+    private static double CalculateNormalizedEntropy(IReadOnlyList<double> values)
+    {
+        var positive = values.Where(value => value > 0 && double.IsFinite(value)).ToList();
+        if (positive.Count <= 1)
+        {
+            return 0;
+        }
+
+        var total = positive.Sum();
+        if (total <= 0)
+        {
+            return 0;
+        }
+
+        var entropy = positive
+            .Select(value => value / total)
+            .Where(probability => probability > 0)
+            .Sum(probability => -probability * Math.Log(probability));
+        return entropy / Math.Log(positive.Count);
+    }
+
+    private static double Median(IReadOnlyList<double> values)
+    {
+        if (values.Count == 0)
+        {
+            return 0;
+        }
+
+        var sorted = values.OrderBy(value => value).ToList();
+        var middle = sorted.Count / 2;
+        return sorted.Count % 2 == 1
+            ? sorted[middle]
+            : 0.5 * (sorted[middle - 1] + sorted[middle]);
     }
 
     private PlotModel BuildSingleAntennaPowerFlowModel(SingleFrequencyAntennaResult result)
@@ -708,29 +979,134 @@ public partial class Form1
         try
         {
             var result = _lastSingleAntennaResult ?? AnalyzeSingleFrequencyAntenna(GetSingleAntennaStructure());
+            var diagnostics = AnalyzeSingleAntennaPropagationDiagnostics(result);
+            var caseLabel = BuildSingleAntennaCaseLabel(result, diagnostics);
             using var dialog = new SaveFileDialog
             {
-                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                Filter = "JSON files (*.json)|*.json|CSV summary (*.csv)|*.csv|All files (*.*)|*.*",
                 DefaultExt = "json",
-                FileName = "single-frequency-antenna-test.json"
+                FileName = $"small_antenna_{caseLabel}.json"
             };
             if (dialog.ShowDialog(this) != DialogResult.OK)
                 return;
-            File.WriteAllText(
-                dialog.FileName,
-                JsonSerializer.Serialize(
-                    SingleFrequencyAntennaExport.FromResult(result),
-                    new JsonSerializerOptions
-                    {
-                        WriteIndented = true,
-                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-                    }));
+            if (Path.GetExtension(dialog.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                File.WriteAllText(dialog.FileName, BuildSingleAntennaCsvSummary(result, diagnostics, caseLabel));
+            }
+            else
+            {
+                File.WriteAllText(
+                    dialog.FileName,
+                    JsonSerializer.Serialize(
+                        SingleFrequencyAntennaExport.FromResult(result, diagnostics, caseLabel),
+                        new JsonSerializerOptions
+                        {
+                            WriteIndented = true,
+                            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+                        }));
+            }
             _antennaStatusLabel.Text = $"Exported antenna test: {Path.GetFileName(dialog.FileName)}";
         }
         catch (Exception ex)
         {
             _antennaStatusLabel.Text = $"Antenna test export error: {ex.Message}";
         }
+    }
+
+    private static string BuildSingleAntennaCaseLabel(
+        SingleFrequencyAntennaResult result,
+        SingleAntennaPropagationDiagnostics diagnostics)
+    {
+        var frequencyMHz = FormatCaseLabelNumber(result.FrequencyHz / 1e6);
+        var resistance = FormatCaseLabelNumber(result.RadiationResistanceOhms + result.LossResistanceOhms);
+        var reactanceMagnitude = FormatCaseLabelNumber(Math.Abs(result.ReactanceOhms));
+        var reactance = result.ReactanceOhms < 0
+            ? "-j" + reactanceMagnitude
+            : "pj" + reactanceMagnitude;
+        return SanitizeCaseLabel($"{frequencyMHz}MHz_Z{resistance}{reactance}_{diagnostics.Verdict}");
+    }
+
+    private static string FormatCaseLabelNumber(double value)
+    {
+        var rounded = Math.Round(value);
+        var text = Math.Abs(value - rounded) < 1e-9
+            ? rounded.ToString("0", CultureInfo.InvariantCulture)
+            : value.ToString("0.###", CultureInfo.InvariantCulture);
+        return text.Replace(".", "p");
+    }
+
+    private static string SanitizeCaseLabel(string label)
+    {
+        var invalid = Path.GetInvalidFileNameChars().ToHashSet();
+        var builder = new StringBuilder(label.Length);
+        foreach (var ch in label)
+        {
+            builder.Append(char.IsWhiteSpace(ch) || invalid.Contains(ch) || ch == '+'
+                ? '_'
+                : ch);
+        }
+
+        return builder.ToString();
+    }
+
+    private static string BuildSingleAntennaCsvSummary(
+        SingleFrequencyAntennaResult result,
+        SingleAntennaPropagationDiagnostics diagnostics,
+        string caseLabel)
+    {
+        var header = string.Join(",",
+            "case_label",
+            "frequency_hz",
+            "z_ant",
+            "z_in",
+            "input_return_loss_db",
+            "vswr",
+            "accepted_power_ratio",
+            "reflected_power_ratio",
+            "radiated_power_ratio",
+            "total_phase_deg",
+            "average_swf",
+            "compression_ratio",
+            "phase_monotonicity_percent",
+            "local_phase_smoothness_ratio",
+            "swf_peak_width_cells",
+            "swf_total_cells",
+            "energy_entropy",
+            "max_energy_fraction",
+            "verdict");
+        var row = string.Join(",",
+            Csv(caseLabel),
+            Csv(result.FrequencyHz),
+            Csv(FormatComplex(result.AntennaImpedance)),
+            Csv(FormatComplex(result.InputImpedance)),
+            Csv(result.InputReturnLossDb),
+            Csv(result.Vswr),
+            Csv(result.AcceptedPowerRatio),
+            Csv(result.ReflectedPowerRatio),
+            Csv(result.RadiatedPowerRatio),
+            Csv(result.TotalPhaseDeg),
+            Csv(result.AverageSlowWaveFactor),
+            Csv(result.CompressionRatio),
+            Csv(diagnostics.PhaseMonotonicityPercent),
+            Csv(diagnostics.LocalPhaseSmoothnessRatio),
+            Csv(diagnostics.SwfPeakWidthCells),
+            Csv(diagnostics.SwfTotalCells),
+            Csv(diagnostics.EnergyEntropy),
+            Csv(diagnostics.MaxEnergyFraction),
+            Csv(diagnostics.Verdict));
+        return header + Environment.NewLine + row + Environment.NewLine;
+    }
+
+    private static string Csv(object value)
+    {
+        var text = value switch
+        {
+            double number => number.ToString("G17", CultureInfo.InvariantCulture),
+            float number => number.ToString("G9", CultureInfo.InvariantCulture),
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
+        return "\"" + text.Replace("\"", "\"\"") + "\"";
     }
 
     private static double ReactanceToCapacitance(double frequencyHz, double reactanceOhms) =>
@@ -749,6 +1125,25 @@ public partial class Form1
         double LossResistanceOhms,
         double ReactanceOhms,
         double CapacitanceFarads);
+
+    private sealed class SingleAntennaPropagationDiagnostics
+    {
+        public string Verdict { get; set; } = "FAIL";
+        public string Interpretation { get; set; } = string.Empty;
+        public double PhaseMonotonicityPercent { get; set; }
+        public double LocalPhaseSmoothnessRatio { get; set; }
+        public double PhaseFlattenedCellsPercent { get; set; }
+        public int SwfPeakWidthCells { get; set; }
+        public int SwfTotalCells { get; set; }
+        public double MaxEnergyFraction { get; set; }
+        public double EnergyEntropy { get; set; }
+        public double ReflectedPowerPercent { get; set; }
+        public double AcceptedPowerPercent { get; set; }
+        public List<string> GoodSigns { get; set; } = new();
+        public List<string> WarningSigns { get; set; } = new();
+        public List<string> FailureSigns { get; set; } = new();
+        public List<string> HeuristicMetrics { get; set; } = new();
+    }
 
     private sealed class SingleFrequencyAntennaResult
     {
@@ -789,6 +1184,7 @@ public partial class Form1
 
     private sealed class SingleFrequencyAntennaExport
     {
+        public string CaseLabel { get; set; } = string.Empty;
         public double FrequencyHz { get; set; }
         public string AntennaType { get; set; } = string.Empty;
         public double AntennaLengthM { get; set; }
@@ -815,11 +1211,16 @@ public partial class Form1
         public double LambdaEffM { get; set; }
         public double CompressionRatio { get; set; }
         public double AverageSwf { get; set; }
+        public SingleFrequencyAntennaExportDiagnostics Diagnostics { get; set; } = new();
         public List<RfElement> Structure { get; set; } = new();
 
-        public static SingleFrequencyAntennaExport FromResult(SingleFrequencyAntennaResult result) =>
+        public static SingleFrequencyAntennaExport FromResult(
+            SingleFrequencyAntennaResult result,
+            SingleAntennaPropagationDiagnostics diagnostics,
+            string caseLabel) =>
             new()
             {
+                CaseLabel = caseLabel,
                 FrequencyHz = result.FrequencyHz,
                 AntennaType = result.AntennaType.Replace(' ', '_').ToLowerInvariant(),
                 AntennaLengthM = result.PhysicalAntennaLengthMeters,
@@ -846,7 +1247,40 @@ public partial class Form1
                 LambdaEffM = result.EffectiveWavelengthMeters,
                 CompressionRatio = result.CompressionRatio,
                 AverageSwf = result.AverageSlowWaveFactor,
+                Diagnostics = SingleFrequencyAntennaExportDiagnostics.FromDiagnostics(diagnostics),
                 Structure = result.Structure
+            };
+    }
+
+    private sealed class SingleFrequencyAntennaExportDiagnostics
+    {
+        public string Verdict { get; set; } = string.Empty;
+        public string Interpretation { get; set; } = string.Empty;
+        public double PhaseMonotonicityPercent { get; set; }
+        public double LocalPhaseSmoothnessRatio { get; set; }
+        public double PhaseFlattenedCellsPercent { get; set; }
+        public int SwfPeakWidthCells { get; set; }
+        public int SwfTotalCells { get; set; }
+        public double MaxEnergyFraction { get; set; }
+        public double EnergyEntropy { get; set; }
+        public double ReflectedPowerPercent { get; set; }
+        public double AcceptedPowerPercent { get; set; }
+
+        public static SingleFrequencyAntennaExportDiagnostics FromDiagnostics(
+            SingleAntennaPropagationDiagnostics diagnostics) =>
+            new()
+            {
+                Verdict = diagnostics.Verdict,
+                Interpretation = diagnostics.Interpretation,
+                PhaseMonotonicityPercent = diagnostics.PhaseMonotonicityPercent,
+                LocalPhaseSmoothnessRatio = diagnostics.LocalPhaseSmoothnessRatio,
+                PhaseFlattenedCellsPercent = diagnostics.PhaseFlattenedCellsPercent,
+                SwfPeakWidthCells = diagnostics.SwfPeakWidthCells,
+                SwfTotalCells = diagnostics.SwfTotalCells,
+                MaxEnergyFraction = diagnostics.MaxEnergyFraction,
+                EnergyEntropy = diagnostics.EnergyEntropy,
+                ReflectedPowerPercent = diagnostics.ReflectedPowerPercent,
+                AcceptedPowerPercent = diagnostics.AcceptedPowerPercent
             };
     }
 }

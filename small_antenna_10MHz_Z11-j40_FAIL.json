@@ -1,0 +1,136 @@
+{
+  "case_label": "10MHz_Z11-j40_FAIL",
+  "frequency_hz": 10000000,
+  "antenna_type": "short_monopole",
+  "antenna_length_m": 1,
+  "lambda0_m": 29.9792458,
+  "antenna_length_ratio": 0.0333564095198152,
+  "r_rad_ohm": 10,
+  "r_loss_ohm": 1,
+  "x_ant_ohm": -40,
+  "z_ant": "11.0000-j40.0000",
+  "z_in": "46.1330-j86.2832",
+  "input_reflection_coefficient": "0.4239-j0.5171",
+  "input_reflection_magnitude": 0.6686231771935316,
+  "vswr": 5.035425118334379,
+  "available_power_watts": 1,
+  "reflected_power_ratio": 0.44705695308037274,
+  "accepted_power_ratio": 0.5529430469196273,
+  "input_return_loss_db": -3.496371461456045,
+  "delivered_power_ratio": 0.5529430469196275,
+  "radiated_power_ratio": 0.5026754971996612,
+  "loss_power_ratio": 0.050267549719966116,
+  "power_conservation_error": 0,
+  "radiation_efficiency": 0.9090909090909088,
+  "total_phase_deg": -178.7751658057595,
+  "lambda_eff_m": 0.12082215056351032,
+  "compression_ratio": 248.12706660308427,
+  "average_swf": 248.12706660308422,
+  "diagnostics": {
+    "verdict": "FAIL",
+    "interpretation": "Propagation has partially collapsed into standing-wave or localized-resonance behavior.",
+    "phase_monotonicity_percent": 100,
+    "local_phase_smoothness_ratio": 0.3871890051984697,
+    "phase_flattened_cells_percent": 0,
+    "swf_peak_width_cells": 2,
+    "swf_total_cells": 12,
+    "max_energy_fraction": 0.1386394433981105,
+    "energy_entropy": 0.9822317580468681,
+    "reflected_power_percent": 44.70569530803728,
+    "accepted_power_percent": 55.29430469196272
+  },
+  "structure": [
+    {
+      "type": "SeriesL",
+      "value": 1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 5.1E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.1E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 6.199999999999999E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.2000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 7.2E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.3E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 8.2E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.4E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 9.199999999999999E-11
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.5000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.02E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.6E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.12E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.7000000000000001E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.22E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.8000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.32E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 1.9E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.42E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.0000000000000002E-07
+    },
+    {
+      "type": "ShuntC",
+      "value": 1.52E-10
+    },
+    {
+      "type": "SeriesL",
+      "value": 2.1E-07
+    }
+  ]
+}
