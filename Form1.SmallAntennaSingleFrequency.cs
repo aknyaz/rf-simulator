@@ -29,11 +29,26 @@ public partial class Form1
     private readonly Button _singleAntennaOptimizeTerminalButton = new();
     private readonly Button _singleAntennaApplyTerminalButton = new();
     private readonly Button _singleAntennaExportJsonButton = new();
+    private readonly Button _singleAntennaExploreButton = new();
+    private readonly NumericUpDown _singleAntennaExploreStartMHzInput = new();
+    private readonly NumericUpDown _singleAntennaExploreStopMHzInput = new();
+    private readonly NumericUpDown _singleAntennaExploreStepMHzInput = new();
+    private readonly NumericUpDown _singleAntennaExploreRradStartInput = new();
+    private readonly NumericUpDown _singleAntennaExploreRradStopInput = new();
+    private readonly NumericUpDown _singleAntennaExploreRradStepInput = new();
+    private readonly NumericUpDown _singleAntennaExploreXantStartInput = new();
+    private readonly NumericUpDown _singleAntennaExploreXantStopInput = new();
+    private readonly NumericUpDown _singleAntennaExploreXantStepInput = new();
+    private readonly NumericUpDown _singleAntennaExploreRlossInput = new();
+    private readonly NumericUpDown _singleAntennaExploreAcceptedMinInput = new();
+    private readonly NumericUpDown _singleAntennaExploreBestCountInput = new();
+    private readonly CheckBox _singleAntennaExploreOptimizeTerminalInput = new();
     private readonly PlotView _singleAntennaPowerFlowPlot = new();
     private readonly ToolTip _singleAntennaToolTip = new();
 
     private SingleFrequencyAntennaResult? _lastSingleAntennaResult;
     private List<RfElement>? _terminalCouplingCandidate;
+    private List<SingleAntennaExplorationCase> _lastExplorationCases = new();
 
     private Control BuildSingleFrequencySmallAntennaPanel()
     {
@@ -104,6 +119,18 @@ public partial class Form1
         ConfigureNumeric(_singleAntennaCustomXantInput, -1000000, 1000000, -3183, 2, 10);
         ConfigureNumeric(_singleAntennaCustomRlossInput, 0, 10000, 1, 3, 0.1m);
         ConfigureNumeric(_antennaSpacingMmInput, 0.001m, 1000, 5, 3, 0.5m);
+        ConfigureNumeric(_singleAntennaExploreStartMHzInput, 0.001m, 10000, 1, 3, 0.25m);
+        ConfigureNumeric(_singleAntennaExploreStopMHzInput, 0.001m, 10000, 15, 3, 0.25m);
+        ConfigureNumeric(_singleAntennaExploreStepMHzInput, 0.001m, 1000, 0.25m, 3, 0.25m);
+        ConfigureNumeric(_singleAntennaExploreRradStartInput, 0, 10000, 5, 3, 5);
+        ConfigureNumeric(_singleAntennaExploreRradStopInput, 0, 10000, 50, 3, 5);
+        ConfigureNumeric(_singleAntennaExploreRradStepInput, 0.001m, 10000, 5, 3, 1);
+        ConfigureNumeric(_singleAntennaExploreXantStartInput, -1000000, 1000000, 0, 2, 10);
+        ConfigureNumeric(_singleAntennaExploreXantStopInput, -1000000, 1000000, -100, 2, 10);
+        ConfigureNumeric(_singleAntennaExploreXantStepInput, 0.001m, 1000000, 10, 2, 10);
+        ConfigureNumeric(_singleAntennaExploreRlossInput, 0, 10000, 1, 3, 0.1m);
+        ConfigureNumeric(_singleAntennaExploreAcceptedMinInput, 0, 1, 0.2m, 3, 0.05m);
+        ConfigureNumeric(_singleAntennaExploreBestCountInput, 1, 100, 20, 0, 1);
 
         _singleAntennaTypeInput.DropDownStyle = ComboBoxStyle.DropDownList;
         _singleAntennaTypeInput.Items.AddRange(new object[] { "Short monopole", "Short dipole" });
@@ -126,6 +153,8 @@ public partial class Form1
         _singleAntennaUseCurrentStructureInput.AutoSize = true;
         _singleAntennaUseCustomInput.Text = "Use custom antenna impedance";
         _singleAntennaUseCustomInput.AutoSize = true;
+        _singleAntennaExploreOptimizeTerminalInput.Text = "Optimize terminal section";
+        _singleAntennaExploreOptimizeTerminalInput.AutoSize = true;
 
         AddCompactField(panel, "Freq MHz", _singleAntennaFrequencyMHzInput, 78);
         AddCompactField(panel, "Length m", _singleAntennaLengthMInput, 78);
@@ -153,6 +182,9 @@ public partial class Form1
         _singleAntennaToolTip.SetToolTip(
             _singleAntennaUseCustomInput,
             "When enabled, Zant = Rrad + Rloss + jXant. Example: Rrad 50, Xant 0, Rloss 1 gives Zant = 51 + j0 ohm.");
+        _singleAntennaToolTip.SetToolTip(
+            _singleAntennaExploreOptimizeTerminalInput,
+            "Optional exploration mode: also try small +/-10% changes in the last 2-3 LC elements only. The main medium remains fixed.");
 
         _singleAntennaAnalyzeButton.Text = "Analyze Current Structure With Antenna";
         _singleAntennaAnalyzeButton.AutoSize = true;
@@ -167,6 +199,9 @@ public partial class Form1
         _singleAntennaExportJsonButton.Text = "Export Antenna Test JSON";
         _singleAntennaExportJsonButton.AutoSize = true;
         _singleAntennaExportJsonButton.Click += (_, _) => ExportSingleAntennaJson();
+        _singleAntennaExploreButton.Text = "Explore Regimes";
+        _singleAntennaExploreButton.AutoSize = true;
+        _singleAntennaExploreButton.Click += (_, _) => ExploreSingleAntennaPropagationRegimes();
 
         EventHandler updateAntennaLoad = (_, _) => UpdateSingleFrequencySmallAntennaMode();
         _singleAntennaFrequencyMHzInput.ValueChanged += updateAntennaLoad;
@@ -184,6 +219,20 @@ public partial class Form1
         panel.Controls.Add(_singleAntennaOptimizeTerminalButton);
         panel.Controls.Add(_singleAntennaApplyTerminalButton);
         panel.Controls.Add(_singleAntennaExportJsonButton);
+        panel.Controls.Add(_singleAntennaExploreButton);
+        AddCompactField(panel, "F start", _singleAntennaExploreStartMHzInput, 64);
+        AddCompactField(panel, "F stop", _singleAntennaExploreStopMHzInput, 64);
+        AddCompactField(panel, "F step", _singleAntennaExploreStepMHzInput, 64);
+        AddCompactField(panel, "R start", _singleAntennaExploreRradStartInput, 64);
+        AddCompactField(panel, "R stop", _singleAntennaExploreRradStopInput, 64);
+        AddCompactField(panel, "R step", _singleAntennaExploreRradStepInput, 64);
+        AddCompactField(panel, "X start", _singleAntennaExploreXantStartInput, 70);
+        AddCompactField(panel, "X stop", _singleAntennaExploreXantStopInput, 70);
+        AddCompactField(panel, "X step", _singleAntennaExploreXantStepInput, 64);
+        AddCompactField(panel, "Exp Rloss", _singleAntennaExploreRlossInput, 64);
+        AddCompactField(panel, "Min acc", _singleAntennaExploreAcceptedMinInput, 64);
+        AddCompactField(panel, "Best n", _singleAntennaExploreBestCountInput, 54);
+        panel.Controls.Add(_singleAntennaExploreOptimizeTerminalInput);
 
         _antennaStatusLabel.AutoSize = false;
         _antennaStatusLabel.Width = 520;
@@ -243,9 +292,27 @@ public partial class Form1
         var frequencyHz = (double)_singleAntennaFrequencyMHzInput.Value * 1e6;
         var lengthMeters = (double)_singleAntennaLengthMInput.Value;
         var lambda0 = SpeedOfLightMetersPerSecond / frequencyHz;
+        var antenna = BuildShortAntennaModel(frequencyHz, lengthMeters, lambda0);
+        return AnalyzeSingleFrequencyAntenna(
+            structure,
+            frequencyHz,
+            lengthMeters,
+            _singleAntennaTypeInput.Text,
+            antenna,
+            GetSingleAntennaSpacingMeters());
+    }
+
+    private SingleFrequencyAntennaResult AnalyzeSingleFrequencyAntenna(
+        IReadOnlyList<RfElement> structure,
+        double frequencyHz,
+        double lengthMeters,
+        string antennaType,
+        ShortAntennaModel antenna,
+        double spacingMeters)
+    {
+        var lambda0 = SpeedOfLightMetersPerSecond / frequencyHz;
         var lengthRatio = lengthMeters / lambda0;
         var thetaDeg = 360.0 * lengthRatio;
-        var antenna = BuildShortAntennaModel(frequencyHz, lengthMeters, lambda0);
         var config = new SmallAntennaConfig
         {
             RadiationResistanceOhms = antenna.RadiationResistanceOhms,
@@ -263,7 +330,7 @@ public partial class Form1
             frequencyHz,
             SmallAntennaMode.SourceResistanceOhms,
             config.AntennaImpedance,
-            GetSingleAntennaSpacingMeters(),
+            spacingMeters,
             Array.Empty<SweepPoint>());
         var propagationWarning = propagation.Warning;
 
@@ -316,7 +383,7 @@ public partial class Form1
         return new SingleFrequencyAntennaResult
         {
             FrequencyHz = frequencyHz,
-            AntennaType = _singleAntennaTypeInput.Text,
+            AntennaType = antennaType,
             PhysicalAntennaLengthMeters = lengthMeters,
             Lambda0Meters = lambda0,
             AntennaLengthRatio = lengthRatio,
@@ -876,6 +943,368 @@ public partial class Form1
         return model;
     }
 
+    private void ExploreSingleAntennaPropagationRegimes()
+    {
+        try
+        {
+            var baseStructure = GetSingleAntennaStructure().ToList();
+            if (baseStructure.Count == 0)
+            {
+                _antennaStatusLabel.Text = "Regime exploration requires an LC structure.";
+                return;
+            }
+
+            var outputFolder = SelectExplorationOutputFolder();
+            var frequenciesMHz = BuildSweepValues(
+                (double)_singleAntennaExploreStartMHzInput.Value,
+                (double)_singleAntennaExploreStopMHzInput.Value,
+                (double)_singleAntennaExploreStepMHzInput.Value);
+            var radiationResistances = BuildSweepValues(
+                (double)_singleAntennaExploreRradStartInput.Value,
+                (double)_singleAntennaExploreRradStopInput.Value,
+                (double)_singleAntennaExploreRradStepInput.Value);
+            var reactances = BuildSweepValues(
+                (double)_singleAntennaExploreXantStartInput.Value,
+                (double)_singleAntennaExploreXantStopInput.Value,
+                (double)_singleAntennaExploreXantStepInput.Value);
+            var lengthMeters = (double)_singleAntennaLengthMInput.Value;
+            var spacingMeters = GetSingleAntennaSpacingMeters();
+            var lossResistance = (double)_singleAntennaExploreRlossInput.Value;
+            var minimumAcceptedPower = (double)_singleAntennaExploreAcceptedMinInput.Value;
+            var bestCount = (int)_singleAntennaExploreBestCountInput.Value;
+            var optimizeTerminal = _singleAntennaExploreOptimizeTerminalInput.Checked;
+
+            var cases = new List<SingleAntennaExplorationCase>();
+            var totalCases = frequenciesMHz.Count * radiationResistances.Count * reactances.Count;
+            var evaluated = 0;
+            Cursor.Current = Cursors.WaitCursor;
+            _singleAntennaExploreButton.Enabled = false;
+            _antennaStatusLabel.Text = $"Exploring {totalCases} antenna-loaded propagation cases...";
+            Application.DoEvents();
+
+            foreach (var frequencyMHz in frequenciesMHz)
+            {
+                var frequencyHz = frequencyMHz * 1e6;
+                foreach (var rrad in radiationResistances)
+                {
+                    foreach (var xant in reactances)
+                    {
+                        var candidate = EvaluateExplorationLoad(
+                            baseStructure,
+                            frequencyHz,
+                            lengthMeters,
+                            rrad,
+                            lossResistance,
+                            xant,
+                            spacingMeters,
+                            minimumAcceptedPower,
+                            optimizeTerminal);
+                        cases.Add(candidate);
+                        evaluated++;
+                        if (evaluated % 100 == 0)
+                        {
+                            _antennaStatusLabel.Text = $"Exploring propagation regimes: {evaluated} / {totalCases}";
+                            Application.DoEvents();
+                        }
+                    }
+                }
+            }
+
+            _lastExplorationCases = cases
+                .OrderByDescending(item => item.Score)
+                .ToList();
+            var accepted = _lastExplorationCases
+                .Where(item => !item.Rejected)
+                .Take(bestCount)
+                .ToList();
+            var exportedFiles = outputFolder is null
+                ? new Dictionary<SingleAntennaExplorationCase, string>()
+                : ExportBestExplorationCases(accepted, outputFolder);
+
+            var best = accepted.FirstOrDefault() ?? _lastExplorationCases.FirstOrDefault();
+            if (best is not null)
+            {
+                _lastSingleAntennaResult = best.Result;
+                RenderSingleAntennaResult(best.Result);
+                _antennaSummaryText.Text = FormatExplorationSummary(
+                    _lastExplorationCases,
+                    accepted,
+                    exportedFiles,
+                    totalCases,
+                    outputFolder);
+            }
+
+            _antennaStatusLabel.Text = accepted.Count > 0
+                ? $"Regime exploration complete. Accepted {accepted.Count} ranked cases from {totalCases} loads."
+                : $"Regime exploration complete. No accepted cases from {totalCases} loads.";
+        }
+        catch (Exception ex)
+        {
+            _antennaStatusLabel.Text = $"Regime exploration error: {ex.Message}";
+            _antennaSummaryText.Text = ex.ToString();
+        }
+        finally
+        {
+            Cursor.Current = Cursors.Default;
+            _singleAntennaExploreButton.Enabled = true;
+        }
+    }
+
+    private string? SelectExplorationOutputFolder()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select folder for best propagation-regime JSON exports. Cancel to only show ranked results.",
+            UseDescriptionForTitle = true
+        };
+        return dialog.ShowDialog(this) == DialogResult.OK ? dialog.SelectedPath : null;
+    }
+
+    private SingleAntennaExplorationCase EvaluateExplorationLoad(
+        IReadOnlyList<RfElement> baseStructure,
+        double frequencyHz,
+        double lengthMeters,
+        double radiationResistance,
+        double lossResistance,
+        double reactance,
+        double spacingMeters,
+        double minimumAcceptedPower,
+        bool optimizeTerminal)
+    {
+        var antenna = new ShortAntennaModel(
+            radiationResistance,
+            lossResistance,
+            reactance,
+            ReactanceToCapacitance(frequencyHz, reactance));
+        var structures = optimizeTerminal
+            ? BuildTerminalExplorationVariants(baseStructure)
+            : new List<List<RfElement>> { OptimizerEngine.CloneStructure(baseStructure) };
+
+        SingleAntennaExplorationCase? best = null;
+        foreach (var structure in structures)
+        {
+            var result = AnalyzeSingleFrequencyAntenna(
+                structure,
+                frequencyHz,
+                lengthMeters,
+                "Explored antenna load",
+                antenna,
+                spacingMeters);
+            var diagnostics = AnalyzeSingleAntennaPropagationDiagnostics(result);
+            var score = ScoreExplorationCase(result, diagnostics);
+            var rejectionReason = GetExplorationRejectionReason(result, diagnostics, minimumAcceptedPower);
+            var candidate = new SingleAntennaExplorationCase
+            {
+                Result = result,
+                Diagnostics = diagnostics,
+                Score = score,
+                Rejected = rejectionReason.Length > 0,
+                RejectionReason = rejectionReason,
+                TerminalWasVaried = !ReferenceEquals(structure, structures[0])
+            };
+            if (best is null || candidate.Score > best.Score || (best.Rejected && !candidate.Rejected))
+            {
+                best = candidate;
+            }
+        }
+
+        return best ?? throw new InvalidOperationException("No exploration candidate was evaluated.");
+    }
+
+    private static List<List<RfElement>> BuildTerminalExplorationVariants(IReadOnlyList<RfElement> baseStructure)
+    {
+        var variants = new List<List<RfElement>> { OptimizerEngine.CloneStructure(baseStructure) };
+        var startIndex = Math.Max(0, baseStructure.Count - 3);
+        for (var index = startIndex; index < baseStructure.Count; index++)
+        {
+            foreach (var factor in new[] { 0.9, 1.1 })
+            {
+                var variant = OptimizerEngine.CloneStructure(baseStructure);
+                variant[index].Value = Math.Max(variant[index].Value * factor, 1e-18);
+                variants.Add(variant);
+            }
+        }
+
+        return variants;
+    }
+
+    private static double ScoreExplorationCase(
+        SingleFrequencyAntennaResult result,
+        SingleAntennaPropagationDiagnostics diagnostics)
+    {
+        var accepted = Clamp01(result.AcceptedPowerRatio);
+        var reflected = Clamp01(result.ReflectedPowerRatio);
+        var localPhaseSmoothness = Clamp01(diagnostics.LocalPhaseSmoothnessRatio);
+        var swfWidth = diagnostics.SwfTotalCells > 0
+            ? Clamp01(diagnostics.SwfPeakWidthCells / (double)diagnostics.SwfTotalCells)
+            : 0;
+        var entropy = Clamp01(diagnostics.EnergyEntropy);
+        var phaseNorm = Clamp01(Math.Abs(result.TotalPhaseDeg) / 360.0);
+        var swfLocalizationPenalty = diagnostics.SwfPeakWidthCells < 2
+            ? 1.0
+            : Clamp01(0.25 - swfWidth);
+        var energyLocalizationPenalty = Clamp01((diagnostics.MaxEnergyFraction - 0.25) / 0.35);
+
+        return 2.0 * accepted
+               + 1.5 * localPhaseSmoothness
+               + 1.5 * swfWidth
+               + entropy
+               + phaseNorm
+               - 2.0 * reflected
+               - 2.0 * swfLocalizationPenalty
+               - 2.0 * energyLocalizationPenalty;
+    }
+
+    private static string GetExplorationRejectionReason(
+        SingleFrequencyAntennaResult result,
+        SingleAntennaPropagationDiagnostics diagnostics,
+        double minimumAcceptedPower)
+    {
+        var reasons = new List<string>();
+        if (result.Propagation is null)
+            reasons.Add("propagation unavailable");
+        if (result.AcceptedPowerRatio < minimumAcceptedPower)
+            reasons.Add($"accepted power below {minimumAcceptedPower:P0}");
+        if (result.ReflectedPowerRatio > 0.85)
+            reasons.Add("extreme reflection");
+        if (diagnostics.SwfPeakWidthCells < 2)
+            reasons.Add("isolated SWF spike or missing broad compression");
+        if (diagnostics.MaxEnergyFraction > 0.55)
+            reasons.Add("energy localized in one cell");
+        if (diagnostics.PhaseFlattenedCellsPercent > 70)
+            reasons.Add("phase collapse");
+        if (diagnostics.Verdict.Equals("FAIL", StringComparison.OrdinalIgnoreCase))
+            reasons.Add("diagnostic verdict FAIL");
+        return string.Join("; ", reasons.Distinct());
+    }
+
+    private static List<double> BuildSweepValues(double start, double stop, double step)
+    {
+        if (step <= 0 || !double.IsFinite(step))
+        {
+            throw new InvalidOperationException("Sweep step must be positive.");
+        }
+
+        var values = new List<double>();
+        var direction = stop >= start ? 1.0 : -1.0;
+        var signedStep = Math.Abs(step) * direction;
+        var value = start;
+        for (var index = 0; index < 100_000; index++)
+        {
+            if (direction > 0 && value > stop + 1e-12)
+                break;
+            if (direction < 0 && value < stop - 1e-12)
+                break;
+            values.Add(value);
+            value += signedStep;
+        }
+
+        if (values.Count == 0)
+        {
+            throw new InvalidOperationException("Sweep range did not produce any values.");
+        }
+
+        return values;
+    }
+
+    private Dictionary<SingleAntennaExplorationCase, string> ExportBestExplorationCases(
+        IReadOnlyList<SingleAntennaExplorationCase> cases,
+        string outputFolder)
+    {
+        Directory.CreateDirectory(outputFolder);
+        var files = new Dictionary<SingleAntennaExplorationCase, string>();
+        foreach (var item in cases)
+        {
+            var caseLabel = BuildSingleAntennaCaseLabel(item.Result, item.Diagnostics);
+            var scoreLabel = FormatScoreLabel(item.Score);
+            var fileName = SanitizeCaseLabel($"best_{caseLabel}_score{scoreLabel}") + ".json";
+            var path = Path.Combine(outputFolder, fileName);
+            var export = SingleAntennaExplorationExport.FromCase(item, caseLabel);
+            File.WriteAllText(
+                path,
+                JsonSerializer.Serialize(
+                    export,
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+                    }));
+            files[item] = fileName;
+        }
+
+        return files;
+    }
+
+    private static string FormatExplorationSummary(
+        IReadOnlyList<SingleAntennaExplorationCase> allCases,
+        IReadOnlyList<SingleAntennaExplorationCase> acceptedCases,
+        IReadOnlyDictionary<SingleAntennaExplorationCase, string> exportedFiles,
+        int totalCases,
+        string? outputFolder)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Propagation-regime exploration");
+        sb.AppendLine($"Evaluated loads: {totalCases}");
+        sb.AppendLine($"Accepted ranked cases: {acceptedCases.Count}");
+        sb.AppendLine($"Rejected cases: {allCases.Count(item => item.Rejected)}");
+        sb.AppendLine(outputFolder is null
+            ? "Export: skipped by user"
+            : $"Export folder: {outputFolder}");
+        sb.AppendLine();
+
+        if (acceptedCases.Count == 0)
+        {
+            sb.AppendLine("No accepted distributed propagation regimes found.");
+            sb.AppendLine("Best rejected cases:");
+            AppendExplorationTable(sb, allCases.Take(10).ToList(), exportedFiles);
+            return sb.ToString();
+        }
+
+        sb.AppendLine("Ranked best distributed propagation regimes:");
+        AppendExplorationTable(sb, acceptedCases, exportedFiles);
+        sb.AppendLine();
+        sb.AppendLine("Best-case propagation interpretation:");
+        sb.AppendLine(FormatPropagationDiagnosticReport(acceptedCases[0].Diagnostics));
+        return sb.ToString();
+    }
+
+    private static void AppendExplorationTable(
+        StringBuilder sb,
+        IReadOnlyList<SingleAntennaExplorationCase> cases,
+        IReadOnlyDictionary<SingleAntennaExplorationCase, string> exportedFiles)
+    {
+        sb.AppendLine("Rank  Score   F MHz    Zant ohm             Accepted  SWF width  Verdict  File/Reason");
+        sb.AppendLine("----  ------  -------  -------------------  --------  ---------  -------  ------------------------------");
+        for (var index = 0; index < cases.Count; index++)
+        {
+            var item = cases[index];
+            var fileOrReason = exportedFiles.TryGetValue(item, out var file)
+                ? file
+                : item.RejectionReason;
+            sb.AppendLine(string.Format(
+                CultureInfo.InvariantCulture,
+                "{0,4}  {1,6:F3}  {2,7:F3}  {3,-19}  {4,8:P1}  {5,3}/{6,-3}    {7,-7}  {8}",
+                index + 1,
+                item.Score,
+                item.Result.FrequencyHz / 1e6,
+                FormatComplex(item.Result.AntennaImpedance),
+                item.Result.AcceptedPowerRatio,
+                item.Diagnostics.SwfPeakWidthCells,
+                item.Diagnostics.SwfTotalCells,
+                item.Diagnostics.Verdict,
+                fileOrReason));
+        }
+    }
+
+    private static string FormatScoreLabel(double score)
+    {
+        var sign = score < 0 ? "m" : string.Empty;
+        return sign + Math.Abs(score).ToString("0.###", CultureInfo.InvariantCulture).Replace(".", "p");
+    }
+
+    private static double Clamp01(double value) =>
+        double.IsFinite(value) ? Math.Min(1.0, Math.Max(0.0, value)) : 0.0;
+
     private void OptimizeSingleAntennaTerminalCoupling()
     {
         try
@@ -1180,6 +1609,39 @@ public partial class Form1
         public PropagationResult? Propagation { get; set; }
         public string PropagationWarning { get; set; } = string.Empty;
         public List<RfElement> Structure { get; set; } = new();
+    }
+
+    private sealed class SingleAntennaExplorationCase
+    {
+        public SingleFrequencyAntennaResult Result { get; set; } = new();
+        public SingleAntennaPropagationDiagnostics Diagnostics { get; set; } = new();
+        public double Score { get; set; }
+        public bool Rejected { get; set; }
+        public string RejectionReason { get; set; } = string.Empty;
+        public bool TerminalWasVaried { get; set; }
+    }
+
+    private sealed class SingleAntennaExplorationExport
+    {
+        public string CaseLabel { get; set; } = string.Empty;
+        public double PropagationRegimeScore { get; set; }
+        public bool Rejected { get; set; }
+        public string RejectionReason { get; set; } = string.Empty;
+        public bool TerminalWasVaried { get; set; }
+        public SingleFrequencyAntennaExport Analysis { get; set; } = new();
+
+        public static SingleAntennaExplorationExport FromCase(
+            SingleAntennaExplorationCase item,
+            string caseLabel) =>
+            new()
+            {
+                CaseLabel = caseLabel,
+                PropagationRegimeScore = item.Score,
+                Rejected = item.Rejected,
+                RejectionReason = item.RejectionReason,
+                TerminalWasVaried = item.TerminalWasVaried,
+                Analysis = SingleFrequencyAntennaExport.FromResult(item.Result, item.Diagnostics, caseLabel)
+            };
     }
 
     private sealed class SingleFrequencyAntennaExport
