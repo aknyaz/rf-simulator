@@ -68,8 +68,8 @@ public static class PropagationAnalysis
 
         var nodeVoltages = new List<Complex> { inputVoltage };
         var nodeCurrents = new List<Complex> { inputCurrent };
-        var inductorCurrents = new List<Complex>();
-        var inductorValues = new List<double>();
+        var seriesCurrents = new List<Complex>();
+        var seriesStoredEnergies = new List<double>();
         var capacitorVoltages = new List<Complex>();
         var capacitorValues = new List<double>();
 
@@ -78,20 +78,29 @@ public static class PropagationAnalysis
 
         foreach (var element in structure)
         {
-            if (IsSeriesL(element))
+            if (IsSeriesElement(element))
             {
-                var z = Complex.ImaginaryOne * omega * element.Value;
-                inductorCurrents.Add(stateCurrent);
-                inductorValues.Add(element.Value);
-                stateVoltage -= z * stateCurrent;
+                var z = SeriesImpedance(element, omega);
+                var voltageDrop = z * stateCurrent;
+                seriesCurrents.Add(stateCurrent);
+                seriesStoredEnergies.Add(SeriesStoredEnergy(element, stateCurrent, voltageDrop));
+                if (IsSeriesC(element))
+                {
+                    capacitorVoltages.Add(voltageDrop);
+                    capacitorValues.Add(element.Value);
+                }
+                stateVoltage -= voltageDrop;
                 nodeVoltages.Add(stateVoltage);
                 nodeCurrents.Add(stateCurrent);
             }
-            else if (IsShuntC(element))
+            else if (IsShuntElement(element))
             {
-                var y = Complex.ImaginaryOne * omega * element.Value;
-                capacitorVoltages.Add(stateVoltage);
-                capacitorValues.Add(element.Value);
+                var y = ShuntAdmittance(element, omega);
+                if (IsShuntC(element))
+                {
+                    capacitorVoltages.Add(stateVoltage);
+                    capacitorValues.Add(element.Value);
+                }
                 stateCurrent -= y * stateVoltage;
                 nodeCurrents[^1] = stateCurrent;
             }
@@ -117,8 +126,10 @@ public static class PropagationAnalysis
             var effectiveWavelength = beta > 0 ? 2.0 * Math.PI / beta : double.NaN;
             var phaseVelocity = beta > 0 ? omega / beta : double.NaN;
             var slowWaveFactor = phaseVelocity > 0 ? SpeedOfLight / phaseVelocity : double.NaN;
-            var inductorEnergy = 0.5 * inductorValues[i] * Math.Pow(inductorCurrents[i].Magnitude, 2);
-            var effectiveImpedance = nodeVoltages[i] / inductorCurrents[i];
+            var inductorEnergy = seriesStoredEnergies[i];
+            var effectiveImpedance = seriesCurrents[i].Magnitude > 1e-30
+                ? nodeVoltages[i] / seriesCurrents[i]
+                : Complex.Zero;
 
             cells.Add(new PropagationCell(
                 i,
@@ -128,7 +139,7 @@ public static class PropagationAnalysis
                 effectiveWavelength,
                 phaseVelocity,
                 slowWaveFactor,
-                inductorCurrents[i],
+                seriesCurrents[i],
                 inductorEnergy,
                 effectiveImpedance));
         }
@@ -190,24 +201,24 @@ public static class PropagationAnalysis
             throw new InvalidOperationException("Structure must contain at least one element.");
         }
 
-        if (!IsSeriesL(structure[0]) && !IsShuntC(structure[0]))
+        var hasSeriesElement = false;
+        foreach (var element in structure)
         {
-            throw new InvalidOperationException("Propagation analysis supports ladders that start with SeriesL or ShuntC.");
+            if (IsSeriesElement(element))
+            {
+                hasSeriesElement = true;
+                continue;
+            }
+
+            if (!IsShuntElement(element))
+            {
+                throw new InvalidOperationException($"Propagation analysis does not support element type: {element.Type}");
+            }
         }
 
-        var startsWithSeries = IsSeriesL(structure[0]);
-        for (var i = 0; i < structure.Count; i++)
+        if (!hasSeriesElement)
         {
-            var expectedSeries = startsWithSeries ? i % 2 == 0 : i % 2 != 0;
-            if (expectedSeries && !IsSeriesL(structure[i]))
-            {
-                throw new InvalidOperationException("Propagation analysis supports alternating SeriesL / ShuntC ladder structures only.");
-            }
-
-            if (!expectedSeries && !IsShuntC(structure[i]))
-            {
-                throw new InvalidOperationException("Propagation analysis supports alternating SeriesL / ShuntC ladder structures only.");
-            }
+            throw new InvalidOperationException("Propagation analysis requires at least one series element to form a spatial cell.");
         }
     }
 
@@ -357,23 +368,62 @@ public static class PropagationAnalysis
     private static bool IsSeriesL(RfElement element) =>
         element.Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsSeriesC(RfElement element) =>
+        element.Type.Equals("SeriesC", StringComparison.OrdinalIgnoreCase);
+
     private static bool IsShuntC(RfElement element) =>
         element.Type.Equals("ShuntC", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsSeriesElement(RfElement element) =>
+        element.Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
+        || element.Type.Equals("SeriesC", StringComparison.OrdinalIgnoreCase)
+        || element.Type.Equals("SeriesR", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsShuntElement(RfElement element) =>
+        element.Type.Equals("ShuntC", StringComparison.OrdinalIgnoreCase)
+        || element.Type.Equals("ShuntL", StringComparison.OrdinalIgnoreCase)
+        || element.Type.Equals("ShuntR", StringComparison.OrdinalIgnoreCase);
+
     private static AbcdMatrix SectionMatrix(RfElement element, double omega)
     {
-        if (IsSeriesL(element))
+        if (IsSeriesElement(element))
         {
-            return AbcdMatrix.SeriesImpedance(Complex.ImaginaryOne * omega * element.Value);
+            return AbcdMatrix.SeriesImpedance(SeriesImpedance(element, omega));
         }
 
-        if (IsShuntC(element))
+        if (IsShuntElement(element))
         {
-            return AbcdMatrix.ShuntAdmittance(Complex.ImaginaryOne * omega * element.Value);
+            return AbcdMatrix.ShuntAdmittance(ShuntAdmittance(element, omega));
         }
 
         throw new InvalidOperationException($"Unsupported element type: {element.Type}");
     }
+
+    private static Complex SeriesImpedance(RfElement element, double omega) =>
+        element.Type.Trim().ToLowerInvariant() switch
+        {
+            "seriesl" => Complex.ImaginaryOne * omega * element.Value,
+            "seriesc" => -Complex.ImaginaryOne / Math.Max(omega * element.Value, 1e-30),
+            "seriesr" => new Complex(element.Value, 0),
+            _ => throw new InvalidOperationException($"Unsupported series element type: {element.Type}")
+        };
+
+    private static Complex ShuntAdmittance(RfElement element, double omega) =>
+        element.Type.Trim().ToLowerInvariant() switch
+        {
+            "shuntc" => Complex.ImaginaryOne * omega * element.Value,
+            "shuntl" => -Complex.ImaginaryOne / Math.Max(omega * element.Value, 1e-30),
+            "shuntr" => new Complex(1.0 / Math.Max(element.Value, 1e-30), 0),
+            _ => throw new InvalidOperationException($"Unsupported shunt element type: {element.Type}")
+        };
+
+    private static double SeriesStoredEnergy(RfElement element, Complex current, Complex voltageDrop) =>
+        element.Type.Trim().ToLowerInvariant() switch
+        {
+            "seriesl" => 0.5 * element.Value * current.Magnitude * current.Magnitude,
+            "seriesc" => 0.5 * element.Value * voltageDrop.Magnitude * voltageDrop.Magnitude,
+            _ => 0
+        };
 
     private readonly record struct AbcdMatrix(Complex A, Complex B, Complex C, Complex D)
     {

@@ -27,6 +27,8 @@ CLI optimizer output files such as `grown_medium.json` contain a raw LC structur
 
 The desktop GUI also provides a `Manual RF Tuning` tab for human-guided adjustment. It includes an ordered element editor with lock controls, logarithmic slider and numeric value input, LC-cell add/remove/duplicate actions, insert/reset operations, baseline comparison and revert, live target-frequency metrics, and live S-parameter and propagation plots. The S-parameter engine accepts `SeriesL`, `ShuntC`, `SeriesC`, `ShuntL`, `SeriesR`, and `ShuntR`; spatial slow-wave plots remain limited to alternating LC ladders.
 
+The desktop `Small Antenna Mode` tab is `Propagation Analysis` with a custom complex output load. It uses the currently loaded LC structure exactly as shown, replaces the normal 50-ohm output termination with `Zant = Rrad + Rloss + jXant`, then runs the same loaded propagation solver and plots node voltage, node phase, local phase shift, slow-wave factor, and stored energy. Power values such as `Zin`, `Gamma`, reflected power, antenna voltage/current, delivered power, radiated power, and loss power are calculated after the propagation result is obtained. Use `Optimize Terminal Coupling Only` to tune only the selected terminal scope by default instead of reshaping the entire medium.
+
 Note: spacing affects spatial interpretation only; it does not change circuit S-parameters.
 
 ## Batch Optimization

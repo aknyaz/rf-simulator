@@ -429,7 +429,11 @@ public static class SmallAntennaMode
             var section = element.Type.Trim().ToLowerInvariant() switch
             {
                 "seriesl" => AbcdMatrix.SeriesImpedance(Complex.ImaginaryOne * omega * element.Value),
+                "seriesc" => AbcdMatrix.SeriesImpedance(-Complex.ImaginaryOne / Math.Max(omega * element.Value, 1e-30)),
+                "seriesr" => AbcdMatrix.SeriesImpedance(new Complex(Math.Max(element.Value, 0.0), 0.0)),
                 "shuntc" => AbcdMatrix.ShuntAdmittance(Complex.ImaginaryOne * omega * element.Value),
+                "shuntl" => AbcdMatrix.ShuntAdmittance(-Complex.ImaginaryOne / Math.Max(omega * element.Value, 1e-30)),
+                "shuntr" => AbcdMatrix.ShuntAdmittance(new Complex(1.0 / Math.Max(element.Value, 1e-30), 0.0)),
                 _ => throw new InvalidOperationException($"Unsupported element type: {element.Type}")
             };
 

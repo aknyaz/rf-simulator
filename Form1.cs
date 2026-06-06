@@ -481,36 +481,7 @@ public partial class Form1 : Form
 
     private Control BuildSmallAntennaModePanel()
     {
-        var root = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 3
-        };
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 135));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        root.Controls.Add(BuildSmallAntennaControlsPanel(), 0, 0);
-
-        _antennaSummaryText.ReadOnly = true;
-        _antennaSummaryText.Multiline = true;
-        _antennaSummaryText.ScrollBars = ScrollBars.Vertical;
-        _antennaSummaryText.Dock = DockStyle.Fill;
-        _antennaSummaryText.Font = new Font("Consolas", 9);
-        _antennaSummaryText.BackColor = SystemColors.Window;
-        root.Controls.Add(_antennaSummaryText, 0, 1);
-
-        var tabs = new TabControl { Dock = DockStyle.Fill };
-        var sweepTab = new TabPage("Antenna Sweep");
-        sweepTab.Controls.Add(BuildSmallAntennaSweepPlots());
-        var compressionTab = new TabPage("Compression View");
-        compressionTab.Controls.Add(BuildSmallAntennaCompressionPlots());
-        tabs.TabPages.Add(sweepTab);
-        tabs.TabPages.Add(compressionTab);
-        root.Controls.Add(tabs, 0, 2);
-
-        return root;
+        return BuildSingleFrequencySmallAntennaPanel();
     }
 
     private Control BuildSmallAntennaControlsPanel()
@@ -1099,6 +1070,9 @@ public partial class Form1 : Form
 
     private void UpdateSmallAntennaMode()
     {
+        UpdateSingleFrequencySmallAntennaMode();
+        return;
+#pragma warning disable CS0162
         try
         {
             var structure = SimulationEngine.ParseStructureAllowEmpty(_structureInput.Text);
@@ -1174,6 +1148,7 @@ public partial class Form1 : Form
             _antennaSummaryText.Text = ex.Message;
             ClearSmallAntennaPlots();
         }
+#pragma warning restore CS0162
     }
 
     private void OptimizeSmallAntennaMode(SmallAntennaObjectiveMode objectiveMode)
