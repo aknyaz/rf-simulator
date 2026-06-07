@@ -48,6 +48,11 @@ public partial class Form1
     private readonly CheckBox _singleAntennaExploreRobustnessInput = new();
     private readonly Button _singleAntennaExportTopResultsButton = new();
     private readonly PlotView _singleAntennaPowerFlowPlot = new();
+    private readonly PlotView _singleAntennaCurrentAmplitudePlot = new();
+    private readonly PlotView _singleAntennaCurrentPhasePlot = new();
+    private readonly PlotView _singleAntennaFarFieldPlot = new();
+    private readonly PlotView _singleAntennaRadiationContributionPlot = new();
+    private readonly TextBox _singleAntennaRadiationSummaryText = new();
     private readonly ToolTip _singleAntennaToolTip = new();
 
     private SingleFrequencyAntennaResult? _lastSingleAntennaResult;
@@ -99,9 +104,53 @@ public partial class Form1
         plots.Controls.Add(_antennaSlowWaveFactorPlot, 1, 1);
         plots.Controls.Add(_antennaStoredEnergyPlot, 0, 2);
         plots.Controls.Add(_singleAntennaPowerFlowPlot, 1, 2);
-        root.Controls.Add(plots, 0, 2);
 
+        root.Controls.Add(plots, 0, 2);
         return root;
+    }
+
+    private Control BuildSingleAntennaRadiationPanel()
+    {
+        var radiationRoot = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        radiationRoot.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
+        radiationRoot.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        _singleAntennaRadiationSummaryText.ReadOnly = true;
+        _singleAntennaRadiationSummaryText.Multiline = true;
+        _singleAntennaRadiationSummaryText.ScrollBars = ScrollBars.Vertical;
+        _singleAntennaRadiationSummaryText.Dock = DockStyle.Fill;
+        _singleAntennaRadiationSummaryText.Font = new Font("Consolas", 9);
+        _singleAntennaRadiationSummaryText.BackColor = SystemColors.Window;
+        _singleAntennaRadiationSummaryText.Text = "Run antenna analysis to populate distributed radiation diagnostics.";
+        ConfigurePlotView(_singleAntennaCurrentAmplitudePlot);
+        ConfigurePlotView(_singleAntennaCurrentPhasePlot);
+        ConfigurePlotView(_singleAntennaFarFieldPlot);
+        ConfigurePlotView(_singleAntennaRadiationContributionPlot);
+
+        var radiationPlots = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
+        };
+        radiationPlots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        radiationPlots.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        radiationPlots.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        radiationPlots.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        radiationPlots.Controls.Add(_singleAntennaCurrentAmplitudePlot, 0, 0);
+        radiationPlots.Controls.Add(_singleAntennaCurrentPhasePlot, 1, 0);
+        radiationPlots.Controls.Add(_singleAntennaFarFieldPlot, 0, 1);
+        radiationPlots.Controls.Add(_singleAntennaRadiationContributionPlot, 1, 1);
+
+        radiationRoot.Controls.Add(_singleAntennaRadiationSummaryText, 0, 0);
+        radiationRoot.Controls.Add(radiationPlots, 0, 1);
+        return radiationRoot;
     }
 
     private Control BuildSingleAntennaControlsPanel()
@@ -310,6 +359,11 @@ public partial class Form1
             _antennaSlowWaveFactorPlot.Model = BuildSingleAntennaUnavailablePlot(ex.Message);
             _antennaStoredEnergyPlot.Model = BuildSingleAntennaUnavailablePlot(ex.Message);
             _singleAntennaPowerFlowPlot.Model = null;
+            _singleAntennaCurrentAmplitudePlot.Model = BuildSingleAntennaUnavailablePlot(ex.Message);
+            _singleAntennaCurrentPhasePlot.Model = BuildSingleAntennaUnavailablePlot(ex.Message);
+            _singleAntennaFarFieldPlot.Model = BuildSingleAntennaUnavailablePlot(ex.Message);
+            _singleAntennaRadiationContributionPlot.Model = BuildSingleAntennaUnavailablePlot(ex.Message);
+            _singleAntennaRadiationSummaryText.Text = ex.Message;
         }
     }
 
@@ -405,6 +459,11 @@ public partial class Form1
         var electricalLengthWithMediumDeg = double.IsFinite(lambdaEff) && lambdaEff > 0
             ? 360.0 * lengthMeters / lambdaEff
             : thetaDeg;
+        var distributedRadiation = AnalyzeDistributedRadiation(
+            scaledPropagation,
+            frequencyHz,
+            spacingMeters,
+            acceptedPowerRatio * availablePower);
 
         return new SingleFrequencyAntennaResult
         {
@@ -440,6 +499,7 @@ public partial class Form1
             EquivalentFreeSpaceElectricalLengthDeg = electricalLengthWithMediumDeg,
             Propagation = scaledPropagation,
             PropagationWarning = propagationWarning,
+            DistributedRadiation = distributedRadiation,
             Structure = structure.ToList()
         };
     }
@@ -563,6 +623,11 @@ public partial class Form1
             _antennaStoredEnergyPlot.Model = BuildSingleAntennaUnavailablePlot(result.PropagationWarning);
         }
         _singleAntennaPowerFlowPlot.Model = BuildSingleAntennaPowerFlowModel(result);
+        _singleAntennaCurrentAmplitudePlot.Model = BuildCurrentAmplitudeModel(result.DistributedRadiation);
+        _singleAntennaCurrentPhasePlot.Model = BuildCurrentPhaseModel(result.DistributedRadiation);
+        _singleAntennaFarFieldPlot.Model = BuildFarFieldPatternModel(result.DistributedRadiation);
+        _singleAntennaRadiationContributionPlot.Model = BuildRadiationContributionModel(result.DistributedRadiation);
+        _singleAntennaRadiationSummaryText.Text = FormatDistributedRadiationSummary(result);
     }
 
     private static PlotModel BuildSingleAntennaUnavailablePlot(string reason) =>
@@ -616,12 +681,50 @@ public partial class Form1
         sb.AppendLine($"Effective antenna length through medium: {result.PhysicalAntennaLengthMeters / Math.Max(result.EffectiveWavelengthMeters, 1e-30):F6} lambda_eff");
         sb.AppendLine($"Equivalent free-space electrical length: {result.EquivalentFreeSpaceElectricalLengthDeg:F3} deg");
         sb.AppendLine();
+        sb.AppendLine("Distributed radiation diagnostic:");
+        sb.AppendLine($"Radiation coherence score: {result.DistributedRadiation.CoherenceScore:F3}");
+        sb.AppendLine($"Radiation proxy power: {result.DistributedRadiation.RadiationProxyPowerWatts:E3} W");
+        sb.AppendLine($"Radiation proxy efficiency: {result.DistributedRadiation.RadiationProxyEfficiency * 100.0:F3} %");
+        sb.AppendLine($"Best radiation angle: {result.DistributedRadiation.BestRadiationAngleDeg:F1} deg");
+        sb.AppendLine($"Main-lobe width: {result.DistributedRadiation.MainLobeWidthDeg:F1} deg");
+        sb.AppendLine($"Current phase span: {result.DistributedRadiation.CurrentPhaseSpanDeg:F2} deg");
+        sb.AppendLine($"Current phase monotonicity: {result.DistributedRadiation.CurrentPhaseMonotonicity:F3}");
+        sb.AppendLine($"Current amplitude entropy: {result.DistributedRadiation.CurrentAmplitudeEntropy:F3}");
+        sb.AppendLine("Comparison modes:");
+        sb.AppendLine($"A) Terminal lumped antenna load only: Rrad={result.RadiationResistanceOhms:F4} ohm, terminal radiated power ratio={result.RadiatedPowerRatio:F6}.");
+        sb.AppendLine($"B) LC ladder + terminal load: accepted power ratio={result.AcceptedPowerRatio:F6}, LC phase={result.TotalPhaseDeg:F2} deg, average SWF={result.AverageSlowWaveFactor:F3}.");
+        sb.AppendLine($"C) LC ladder distributed radiation proxy: coherence={result.DistributedRadiation.CoherenceScore:F3}, proxy efficiency={result.DistributedRadiation.RadiationProxyEfficiency * 100.0:F3} %.");
+        sb.AppendLine("Note: This is an approximate first-order radiation diagnostic, not a full electromagnetic solver.");
+        sb.AppendLine("Good S11 and high slow-wave factor do not guarantee efficient radiation; these metrics estimate whether distributed currents can add coherently into free space.");
+        sb.AppendLine();
         sb.AppendLine(FormatSingleAntennaDiagnostic(result));
         if (!string.IsNullOrWhiteSpace(result.PropagationWarning))
         {
             sb.AppendLine();
             sb.AppendLine(result.PropagationWarning);
         }
+        return sb.ToString();
+    }
+
+    private static string FormatDistributedRadiationSummary(SingleFrequencyAntennaResult result)
+    {
+        var radiation = result.DistributedRadiation;
+        var sb = new StringBuilder();
+        sb.AppendLine("Approximate distributed radiation diagnostic");
+        sb.AppendLine("E(theta) = sum(I[i] * dx * exp(j * k0 * x[i] * cos(theta)))");
+        sb.AppendLine("Prad_proxy[i] = 0.5 * |I[i]|^2 * Rrad_segment[i]");
+        sb.AppendLine();
+        sb.AppendLine($"Segments: {radiation.Segments.Count}");
+        sb.AppendLine($"Radiation coherence score: {radiation.CoherenceScore:F4}");
+        sb.AppendLine($"Radiation proxy power: {radiation.RadiationProxyPowerWatts:E6} W");
+        sb.AppendLine($"Radiation proxy efficiency: {radiation.RadiationProxyEfficiency * 100.0:F6} % of accepted input power");
+        sb.AppendLine($"Best radiation angle: {radiation.BestRadiationAngleDeg:F1} deg");
+        sb.AppendLine($"Main lobe width (-3 dB): {radiation.MainLobeWidthDeg:F1} deg");
+        sb.AppendLine($"Current phase span: {radiation.CurrentPhaseSpanDeg:F2} deg");
+        sb.AppendLine($"Current phase monotonicity: {radiation.CurrentPhaseMonotonicity:F4}");
+        sb.AppendLine($"Radiation/current distribution entropy: {radiation.CurrentAmplitudeEntropy:F4}");
+        sb.AppendLine($"Accepted power: {result.AcceptedPowerRatio * result.AvailablePowerWatts:E6} W");
+        sb.AppendLine("Limit: first-order current-element proxy, not a full EM/gain solver.");
         return sb.ToString();
     }
 
@@ -969,6 +1072,230 @@ public partial class Form1
         return model;
     }
 
+    private static DistributedRadiationResult AnalyzeDistributedRadiation(
+        PropagationResult propagation,
+        double frequencyHz,
+        double segmentLengthMeters,
+        double acceptedPowerWatts)
+    {
+        var lambda0 = SpeedOfLightMetersPerSecond / frequencyHz;
+        var k0 = 2.0 * Math.PI / lambda0;
+        var currents = propagation.Cells.Select(cell => cell.InductorCurrent).ToList();
+        var phases = RfMath.UnwrapPhase(currents.Select(current => Math.Atan2(current.Imaginary, current.Real)).ToList());
+        var segments = new List<DistributedRadiationSegment>(currents.Count);
+        var segmentRadiationResistance = 80.0 * Math.PI * Math.PI * Math.Pow(segmentLengthMeters / lambda0, 2);
+        var radiationProxyPower = 0.0;
+        for (var index = 0; index < currents.Count; index++)
+        {
+            var position = (index + 0.5) * segmentLengthMeters;
+            var currentMagnitude = currents[index].Magnitude;
+            var proxyPower = 0.5 * currentMagnitude * currentMagnitude * segmentRadiationResistance;
+            radiationProxyPower += proxyPower;
+            segments.Add(new DistributedRadiationSegment(
+                index,
+                position,
+                currentMagnitude,
+                phases[index] * 180.0 / Math.PI,
+                segmentRadiationResistance,
+                proxyPower));
+        }
+
+        var pattern = new List<FarFieldSample>();
+        var coherentDenominator = currents.Sum(current => current.Magnitude * segmentLengthMeters);
+        var maxField = 0.0;
+        var bestAngle = 0.0;
+        for (var thetaDeg = 0; thetaDeg <= 180; thetaDeg++)
+        {
+            var thetaRad = thetaDeg * Math.PI / 180.0;
+            var sum = Complex.Zero;
+            for (var index = 0; index < currents.Count; index++)
+            {
+                var position = (index + 0.5) * segmentLengthMeters;
+                var phasePosition = k0 * position * Math.Cos(thetaRad);
+                sum += currents[index] * segmentLengthMeters * Complex.Exp(Complex.ImaginaryOne * phasePosition);
+            }
+
+            var magnitude = sum.Magnitude;
+            if (magnitude > maxField)
+            {
+                maxField = magnitude;
+                bestAngle = thetaDeg;
+            }
+            pattern.Add(new FarFieldSample(thetaDeg, magnitude, 0));
+        }
+
+        var normalizedPattern = pattern
+            .Select(sample => sample with
+            {
+                NormalizedMagnitude = maxField > 0 ? sample.Magnitude / maxField : 0
+            })
+            .ToList();
+        var mainLobeWidth = CalculateMainLobeWidth(normalizedPattern);
+        var currentPowers = currents.Select(current => current.Magnitude * current.Magnitude).ToList();
+        var phaseSpan = phases.Count >= 2 ? (phases[^1] - phases[0]) * 180.0 / Math.PI : 0;
+        return new DistributedRadiationResult
+        {
+            Segments = segments,
+            Pattern = normalizedPattern,
+            CoherenceScore = coherentDenominator > 0 ? Clamp01(maxField / coherentDenominator) : 0,
+            RadiationProxyPowerWatts = radiationProxyPower,
+            RadiationProxyEfficiency = acceptedPowerWatts > 0 ? Math.Max(0, radiationProxyPower / acceptedPowerWatts) : 0,
+            BestRadiationAngleDeg = bestAngle,
+            MainLobeWidthDeg = mainLobeWidth,
+            CurrentPhaseSpanDeg = phaseSpan,
+            CurrentPhaseMonotonicity = CalculateMonotonicityFraction(phases),
+            CurrentAmplitudeEntropy = CalculateNormalizedEntropy(currentPowers)
+        };
+    }
+
+    private static double CalculateMainLobeWidth(IReadOnlyList<FarFieldSample> pattern)
+    {
+        if (pattern.Count == 0)
+        {
+            return 0;
+        }
+
+        var peakIndex = 0;
+        var peak = double.NegativeInfinity;
+        for (var index = 0; index < pattern.Count; index++)
+        {
+            if (pattern[index].NormalizedMagnitude > peak)
+            {
+                peak = pattern[index].NormalizedMagnitude;
+                peakIndex = index;
+            }
+        }
+
+        var threshold = 1.0 / Math.Sqrt(2.0);
+        var left = peakIndex;
+        while (left > 0 && pattern[left - 1].NormalizedMagnitude >= threshold)
+        {
+            left--;
+        }
+
+        var right = peakIndex;
+        while (right < pattern.Count - 1 && pattern[right + 1].NormalizedMagnitude >= threshold)
+        {
+            right++;
+        }
+
+        return Math.Max(0, pattern[right].ThetaDeg - pattern[left].ThetaDeg);
+    }
+
+    private static PlotModel BuildCurrentAmplitudeModel(DistributedRadiationResult radiation)
+    {
+        var model = BuildRadiationPlotBase("Current Distribution: |I[i]|", "Cell", "|I| RMS (A)");
+        var series = new LineSeries
+        {
+            Color = OxyColors.SteelBlue,
+            MarkerType = MarkerType.Circle,
+            MarkerSize = 3
+        };
+        foreach (var segment in radiation.Segments)
+        {
+            series.Points.Add(new DataPoint(segment.Index, segment.CurrentMagnitudeAmps));
+        }
+        model.Series.Add(series);
+        SetPositiveAxisRange(model, radiation.Segments.Select(segment => segment.CurrentMagnitudeAmps));
+        return model;
+    }
+
+    private static PlotModel BuildCurrentPhaseModel(DistributedRadiationResult radiation)
+    {
+        var model = BuildRadiationPlotBase("Current Distribution: phase(I[i])", "Cell", "Unwrapped phase (deg)");
+        var series = new LineSeries
+        {
+            Color = OxyColors.DarkCyan,
+            MarkerType = MarkerType.Circle,
+            MarkerSize = 3
+        };
+        foreach (var segment in radiation.Segments)
+        {
+            series.Points.Add(new DataPoint(segment.Index, segment.CurrentPhaseDeg));
+        }
+        model.Series.Add(series);
+        SetAxisRange(model, radiation.Segments.Select(segment => segment.CurrentPhaseDeg));
+        return model;
+    }
+
+    private static PlotModel BuildFarFieldPatternModel(DistributedRadiationResult radiation)
+    {
+        var model = BuildRadiationPlotBase("Approximate Far-Field: normalized |E(theta)|", "Theta (deg)", "Normalized |E|");
+        model.Subtitle = $"Best angle {radiation.BestRadiationAngleDeg:F1} deg, width {radiation.MainLobeWidthDeg:F1} deg, coherence {radiation.CoherenceScore:F3}";
+        model.Axes[1].Minimum = 0;
+        model.Axes[1].Maximum = 1.05;
+        var series = new LineSeries
+        {
+            Color = OxyColors.Firebrick,
+            StrokeThickness = 2
+        };
+        foreach (var sample in radiation.Pattern)
+        {
+            series.Points.Add(new DataPoint(sample.ThetaDeg, sample.NormalizedMagnitude));
+        }
+        model.Series.Add(series);
+        return model;
+    }
+
+    private static PlotModel BuildRadiationContributionModel(DistributedRadiationResult radiation)
+    {
+        var model = BuildRadiationPlotBase("Radiation Contribution: 0.5 * |I[i]|^2 * Rrad_segment[i]", "Cell", "Proxy power (W)");
+        model.Subtitle = $"Total proxy {radiation.RadiationProxyPowerWatts:E3} W, efficiency {radiation.RadiationProxyEfficiency * 100.0:F4} %";
+        var series = new StemSeries
+        {
+            Color = OxyColors.DarkGreen,
+            MarkerType = MarkerType.Circle,
+            MarkerSize = 3
+        };
+        foreach (var segment in radiation.Segments)
+        {
+            series.Points.Add(new DataPoint(segment.Index, segment.RadiationProxyPowerWatts));
+        }
+        model.Series.Add(series);
+        SetPositiveAxisRange(model, radiation.Segments.Select(segment => segment.RadiationProxyPowerWatts));
+        return model;
+    }
+
+    private static PlotModel BuildRadiationPlotBase(string title, string xTitle, string yTitle)
+    {
+        var model = new PlotModel { Title = title, PlotAreaBorderColor = OxyColors.Gray };
+        model.Axes.Add(new LinearAxis { Position = AxisPosition.Bottom, Title = xTitle });
+        model.Axes.Add(new LinearAxis { Position = AxisPosition.Left, Title = yTitle });
+        return model;
+    }
+
+    private static void SetPositiveAxisRange(PlotModel model, IEnumerable<double> values)
+    {
+        var finite = values.Where(value => double.IsFinite(value) && value > 0).ToList();
+        if (finite.Count == 0)
+        {
+            model.Axes[1].Minimum = 0;
+            model.Axes[1].Maximum = 1;
+            return;
+        }
+
+        var max = finite.Max();
+        model.Axes[1].Minimum = 0;
+        model.Axes[1].Maximum = max * 1.15;
+    }
+
+    private static void SetAxisRange(PlotModel model, IEnumerable<double> values)
+    {
+        var finite = values.Where(double.IsFinite).ToList();
+        if (finite.Count == 0)
+        {
+            model.Axes[1].Minimum = -1;
+            model.Axes[1].Maximum = 1;
+            return;
+        }
+
+        var min = finite.Min();
+        var max = finite.Max();
+        var padding = Math.Max((max - min) * 0.1, 1.0);
+        model.Axes[1].Minimum = min - padding;
+        model.Axes[1].Maximum = max + padding;
+    }
+
     private void ExploreSingleAntennaPropagationRegimes()
     {
         try
@@ -1311,19 +1638,30 @@ public partial class Form1
             : 0;
         var entropy = Clamp01(diagnostics.EnergyEntropy);
         var phaseNorm = Clamp01(Math.Abs(result.TotalPhaseDeg) / 360.0);
+        var radiation = result.DistributedRadiation;
+        var radiationProxyEfficiency = Clamp01(radiation.RadiationProxyEfficiency);
+        var radiationCoherence = Clamp01(radiation.CoherenceScore);
+        var currentEntropy = Clamp01(radiation.CurrentAmplitudeEntropy);
+        var currentPhaseMonotonicity = Clamp01(radiation.CurrentPhaseMonotonicity);
         var swfLocalizationPenalty = diagnostics.SwfPeakWidthCells < 2
             ? 1.0
             : Clamp01(0.25 - swfWidth);
         var energyLocalizationPenalty = Clamp01((diagnostics.MaxEnergyFraction - 0.25) / 0.35);
+        var radiationCancellationPenalty = Clamp01(0.25 - radiationCoherence);
 
         return 2.0 * accepted
                + 1.5 * localPhaseSmoothness
                + 1.5 * swfWidth
                + entropy
                + phaseNorm
+               + 1.2 * radiationCoherence
+               + 0.8 * currentEntropy
+               + 0.8 * currentPhaseMonotonicity
+               + 0.5 * radiationProxyEfficiency
                - 2.0 * reflected
                - 2.0 * swfLocalizationPenalty
-               - 2.0 * energyLocalizationPenalty;
+               - 2.0 * energyLocalizationPenalty
+               - 1.5 * radiationCancellationPenalty;
     }
 
     private static string GetExplorationRejectionReason(
@@ -1445,8 +1783,8 @@ public partial class Form1
         IReadOnlyList<SingleAntennaExplorationCase> cases,
         IReadOnlyDictionary<SingleAntennaExplorationCase, string> exportedFiles)
     {
-        sb.AppendLine("Rank  Score   F MHz    Zant ohm             Accepted  SWF width  Verdict  File/Reason");
-        sb.AppendLine("----  ------  -------  -------------------  --------  ---------  -------  ------------------------------");
+        sb.AppendLine("Rank  Score   F MHz    Zant ohm             Accepted  SWF width  Rad coh  Rad eff   Verdict  File/Reason");
+        sb.AppendLine("----  ------  -------  -------------------  --------  ---------  -------  --------  -------  ------------------------------");
         for (var index = 0; index < cases.Count; index++)
         {
             var item = cases[index];
@@ -1455,7 +1793,7 @@ public partial class Form1
                 : item.RejectionReason;
             sb.AppendLine(string.Format(
                 CultureInfo.InvariantCulture,
-                "{0,4}  {1,6:F3}  {2,7:F3}  {3,-19}  {4,8:P1}  {5,3}/{6,-3}    {7,-7}  {8}",
+                "{0,4}  {1,6:F3}  {2,7:F3}  {3,-19}  {4,8:P1}  {5,3}/{6,-3}    {7,7:F3}  {8,8:P3}  {9,-7}  {10}",
                 index + 1,
                 item.Score,
                 item.Result.FrequencyHz / 1e6,
@@ -1463,6 +1801,8 @@ public partial class Form1
                 item.Result.AcceptedPowerRatio,
                 item.Diagnostics.SwfPeakWidthCells,
                 item.Diagnostics.SwfTotalCells,
+                item.Result.DistributedRadiation.CoherenceScore,
+                item.Result.DistributedRadiation.RadiationProxyEfficiency,
                 item.Diagnostics.Verdict,
                 fileOrReason));
         }
@@ -1485,6 +1825,14 @@ public partial class Form1
             "swf_peak_width_cells",
             "local_phase_smoothness_ratio",
             "energy_entropy",
+            "radiation_coherence_score",
+            "radiation_proxy_power",
+            "radiation_proxy_efficiency",
+            "best_radiation_angle_deg",
+            "far_field_main_lobe_width_deg",
+            "current_phase_span_deg",
+            "current_phase_monotonicity",
+            "current_amplitude_entropy",
             "verdict",
             "filename"));
         for (var index = 0; index < cases.Count; index++)
@@ -1503,6 +1851,14 @@ public partial class Form1
                 Csv(item.Diagnostics.SwfPeakWidthCells),
                 Csv(item.Diagnostics.LocalPhaseSmoothnessRatio),
                 Csv(item.Diagnostics.EnergyEntropy),
+                Csv(item.Result.DistributedRadiation.CoherenceScore),
+                Csv(item.Result.DistributedRadiation.RadiationProxyPowerWatts),
+                Csv(item.Result.DistributedRadiation.RadiationProxyEfficiency),
+                Csv(item.Result.DistributedRadiation.BestRadiationAngleDeg),
+                Csv(item.Result.DistributedRadiation.MainLobeWidthDeg),
+                Csv(item.Result.DistributedRadiation.CurrentPhaseSpanDeg),
+                Csv(item.Result.DistributedRadiation.CurrentPhaseMonotonicity),
+                Csv(item.Result.DistributedRadiation.CurrentAmplitudeEntropy),
                 Csv(item.Diagnostics.Verdict),
                 Csv(fileName ?? string.Empty)));
         }
@@ -1911,6 +2267,33 @@ public partial class Form1
         public List<string> HeuristicMetrics { get; set; } = new();
     }
 
+    private sealed class DistributedRadiationResult
+    {
+        public List<DistributedRadiationSegment> Segments { get; set; } = new();
+        public List<FarFieldSample> Pattern { get; set; } = new();
+        public double CoherenceScore { get; set; }
+        public double RadiationProxyPowerWatts { get; set; }
+        public double RadiationProxyEfficiency { get; set; }
+        public double BestRadiationAngleDeg { get; set; }
+        public double MainLobeWidthDeg { get; set; }
+        public double CurrentPhaseSpanDeg { get; set; }
+        public double CurrentPhaseMonotonicity { get; set; }
+        public double CurrentAmplitudeEntropy { get; set; }
+    }
+
+    private sealed record DistributedRadiationSegment(
+        int Index,
+        double PositionMeters,
+        double CurrentMagnitudeAmps,
+        double CurrentPhaseDeg,
+        double SegmentRadiationResistanceOhms,
+        double RadiationProxyPowerWatts);
+
+    private sealed record FarFieldSample(
+        double ThetaDeg,
+        double Magnitude,
+        double NormalizedMagnitude);
+
     private sealed class SingleFrequencyAntennaResult
     {
         public double FrequencyHz { get; set; }
@@ -1945,6 +2328,7 @@ public partial class Form1
         public double EquivalentFreeSpaceElectricalLengthDeg { get; set; }
         public PropagationResult? Propagation { get; set; }
         public string PropagationWarning { get; set; } = string.Empty;
+        public DistributedRadiationResult DistributedRadiation { get; set; } = new();
         public List<RfElement> Structure { get; set; } = new();
     }
 
@@ -2013,6 +2397,7 @@ public partial class Form1
         public double LambdaEffM { get; set; }
         public double CompressionRatio { get; set; }
         public double AverageSwf { get; set; }
+        public DistributedRadiationExport DistributedRadiation { get; set; } = new();
         public SingleFrequencyAntennaExportDiagnostics Diagnostics { get; set; } = new();
         public List<RfElement> Structure { get; set; } = new();
 
@@ -2049,8 +2434,39 @@ public partial class Form1
                 LambdaEffM = result.EffectiveWavelengthMeters,
                 CompressionRatio = result.CompressionRatio,
                 AverageSwf = result.AverageSlowWaveFactor,
+                DistributedRadiation = DistributedRadiationExport.FromResult(result.DistributedRadiation),
                 Diagnostics = SingleFrequencyAntennaExportDiagnostics.FromDiagnostics(diagnostics),
                 Structure = result.Structure
+            };
+    }
+
+    private sealed class DistributedRadiationExport
+    {
+        public double RadiationCoherenceScore { get; set; }
+        public double RadiationProxyPower { get; set; }
+        public double RadiationProxyEfficiency { get; set; }
+        public double BestRadiationAngleDeg { get; set; }
+        public double FarFieldMainLobeWidthDeg { get; set; }
+        public double CurrentPhaseSpanDeg { get; set; }
+        public double CurrentPhaseMonotonicity { get; set; }
+        public double CurrentAmplitudeEntropy { get; set; }
+        public string Limitation { get; set; } = "Approximate first-order diagnostic only. Not a full electromagnetic solver; use for relative comparison, not final gain prediction.";
+        public List<DistributedRadiationSegment> Segments { get; set; } = new();
+        public List<FarFieldSample> FarFieldPattern { get; set; } = new();
+
+        public static DistributedRadiationExport FromResult(DistributedRadiationResult result) =>
+            new()
+            {
+                RadiationCoherenceScore = result.CoherenceScore,
+                RadiationProxyPower = result.RadiationProxyPowerWatts,
+                RadiationProxyEfficiency = result.RadiationProxyEfficiency,
+                BestRadiationAngleDeg = result.BestRadiationAngleDeg,
+                FarFieldMainLobeWidthDeg = result.MainLobeWidthDeg,
+                CurrentPhaseSpanDeg = result.CurrentPhaseSpanDeg,
+                CurrentPhaseMonotonicity = result.CurrentPhaseMonotonicity,
+                CurrentAmplitudeEntropy = result.CurrentAmplitudeEntropy,
+                Segments = result.Segments.ToList(),
+                FarFieldPattern = result.Pattern.ToList()
             };
     }
 

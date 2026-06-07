@@ -189,10 +189,14 @@ public partial class Form1 : Form
         var manualTuningTab = new TabPage("Manual RF Tuning");
         manualTuningTab.Controls.Add(BuildManualTuningPanel());
 
+        var distributedRadiationTab = new TabPage("Distributed Radiation");
+        distributedRadiationTab.Controls.Add(BuildSingleAntennaRadiationPanel());
+
         tabs.TabPages.Add(sParameterTab);
         tabs.TabPages.Add(propagationTab);
         tabs.TabPages.Add(antennaTab);
         tabs.TabPages.Add(manualTuningTab);
+        tabs.TabPages.Add(distributedRadiationTab);
         return tabs;
     }
 
