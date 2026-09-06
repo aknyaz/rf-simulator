@@ -1,5 +1,7 @@
 # RF Simulator CLI
 
+For the desktop application's shared frequency/marker workflow, candidate previews, preserved optimization objective, and numerical limitations, see [Manual tuning consistency audit](manual_tuning_consistency_audit.md). The existing `--run-tests` command also runs the focused workflow and numerical checks described there.
+
 Run from the repository root:
 
 ```powershell

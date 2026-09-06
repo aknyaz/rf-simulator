@@ -33,6 +33,8 @@ public class OptimizerEngine
         public double PhaseObjectiveWeight { get; set; } = 1;
         public double GroupDelayObjectiveWeight { get; set; } = 1;
         public int RandomSeed { get; set; } = 12345;
+        public int[] LockedIndices { get; set; } = Array.Empty<int>();
+        public List<RfElement>? InitialStructure { get; set; }
         public int MaxDegreeOfParallelism { get; set; } = Math.Max(1, Environment.ProcessorCount - 1);
     }
 
@@ -47,6 +49,8 @@ public class OptimizerEngine
         public double AverageGroupDelayNs { get; set; }
         public double MaxGroupDelayNs { get; set; }
         public int RestartIndex { get; set; }
+        public List<string> ConstraintViolations { get; set; } = new();
+        public bool Feasible => Score < double.MaxValue && double.IsFinite(Score) && ConstraintViolations.Count == 0;
         public List<RfElement> Structure { get; set; } = new();
 
         [JsonIgnore]
@@ -220,8 +224,19 @@ public class OptimizerEngine
                 out var averageGroupDelay,
                 out var maxGroupDelay);
 
+            var violations = new List<string>();
+            if (!double.IsFinite(score) || sweep.Any(p => !double.IsFinite(p.S11.Magnitude) || !double.IsFinite(p.S21.Magnitude)))
+            {
+                violations.Add("Non-finite circuit response");
+                score = double.MaxValue;
+            }
+            if (worstS11 > config.TargetS11Db) violations.Add($"Worst S11 {worstS11:F2} dB exceeds {config.TargetS11Db:F2} dB");
+            if (worstS21 < config.MinAcceptableS21Db) violations.Add($"Worst S21 {worstS21:F2} dB is below {config.MinAcceptableS21Db:F2} dB");
+            if (config.EnablePhaseObjective && totalPhaseRotation < config.TargetPhaseRotationDeg)
+                violations.Add($"Phase rotation {totalPhaseRotation:F2} deg is below {config.TargetPhaseRotationDeg:F2} deg");
             return new CandidateResult
             {
+                ConstraintViolations = violations,
                 Score = score,
                 WorstS11Db = worstS11,
                 AverageS11Db = avgS11,
@@ -236,7 +251,7 @@ public class OptimizerEngine
         }
         catch
         {
-            return new CandidateResult { Score = double.MaxValue, Structure = CloneStructure(structure) };
+            return new CandidateResult { Score = double.MaxValue, Structure = CloneStructure(structure), ConstraintViolations = new() { "Circuit evaluation failed" } };
         }
     }
 
@@ -261,6 +276,10 @@ public class OptimizerEngine
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var originalType = current[idx].Type;
+                if (config.LockedIndices.Contains(idx)) continue;
+                // Preserve unsupported types; never treat a resistor or series capacitor as a shunt capacitor.
+                if (!originalType.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
+                    && !originalType.Equals("ShuntC", StringComparison.OrdinalIgnoreCase)) continue;
                 var candidateValues = originalType.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
                     ? AvailableInductors
                     : AvailableCapacitors;
@@ -367,6 +386,22 @@ public class OptimizerEngine
     {
         int numInductors = config.StructureLength;
         var randomStructures = GenerateRestartStructures(numInductors, config.RandomRestarts, config.RandomSeed);
+        if (config.InitialStructure is { } initial)
+        {
+            var random = new Random(config.RandomSeed);
+            randomStructures = Enumerable.Range(0, config.RandomRestarts).Select(_ =>
+            {
+                var structure = CloneStructure(initial);
+                for (var i = 0; i < structure.Count; i++)
+                {
+                    if (config.LockedIndices.Contains(i)) continue;
+                    var values = structure[i].Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase) ? AvailableInductors
+                        : structure[i].Type.Equals("ShuntC", StringComparison.OrdinalIgnoreCase) ? AvailableCapacitors : null;
+                    if (values is not null) structure[i].Value = values[random.Next(values.Length)];
+                }
+                return structure;
+            }).ToList();
+        }
         var results = new CandidateResult?[config.RandomRestarts];
         var completed = 0;
         var lastStatusTick = 0L;

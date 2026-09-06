@@ -36,7 +36,7 @@ public static class SimulationEngine
             {
                 throw new InvalidOperationException("Each element must define type.");
             }
-            if (element.Value <= 0)
+            if (!double.IsFinite(element.Value) || element.Value <= 0)
             {
                 throw new InvalidOperationException("Element values must be positive.");
             }
@@ -58,7 +58,7 @@ public static class SimulationEngine
             {
                 throw new InvalidOperationException("Each element must define type.");
             }
-            if (element.Value <= 0)
+            if (!double.IsFinite(element.Value) || element.Value <= 0)
             {
                 throw new InvalidOperationException("Element values must be positive.");
             }
@@ -84,6 +84,7 @@ public static class SimulationEngine
         double z0,
         IReadOnlyList<RfElement> structure)
     {
+        new FrequencyConfiguration(startHz / 1e6, stopHz / 1e6, points, z0).Validate();
         if (points < 2)
         {
             throw new InvalidOperationException("Sweep points must be at least 2.");

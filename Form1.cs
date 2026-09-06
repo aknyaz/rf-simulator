@@ -74,9 +74,6 @@ public partial class Form1 : Form
     private readonly PlotView _antennaStoredEnergyPlot = new();
 
     // Optimizer controls
-    private readonly NumericUpDown _optStartMHzInput = new();
-    private readonly NumericUpDown _optStopMHzInput = new();
-    private readonly NumericUpDown _optPointsInput = new();
     private readonly NumericUpDown _targetS11DbInput = new();
     private readonly NumericUpDown _minS21DbInput = new();
     private readonly NumericUpDown _targetPhaseRotationDegInput = new();
@@ -110,6 +107,7 @@ public partial class Form1 : Form
     {
         InitializeComponent();
         BuildUi();
+        InitializeSharedWorkflow();
         RunSimulation();
     }
 
@@ -157,11 +155,11 @@ public partial class Form1 : Form
         Shown += (_, _) =>
         {
             split.Panel1MinSize = Math.Min(650, Math.Max(25, split.Width / 3));
-            split.Panel2MinSize = Math.Min(520, Math.Max(25, split.Width / 4));
+            split.Panel2MinSize = Math.Min(410, Math.Max(25, split.Width / 4));
             var maxDistance = split.Width - split.Panel2MinSize - split.SplitterWidth;
             if (maxDistance > split.Panel1MinSize)
             {
-                var preferredDistance = (int)(split.Width * 0.62);
+                var preferredDistance = split.Width - 420;
                 split.SplitterDistance = Math.Min(preferredDistance, maxDistance);
             }
         };
@@ -197,6 +195,10 @@ public partial class Form1 : Form
         tabs.TabPages.Add(antennaTab);
         tabs.TabPages.Add(manualTuningTab);
         tabs.TabPages.Add(distributedRadiationTab);
+        var preview = new TabPage("Candidate Preview");
+        preview.Controls.Add(BuildCandidatePreviewPanel());
+        tabs.TabPages.Add(preview);
+        tabs.SelectedTab = manualTuningTab;
         return tabs;
     }
 
@@ -227,9 +229,9 @@ public partial class Form1 : Form
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        ConfigureNumeric(_startMHzInput, 1, 500, 5, 2, 1);
-        ConfigureNumeric(_stopMHzInput, 1, 500, 50, 2, 1);
-        ConfigureNumeric(_pointsInput, 11, 5001, 401, 0, 1);
+        ConfigureNumeric(_startMHzInput, 0.001m, 10000, 5, 3, 1);
+        ConfigureNumeric(_stopMHzInput, 0.001m, 10000, 50, 3, 1);
+        ConfigureNumeric(_pointsInput, 2, 1000000, 401, 0, 1);
         ConfigureNumeric(_z0Input, 1, 1000, 50, 1, 0.5m);
 
         _presetCombo.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -289,7 +291,7 @@ public partial class Form1 : Form
         _structureSummaryInput.BackColor = SystemColors.Window;
         _structureSummaryInput.BorderStyle = BorderStyle.FixedSingle;
 
-        panel.Controls.Add(new Label { Text = "Start MHz", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+        panel.Controls.Add(new Label { Text = "Frequency: Start MHz", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
         panel.Controls.Add(_startMHzInput, 1, 0);
         panel.Controls.Add(new Label { Text = "Stop MHz", AutoSize = true, Anchor = AnchorStyles.Left }, 2, 0);
         panel.Controls.Add(_stopMHzInput, 3, 0);
@@ -306,7 +308,7 @@ public partial class Form1 : Form
         panel.Controls.Add(_structureSummaryInput, 1, 1);
         panel.SetColumnSpan(_structureSummaryInput, 11);
 
-        panel.Controls.Add(new Label { Text = "Candidate", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 2);
+        panel.Controls.Add(new Label { Text = "Current", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 2);
         panel.Controls.Add(_statusLabel, 1, 2);
         panel.SetColumnSpan(_statusLabel, 11);
 
@@ -657,23 +659,12 @@ public partial class Form1 : Form
 
     private Control BuildOptimizerPanel()
     {
-        var panel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            Padding = new Padding(8)
-        };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 390));
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Padding = new Padding(4) };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var controlsPanel = BuildOptimizerControls();
-        var resultsPanel = BuildResultsPanel();
-
-        panel.Controls.Add(controlsPanel, 0, 0);
-        panel.Controls.Add(resultsPanel, 1, 0);
-
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 72));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 28));
+        panel.Controls.Add(BuildOptimizerControls(), 0, 0);
+        panel.Controls.Add(BuildResultsPanel(), 0, 1);
         return panel;
     }
 
@@ -706,22 +697,8 @@ public partial class Form1 : Form
             panel.Controls.Add(row);
         };
 
-        AddFieldRow("Opt. Start MHz", _optStartMHzInput);
-        _optStartMHzInput.Minimum = 1;
-        _optStartMHzInput.Maximum = 500;
-        _optStartMHzInput.Value = 5;
-
-        AddFieldRow("Opt. Stop MHz", _optStopMHzInput);
-        _optStopMHzInput.Minimum = 1;
-        _optStopMHzInput.Maximum = 500;
-        _optStopMHzInput.Value = 50;
-
-        AddFieldRow("Sweep Points", _optPointsInput);
-        _optPointsInput.Minimum = 11;
-        _optPointsInput.Maximum = 5001;
-        _optPointsInput.DecimalPlaces = 0;
-        _optPointsInput.Value = 401;
-
+        panel.Controls.Add(new Label { Text = "Performance goals — shared frequency range", AutoSize = true });
+        panel.Controls.Add(new Label { Text = "Lower reflection and transmission loss across the band.\r\nPhase goal: minimum end-to-end phase rotation.\r\nDelay: reward larger positive band-average delay once\r\nS11/S21 limits pass; does not flatten delay.", Size = new Size(360, 75) });
         AddFieldRow("Target S11 (dB)", _targetS11DbInput);
         _targetS11DbInput.Minimum = -40;
         _targetS11DbInput.Maximum = 0;
@@ -736,19 +713,19 @@ public partial class Form1 : Form
         _minS21DbInput.Increment = 0.5m;
         _minS21DbInput.Value = -3;
 
-        AddFieldRow("Target Phase (deg)", _targetPhaseRotationDegInput);
+        AddFieldRow("Min phase span (deg)", _targetPhaseRotationDegInput);
         _targetPhaseRotationDegInput.Minimum = 0;
         _targetPhaseRotationDegInput.Maximum = 3600;
         _targetPhaseRotationDegInput.DecimalPlaces = 0;
         _targetPhaseRotationDegInput.Increment = 90;
         _targetPhaseRotationDegInput.Value = 180;
 
-        _enablePhaseObjectiveInput.Text = "Enable phase objective";
+        _enablePhaseObjectiveInput.Text = "Require phase rotation";
         _enablePhaseObjectiveInput.Checked = true;
         _enablePhaseObjectiveInput.AutoSize = true;
         AddFieldRow("Phase Objective", _enablePhaseObjectiveInput);
 
-        _enableGroupDelayObjectiveInput.Text = "Enable group delay objective";
+        _enableGroupDelayObjectiveInput.Text = "Reward larger band delay";
         _enableGroupDelayObjectiveInput.Checked = true;
         _enableGroupDelayObjectiveInput.AutoSize = true;
         AddFieldRow("Group Delay", _enableGroupDelayObjectiveInput);
@@ -809,7 +786,7 @@ public partial class Form1 : Form
         panel.Controls.Add(spacer1);
 
         var buttonRow = new Panel { Size = new Size(360, 32), Margin = new Padding(0, 2, 0, 2) };
-        _applyBestButton.Text = "Apply Best";
+        _applyBestButton.Text = "Apply Candidate";
         _applyBestButton.Location = new Point(0, 0);
         _applyBestButton.Size = new Size(170, 30);
         _applyBestButton.Click += (_, _) => ApplyBestResult();
@@ -832,12 +809,13 @@ public partial class Form1 : Form
         var spacer2 = new Panel { Size = new Size(360, 4) };
         panel.Controls.Add(spacer2);
 
-        _optimizerStatusLabel.Size = new Size(360, 60);
+        _optimizerStatusLabel.Size = new Size(360, 90);
         _optimizerStatusLabel.AutoSize = false;
         _optimizerStatusLabel.Text = "Ready";
         _optimizerStatusLabel.BorderStyle = BorderStyle.FixedSingle;
         panel.Controls.Add(_optimizerStatusLabel);
 
+        ConfigureOptimizerAdvanced(panel);
         return panel;
     }
 
@@ -875,7 +853,7 @@ public partial class Form1 : Form
         _resultsGrid.Columns.Add("WorstS21dB", "Worst S21 (dB)");
         _resultsGrid.Columns.Add("RippleDb", "Ripple (dB)");
         _resultsGrid.Columns.Add("PhaseDeg", "Phase (deg)");
-        _resultsGrid.Columns.Add("AvgDelayNs", "Avg GD (ns)");
+        _resultsGrid.Columns.Add("AvgDelayNs", "Band avg +GD (ns)");
         _resultsGrid.Columns.Add("Structure", "Structure");
 
         foreach (DataGridViewColumn col in _resultsGrid.Columns)
@@ -888,7 +866,7 @@ public partial class Form1 : Form
 
         var statusPanel = new Label
         {
-            Text = "Select a candidate to view its plots",
+            Text = "Select to preview. Apply Candidate changes the current circuit.",
             Dock = DockStyle.Bottom,
             Height = 30,
             TextAlign = ContentAlignment.MiddleLeft,
@@ -952,35 +930,40 @@ public partial class Form1 : Form
 
     private void RunSimulation()
     {
+        if (!_workflowReady || _refreshingWorkspace) return;
+        _manualLiveUpdateTimer.Stop();
+        _refreshingWorkspace = true;
         try
         {
-            var structure = SimulationEngine.ParseStructure(_structureInput.Text);
+            var snapshot = CaptureCurrentState();
+            var structure = snapshot.Structure;
+            if (!StructuresEqual(structure, CloneManualStructure())) SetManualStructure(structure, false);
             UpdateStructureSummary(structure);
-            var sweep = SimulationEngine.Simulate(
-                (double)_startMHzInput.Value * 1e6,
-                (double)_stopMHzInput.Value * 1e6,
-                (int)_pointsInput.Value,
-                (double)_z0Input.Value,
-                structure);
+            UpdateInspectionControls();
+            var sweep = snapshot.Evaluate();
             _lastSweep = sweep;
-
-            _smithPlot.Model = PlotFactory.BuildSmithModel(sweep);
-            _s11DbPlot.Model = PlotFactory.BuildS11DbModel(sweep);
-            _s21PolarPlot.Model = PlotFactory.BuildS21PolarModel(sweep);
-            _s21DbPlot.Model = PlotFactory.BuildS21DbModel(sweep);
-            _s21PhasePlot.Model = PlotFactory.BuildS21PhaseModel(sweep);
-            _groupDelayPlot.Model = PlotFactory.BuildGroupDelayModel(sweep);
-
-            RefreshPropagationFrequencyChoices(sweep);
+            _resolvedMarkerMHz = sweep[FindManualNearestSweepIndex(sweep, RequestedMarkerMHz * 1e6)].FrequencyHz / 1e6;
+            SetNumericValue(_propagationFrequencyMHzInput, (decimal)_resolvedMarkerMHz);
+            SetNumericValue(_singleAntennaFrequencyMHzInput, (decimal)_resolvedMarkerMHz);
+            _smithPlot.Model = AddManualTargetMarker(PlotFactory.BuildSmithModel(sweep), sweep, _resolvedMarkerMHz, false);
+            _s11DbPlot.Model = AddManualTargetMarker(PlotFactory.BuildS11DbModel(sweep), sweep, _resolvedMarkerMHz, true);
+            _s21PolarPlot.Model = BuildMarkedPolarModel(sweep);
+            _s21DbPlot.Model = AddManualTargetMarker(PlotFactory.BuildS21DbModel(sweep), sweep, _resolvedMarkerMHz, true);
+            _s21PhasePlot.Model = AddManualTargetMarker(PlotFactory.BuildS21PhaseModel(sweep), sweep, _resolvedMarkerMHz, true);
+            _groupDelayPlot.Model = AddManualTargetMarker(PlotFactory.BuildGroupDelayModel(sweep), sweep, _resolvedMarkerMHz, true);
             UpdatePropagationAnalysis();
             UpdateSmallAntennaMode();
-
-            _statusLabel.Text = $"OK | {sweep.Count} points";
+            RunManualLiveSimulation();
+            _statusLabel.Text = $"Current r{snapshot.Revision} / {snapshot.CircuitId[..8]} | {snapshot.Frequency.StartMHz:g}–{snapshot.Frequency.StopMHz:g} MHz | {sweep.Count} points | {snapshot.Frequency.Z0:g} ohm | Inspect {_resolvedMarkerMHz:F6} MHz (nearest point)";
+            _markerReadout.Text = $"Readouts at {_resolvedMarkerMHz:F6} MHz (nearest sweep point).";
+            if (sweep.Any(p => p.S21.Magnitude < 1e-6))
+                _statusLabel.Text += " | Deep transmission null: phase/delay may be unreliable; refine sweep.";
         }
         catch (Exception ex)
         {
-            _statusLabel.Text = $"Error: {ex.Message}";
+            ClearCurrentResults("Out of date: " + ex.Message);
         }
+        finally { _refreshingWorkspace = false; }
     }
 
     private void RefreshPropagationFrequencyChoices(IReadOnlyList<SweepPoint> sweep)
@@ -1047,7 +1030,7 @@ public partial class Form1 : Form
             var structure = SimulationEngine.ParseStructure(_structureInput.Text);
             var result = PropagationAnalysis.Analyze(
                 structure,
-                (double)_propagationFrequencyMHzInput.Value * 1e6,
+                _resolvedMarkerMHz * 1e6,
                 (double)_z0Input.Value,
                 (double)_propagationSpacingMmInput.Value * 1e-3,
                 _lastSweep);
@@ -1350,15 +1333,7 @@ public partial class Form1 : Form
     {
         try
         {
-            var structure = SimulationEngine.ParseStructure(_structureInput.Text);
-            var config = new SimulationConfig
-            {
-                StartMHz = (double)_startMHzInput.Value,
-                StopMHz = (double)_stopMHzInput.Value,
-                Points = (int)_pointsInput.Value,
-                Z0 = (double)_z0Input.Value,
-                Structure = structure
-            };
+            var config = CurrentExportConfiguration();
 
             using var dialog = new SaveFileDialog
             {
@@ -1400,40 +1375,8 @@ public partial class Form1 : Form
                 return;
             }
 
-            var json = File.ReadAllText(dialog.FileName);
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            using var document = JsonDocument.Parse(json);
-            var config = document.RootElement.ValueKind switch
-            {
-                JsonValueKind.Object => JsonSerializer.Deserialize<SimulationConfig>(json, options)
-                                        ?? throw new InvalidOperationException("Configuration JSON is empty."),
-                JsonValueKind.Array => new SimulationConfig
-                {
-                    StartMHz = (double)_startMHzInput.Value,
-                    StopMHz = (double)_stopMHzInput.Value,
-                    Points = (int)_pointsInput.Value,
-                    Z0 = (double)_z0Input.Value,
-                    Structure = JsonSerializer.Deserialize<List<RfElement>>(json, options)
-                                ?? throw new InvalidOperationException("Structure JSON is empty.")
-                },
-                _ => throw new InvalidOperationException(
-                    "JSON must contain a simulator configuration object or an LC structure array.")
-            };
+            LoadSharedProject(File.ReadAllText(dialog.FileName));
 
-            config.Structure ??= new List<RfElement>();
-            SimulationEngine.ValidateStructure(config.Structure);
-
-            SetNumericValue(_startMHzInput, (decimal)config.StartMHz);
-            SetNumericValue(_stopMHzInput, (decimal)config.StopMHz);
-            SetNumericValue(_pointsInput, config.Points);
-            SetNumericValue(_z0Input, (decimal)config.Z0);
-
-            _presetCombo.SelectedIndex = -1;
-            _structureInput.Text = JsonSerializer.Serialize(config.Structure, new JsonSerializerOptions { WriteIndented = true });
-            UpdateStructureSummary(config.Structure);
-            SyncManualTuningFromStructure(config.Structure);
-            RunSimulation();
-            _statusLabel.Text = $"Loaded: {Path.GetFileName(dialog.FileName)}";
         }
         catch (Exception ex)
         {
@@ -1458,7 +1401,8 @@ public partial class Form1 : Form
                 return;
             }
 
-            const double touchstoneZ0 = 50.0;
+            var snapshot = CaptureCurrentState();
+            var touchstoneZ0 = snapshot.Frequency.Z0;
             var sweep = SimulationEngine.SimulateSParameters(
                 (double)_startMHzInput.Value * 1e6,
                 (double)_stopMHzInput.Value * 1e6,
@@ -1466,8 +1410,8 @@ public partial class Form1 : Form
                 touchstoneZ0,
                 structure);
 
-            TouchstoneExporter.WriteS2P(dialog.FileName, sweep);
-            _statusLabel.Text = $"Exported S2P: {Path.GetFileName(dialog.FileName)} | {sweep.Count} points | R 50";
+            TouchstoneExporter.WriteS2P(dialog.FileName, sweep, touchstoneZ0, JsonSerializer.Serialize(snapshot.ToConfig()));
+            _statusLabel.Text = $"Exported S2P: {Path.GetFileName(dialog.FileName)} | {sweep.Count} points | R {touchstoneZ0:g}";
         }
         catch (Exception ex)
         {
@@ -1478,6 +1422,7 @@ public partial class Form1 : Form
     // Optimizer methods
     private OptimizerEngine.OptimizerConfig GetOptimizerConfig()
     {
+        CaptureCurrentState();
         var lengthIndex = _structureLengthCombo.SelectedIndex;
         var numInductors = lengthIndex switch
         {
@@ -1490,10 +1435,13 @@ public partial class Form1 : Form
 
         return new OptimizerEngine.OptimizerConfig
         {
-            StartHz = (double)_optStartMHzInput.Value * 1e6,
-            StopHz = (double)_optStopMHzInput.Value * 1e6,
-            Points = (int)_optPointsInput.Value,
-            Z0 = 50,
+            StartHz = _workspace.Current!.Frequency.StartHz,
+            StopHz = _workspace.Current!.Frequency.StopHz,
+            Points = _workspace.Current!.Frequency.Points,
+            Z0 = _workspace.Current!.Frequency.Z0,
+            RandomSeed = (int)_randomSeedInput.Value,
+            LockedIndices = _workspace.Current!.LockedIndices,
+            InitialStructure = _workspace.Current!.Structure,
             TargetS11Db = (double)_targetS11DbInput.Value,
             MinAcceptableS21Db = (double)_minS21DbInput.Value,
             StructureLength = numInductors,
@@ -1507,138 +1455,9 @@ public partial class Form1 : Form
         };
     }
 
-    private void OptimizeCurrentStructure()
-    {
-        if (_optimizationRunning)
-            return;
+    private void OptimizeCurrentStructure() => StartSharedOptimization(false);
 
-        try
-        {
-            var structure = SimulationEngine.ParseStructure(_structureInput.Text);
-            if (structure.Count == 0)
-            {
-                _optimizerStatusLabel.Text = "Error: Empty structure";
-                return;
-            }
-
-            var config = GetOptimizerConfig();
-            _optimizationRunning = true;
-            _optimizeCurrentButton.Enabled = false;
-            _randomSearchButton.Enabled = false;
-            _stopOptimizationButton.Enabled = true;
-            _optimizationCancellation = new CancellationTokenSource();
-
-            var task = Task.Run(() =>
-            {
-                try
-                {
-                    UpdateStatus("Starting sequential search...");
-                    var result = OptimizerEngine.SequentialLocalSearch(
-                        structure,
-                        s => SimulationEngine.Simulate(
-                            config.StartHz,
-                            config.StopHz,
-                            config.Points,
-                            config.Z0,
-                            s),
-                        config,
-                        UpdateStatus,
-                        _optimizationCancellation.Token);
-
-                    _candidateResults = new List<OptimizerEngine.CandidateResult> { result };
-                    UpdateResultsGrid();
-                    DisplayCandidate(result);
-                    UpdateStatus($"Optimization complete. Score: {result.Score:F6}");
-                }
-                catch (OperationCanceledException)
-                {
-                    UpdateStatus("Optimization cancelled.");
-                }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"Error: {ex.Message}");
-                }
-                finally
-                {
-                    _optimizationRunning = false;
-                    Invoke(() =>
-                    {
-                        _optimizeCurrentButton.Enabled = true;
-                        _randomSearchButton.Enabled = true;
-                        _stopOptimizationButton.Enabled = false;
-                    });
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _optimizerStatusLabel.Text = $"Error: {ex.Message}";
-        }
-    }
-
-    private void RunRandomRestartSearch()
-    {
-        if (_optimizationRunning)
-            return;
-
-        try
-        {
-            var config = GetOptimizerConfig();
-            _optimizationRunning = true;
-            _optimizeCurrentButton.Enabled = false;
-            _randomSearchButton.Enabled = false;
-            _stopOptimizationButton.Enabled = true;
-            _optimizationCancellation = new CancellationTokenSource();
-
-            var task = Task.Run(() =>
-            {
-                try
-                {
-                    UpdateStatus($"Starting random restart search with {config.RandomRestarts} restarts...");
-                    var results = OptimizerEngine.RandomRestartLocalSearch(
-                        s => SimulationEngine.Simulate(
-                            config.StartHz,
-                            config.StopHz,
-                            config.Points,
-                            config.Z0,
-                            s),
-                        config,
-                        UpdateStatus,
-                        _optimizationCancellation.Token);
-
-                    _candidateResults = results;
-                    UpdateResultsGrid();
-                    if (results.Count > 0)
-                    {
-                        DisplayCandidate(results[0]);
-                        UpdateStatus($"Search complete. Best score: {results[0].Score:F6}");
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    UpdateStatus("Search cancelled.");
-                }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"Error: {ex.Message}");
-                }
-                finally
-                {
-                    _optimizationRunning = false;
-                    Invoke(() =>
-                    {
-                        _optimizeCurrentButton.Enabled = true;
-                        _randomSearchButton.Enabled = true;
-                        _stopOptimizationButton.Enabled = false;
-                    });
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _optimizerStatusLabel.Text = $"Error: {ex.Message}";
-        }
-    }
+    private void RunRandomRestartSearch() => StartSharedOptimization(true);
 
     private void StopOptimization()
     {
@@ -1715,30 +1534,31 @@ public partial class Form1 : Form
             return;
         }
 
-        _structureInput.Text = JsonSerializer.Serialize(candidate.Structure, new JsonSerializerOptions { WriteIndented = true });
-        UpdateStructureSummary(candidate.Structure);
-        SyncManualTuningFromStructure(candidate.Structure);
-        _presetCombo.SelectedIndex = -1;
-        RunSimulation();
-        _statusLabel.Text =
-            $"Candidate | S11: {candidate.WorstS11Db:F2} dB | S21: {candidate.WorstS21Db:F2} dB | Phase: {candidate.TotalPhaseRotationDeg:F1} deg | GD: {candidate.AverageGroupDelayNs:F2} ns | Score: {candidate.Score:F6}";
+        PreviewCandidate(candidate);
     }
 
     private void ApplyBestResult()
     {
-        if (_candidateResults.Count == 0)
+        if (_candidateResults.Count == 0 || _candidateGeneration != _configurationGeneration)
         {
-            _optimizerStatusLabel.Text = "No candidates available.";
+            _optimizerStatusLabel.Text = "No current candidate. Optimize the current configuration first.";
             return;
         }
-
-        var best = _candidateResults[0];
-        _structureInput.Text = JsonSerializer.Serialize(best.Structure, new JsonSerializerOptions { WriteIndented = true });
-        UpdateStructureSummary(best.Structure);
-        SyncManualTuningFromStructure(best.Structure);
-        _presetCombo.SelectedIndex = -1;
+        var index = Math.Clamp(_displayedCandidateIndex, 0, _candidateResults.Count - 1);
+        var best = _candidateResults[index];
+        var locks = _workspace.Current!.LockedIndices;
+        _refreshingWorkspace = true;
+        try
+        {
+            SetManualStructure(best.Structure, false);
+            foreach (var locked in locks.Where(i => i < _manualElements.Count)) _manualElements[locked].Locked = true;
+            RefreshManualElementsGrid();
+            _presetCombo.SelectedIndex = -1;
+        }
+        finally { _refreshingWorkspace = false; }
+        ScheduleCurrentRefresh();
         RunSimulation();
-        _optimizerStatusLabel.Text = "Best result applied to simulator.";
+        _optimizerStatusLabel.Text = best.Feasible ? "Candidate applied to current circuit." : "Candidate applied for inspection; performance goals still unmet.";
     }
 
     private void ExportResultsJson()
@@ -1764,6 +1584,12 @@ public partial class Form1 : Form
             var export = _candidateResults.Select((candidate, index) => new
             {
                 Rank = index + 1,
+                Configuration = _candidateConfig,
+                Baseline = _candidateBaselineSnapshot?.ToConfig(),
+                BaselineScore = _candidateBaseline?.Score,
+                candidate.Feasible,
+                candidate.ConstraintViolations,
+                ImprovesBaseline = candidate.Score < (_candidateBaseline?.Score ?? double.MinValue),
                 candidate.Score,
                 candidate.WorstS11Db,
                 candidate.AverageS11Db,
@@ -1805,27 +1631,7 @@ public partial class Form1 : Form
             if (dialog.ShowDialog(this) != DialogResult.OK)
                 return;
 
-            using var writer = new StreamWriter(dialog.FileName);
-            writer.WriteLine("Rank,Score,WorstS11dB,AverageS11dB,WorstS21dB,RippleDb,TotalPhaseRotationDeg,AverageGroupDelayNs,MaxGroupDelayNs,StructureJson");
-
-            for (int i = 0; i < _candidateResults.Count; i++)
-            {
-                var candidate = _candidateResults[i];
-                var structureJson = JsonSerializer.Serialize(candidate.Structure);
-                writer.WriteLine(
-                    $"{i + 1}," +
-                    $"{candidate.Score}," +
-                    $"{candidate.WorstS11Db}," +
-                    $"{candidate.AverageS11Db}," +
-                    $"{candidate.WorstS21Db}," +
-                    $"{candidate.RippleDb}," +
-                    $"{candidate.TotalPhaseRotationDeg}," +
-                    $"{candidate.AverageGroupDelayNs}," +
-                    $"{candidate.MaxGroupDelayNs}," +
-                    $"\"{structureJson}\"");
-            }
-
-            writer.Close();
+            File.WriteAllText(dialog.FileName, BuildCandidateCsv());
             _optimizerStatusLabel.Text = $"Exported: {Path.GetFileName(dialog.FileName)}";
         }
         catch (Exception ex)

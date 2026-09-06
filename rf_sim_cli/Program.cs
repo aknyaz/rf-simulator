@@ -1382,6 +1382,7 @@ internal static class Program
             });
         }
 
+        results.AddRange(WorkflowRegressionTests.Run());
         var output = new RegressionSuiteResult
         {
             TestDirectory = directory,
@@ -1391,6 +1392,7 @@ internal static class Program
             FailedCount = results.Count(result => !result.Passed),
             SummaryLines = results
                 .Select(result =>
+                    result.Metrics is null ? $"{result.Name}: {(result.Passed ? "PASS" : "FAIL")}" :
                     $"{Path.GetFileNameWithoutExtension(result.File)}: INTERNAL {(result.InternalMediumPassed ? "PASS" : "FAIL")} / DEVICE {(result.UsableRfDevicePassed ? "PASS" : "FAIL")}")
                 .ToList(),
             Results = results

@@ -79,8 +79,8 @@ public static class PlotFactory
 
             yAxis.Minimum = Math.Floor((minPhase - padding) / 30.0) * 30.0;
             yAxis.Maximum = Math.Ceiling((maxPhase + padding) / 30.0) * 30.0;
-            yAxis.MajorStep = 30;
-            yAxis.MinorStep = 10;
+            yAxis.MajorStep = Math.Max(30, Math.Ceiling((yAxis.Maximum - yAxis.Minimum) / 180.0) * 30);
+            yAxis.MinorStep = yAxis.MajorStep / 3;
             yAxis.StringFormat = "0";
         }
 

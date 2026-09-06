@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>rf_sim_cli</AssemblyName>
     <RootNamespace>RfSimulator.Cli</RootNamespace>
   </PropertyGroup>

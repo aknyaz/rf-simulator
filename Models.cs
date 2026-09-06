@@ -15,6 +15,11 @@ public sealed class SimulationConfig
     public int Points { get; set; }
     public double Z0 { get; set; }
     public List<RfElement> Structure { get; set; } = new();
+    public string? CircuitId { get; set; }
+    public long Revision { get; set; }
+    public int[] LockedIndices { get; set; } = Array.Empty<int>();
+    public double? ManualMarkerMHz { get; set; }
+    public double CellSpacingMm { get; set; } = 5;
 }
 
 public readonly record struct SweepPoint(double FrequencyHz, Complex S11, Complex S21);

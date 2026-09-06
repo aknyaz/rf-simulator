@@ -56,7 +56,9 @@ public partial class Form1
         {
             Dock = DockStyle.Fill,
             Orientation = Orientation.Vertical,
-            SplitterDistance = 390,
+            Size = new Size(1000, 600),
+            FixedPanel = FixedPanel.Panel1,
+            SplitterDistance = 370,
             Panel1MinSize = 330,
             SplitterWidth = 8
         };
@@ -66,7 +68,7 @@ public partial class Form1
         _manualLiveUpdateTimer.Tick += (_, _) =>
         {
             _manualLiveUpdateTimer.Stop();
-            RunManualLiveSimulation();
+            RunSimulation();
         };
         LoadManualStructureFromMainEditor();
         return root;
@@ -81,6 +83,7 @@ public partial class Form1
             RowCount = 6,
             Padding = new Padding(0, 0, 6, 0)
         };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -112,29 +115,15 @@ public partial class Form1
 
     private Control BuildManualTargetPanel()
     {
-        var panel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            ColumnCount = 4,
-            RowCount = 2,
-            AutoSize = true,
-            Padding = new Padding(0, 0, 0, 6)
-        };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        var panel = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = true };
         ConfigureNumeric(_manualTargetMHzInput, 0.001m, 10000, 27.5m, 4, 0.1m);
         ConfigureNumeric(_manualSpacingMmInput, 0.001m, 1000, 5, 3, 0.5m);
-        new ToolTip().SetToolTip(
-            _manualSpacingMmInput,
-            "Spacing affects spatial interpretation only; it does not change circuit S-parameters.");
-        _manualTargetMHzInput.ValueChanged += (_, _) => ScheduleManualLiveSimulation();
+        _manualSpacingMmInput.Dock = DockStyle.None;
+        _manualSpacingMmInput.Width = 90;
         _manualSpacingMmInput.ValueChanged += (_, _) => ScheduleManualLiveSimulation();
-        panel.Controls.Add(new Label { Text = "Target MHz", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
-        panel.Controls.Add(_manualTargetMHzInput, 1, 0);
-        panel.Controls.Add(new Label { Text = "Spacing mm", AutoSize = true, Anchor = AnchorStyles.Left }, 2, 0);
-        panel.Controls.Add(_manualSpacingMmInput, 3, 0);
+        panel.Controls.Add(new Label { Text = "Model spacing (mm)", AutoSize = true, Padding = new Padding(0, 5, 0, 0) });
+        panel.Controls.Add(_manualSpacingMmInput);
+        new ToolTip().SetToolTip(_manualSpacingMmInput, "Shared spatial interpretation only; does not change circuit S-parameters or antenna efficiency.");
         return panel;
     }
 
@@ -253,7 +242,7 @@ public partial class Form1
     {
         var tabs = new TabControl { Dock = DockStyle.Fill };
         var sweepTab = new TabPage("Live S-Parameters");
-        var propagationTab = new TabPage("Live Propagation");
+        var propagationTab = new TabPage("Propagation (model-dependent)");
         sweepTab.Controls.Add(BuildManualSweepPlots());
         propagationTab.Controls.Add(BuildManualPropagationPlots());
         tabs.TabPages.Add(sweepTab);
@@ -420,6 +409,7 @@ public partial class Form1
         var state = _manualElements[rowIndex];
         if (_manualElementsGrid.Columns[columnIndex].Name == "Type")
         {
+            if (state.Locked) { RefreshManualElementsGrid(rowIndex); return; }
             state.Element.Type = _manualElementsGrid.Rows[rowIndex].Cells[columnIndex].Value?.ToString() ?? state.Element.Type;
             state.Element.Value = GetDefaultManualValue(state.Element.Type);
         }
@@ -461,6 +451,7 @@ public partial class Form1
             return;
         _manualElements[index].Locked = _manualLockInput.Checked;
         RefreshManualElementsGrid(index);
+        ScheduleCurrentRefresh();
     }
 
     private void AddManualLcCell()
@@ -514,7 +505,7 @@ public partial class Form1
     private void ResetManualSelected()
     {
         var index = GetManualSelectedIndex();
-        if (index < 0)
+        if (index < 0 || _manualElements[index].Locked)
             return;
         var baseline = index < _manualBaseline.Count ? _manualBaseline[index] : null;
         _manualElements[index].Element.Value = baseline is not null
@@ -551,7 +542,7 @@ public partial class Form1
         };
         if (dialog.ShowDialog(this) != DialogResult.OK)
             return;
-        File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(CloneManualStructure(), new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(CurrentExportConfiguration(), new JsonSerializerOptions { WriteIndented = true }));
         _manualStatusLabel.Text = $"Saved: {Path.GetFileName(dialog.FileName)}";
     }
 
@@ -564,15 +555,8 @@ public partial class Form1
         };
         if (dialog.ShowDialog(this) != DialogResult.OK)
             return;
-        var json = File.ReadAllText(dialog.FileName);
-        using var document = JsonDocument.Parse(json);
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var structure = document.RootElement.ValueKind == JsonValueKind.Array
-            ? JsonSerializer.Deserialize<List<RfElement>>(json, options)
-            : JsonSerializer.Deserialize<SimulationConfig>(json, options)?.Structure;
-        SimulationEngine.ValidateStructure(structure ?? throw new InvalidOperationException("Structure JSON is empty."));
-        SetManualStructure(structure, true);
-        _manualStatusLabel.Text = $"Loaded: {Path.GetFileName(dialog.FileName)}";
+        try { LoadSharedProject(File.ReadAllText(dialog.FileName)); }
+        catch (Exception ex) { _manualStatusLabel.Text = "Load error: " + ex.Message; }
     }
 
     private void ManualStructureChanged()
@@ -590,23 +574,16 @@ public partial class Form1
 
     private void ScheduleManualLiveSimulation()
     {
-        _manualLiveUpdateTimer.Stop();
-        _manualLiveUpdateTimer.Start();
+        ScheduleCurrentRefresh();
     }
 
     private void RunManualLiveSimulation()
     {
         try
         {
-            var structure = CloneManualStructure();
-            SimulationEngine.ValidateStructure(structure);
-            var sweep = SimulationEngine.Simulate(
-                (double)_startMHzInput.Value * 1e6,
-                (double)_stopMHzInput.Value * 1e6,
-                (int)_pointsInput.Value,
-                (double)_z0Input.Value,
-                structure);
-            var targetMHz = (double)_manualTargetMHzInput.Value;
+            var structure = _workspace.Current!.Structure;
+            var sweep = _lastSweep;
+            var targetMHz = _resolvedMarkerMHz;
             var metrics = CalculateManualTargetMetrics(structure, sweep);
             var baselineSweep = _manualBaseline.Count > 0
                 ? SimulationEngine.Simulate(
@@ -619,7 +596,7 @@ public partial class Form1
             _manualBaselineMetrics = _manualBaseline.Count > 0
                 ? CalculateManualTargetMetrics(_manualBaseline, baselineSweep)
                 : metrics;
-            _manualMetricsText.Text = FormatManualMetrics(metrics, _manualBaselineMetrics);
+            _manualMetricsText.Text = $"Current r{_workspace.Revision} at {targetMHz:F6} MHz (nearest point)\r\n" + FormatManualMetrics(metrics, _manualBaselineMetrics);
             _manualSmithPlot.Model = AddManualSmithBaseline(
                 AddManualTargetMarker(PlotFactory.BuildSmithModel(sweep), sweep, targetMHz, false),
                 baselineSweep);
@@ -657,7 +634,7 @@ public partial class Form1
             (int)_pointsInput.Value,
             (double)_z0Input.Value,
             structure);
-        var targetHz = (double)_manualTargetMHzInput.Value * 1e6;
+        var targetHz = _resolvedMarkerMHz * 1e6;
         var targetIndex = FindManualNearestSweepIndex(sweep, targetHz);
         var point = sweep[targetIndex];
         var phase = RfMath.GetUnwrappedS21PhaseRadians(sweep);
@@ -667,7 +644,7 @@ public partial class Form1
         {
             propagation = PropagationAnalysis.Analyze(
                 structure,
-                targetHz,
+                point.FrequencyHz,
                 (double)_z0Input.Value,
                 (double)_manualSpacingMmInput.Value * 1e-3,
                 sweep);
@@ -689,7 +666,7 @@ public partial class Form1
             TargetS21Db = RfMath.ToDbMagnitude(point.S21),
             PhaseDeg = phase[targetIndex] * 180.0 / Math.PI,
             GroupDelayNs = delay[targetIndex],
-            InputImpedanceOhms = propagation?.Diagnostics.InputImpedanceOhms,
+            InputImpedanceOhms = (double)_z0Input.Value * (Complex.One + point.S11) / (Complex.One - point.S11),
             OutputLoadPowerWatts = propagation?.Diagnostics.PowerDeliveredToLoadWatts,
             MaxSlowWaveFactor = propagation?.Cells.Where(cell => double.IsFinite(cell.SlowWaveFactor))
                 .Select(cell => cell.SlowWaveFactor).DefaultIfEmpty(0).Max(),
@@ -751,6 +728,7 @@ public partial class Form1
     {
         model.Series.Add(BuildManualBaselineSeries(
             baselineSweep.Select(point => new DataPoint(point.FrequencyHz / 1e6, selector(point)))));
+        IncludeBaselineAxisRange(model);
         model.IsLegendVisible = true;
         return model;
     }
@@ -762,6 +740,7 @@ public partial class Form1
     {
         model.Series.Add(BuildManualBaselineSeries(
             baselineSweep.Select((point, index) => new DataPoint(point.FrequencyHz / 1e6, values[index]))));
+        IncludeBaselineAxisRange(model);
         model.IsLegendVisible = true;
         return model;
     }
@@ -769,7 +748,17 @@ public partial class Form1
     private static void AddManualIndexBaseline(PlotModel model, IEnumerable<DataPoint> points)
     {
         model.Series.Add(BuildManualBaselineSeries(points));
+        IncludeBaselineAxisRange(model);
         model.IsLegendVisible = true;
+    }
+
+    private static void IncludeBaselineAxisRange(PlotModel model)
+    {
+        var axis = model.Axes.FirstOrDefault(a => a.Position == OxyPlot.Axes.AxisPosition.Left);
+        if (axis is null) return;
+        // OxyPlot will fit all series, including a baseline outside the candidate's range.
+        axis.Minimum = axis.Maximum = double.NaN;
+        axis.MajorStep = axis.MinorStep = double.NaN;
     }
 
     private static void AddManualEnergyBaseline(PlotModel model, PropagationResult baseline)
@@ -841,14 +830,14 @@ public partial class Form1
         var impedance = current.InputImpedanceOhms.HasValue
             ? $"{current.InputImpedanceOhms.Value.Real:F2} {(current.InputImpedanceOhms.Value.Imaginary < 0 ? "-" : "+")} j{Math.Abs(current.InputImpedanceOhms.Value.Imaginary):F2} ohm"
             : "n/a";
-        return $"Target S11: {current.TargetS11Db:F2} dB{FormatManualDelta(current.TargetS11Db, baseline?.TargetS11Db)}\r\n"
-               + $"Target S21: {current.TargetS21Db:F2} dB{FormatManualDelta(current.TargetS21Db, baseline?.TargetS21Db)}\r\n"
+        return $"Marker S11: {current.TargetS11Db:F2} dB{FormatManualDelta(current.TargetS11Db, baseline?.TargetS11Db)}\r\n"
+               + $"Marker S21: {current.TargetS21Db:F2} dB{FormatManualDelta(current.TargetS21Db, baseline?.TargetS21Db)}\r\n"
                + $"Phase: {current.PhaseDeg:F2} deg{FormatManualDelta(current.PhaseDeg, baseline?.PhaseDeg)}\r\n"
                + $"Group delay: {current.GroupDelayNs:F2} ns{FormatManualDelta(current.GroupDelayNs, baseline?.GroupDelayNs)}\r\n"
                + $"Input impedance: {impedance}\r\n"
                + $"Output/load power: {FormatManualOptional(current.OutputLoadPowerWatts, "F6")} W\r\n"
-               + $"Max slow-wave factor: {FormatManualOptional(current.MaxSlowWaveFactor, "F2")}\r\n"
-               + $"Energy concentration: {FormatManualOptional(current.EnergyConcentrationRatio, "P2")}\r\n"
+               + $"Model-dependent max SWF: {FormatManualOptional(current.MaxSlowWaveFactor, "F2")}\r\n"
+               + $"Model-dependent energy concentration: {FormatManualOptional(current.EnergyConcentrationRatio, "P2")}\r\n"
                + (current.Propagation is null ? "Propagation: unavailable for this element topology" : $"Sections: {current.Propagation.Classification.Interpretation}");
     }
 

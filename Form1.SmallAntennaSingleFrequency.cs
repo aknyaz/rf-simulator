@@ -256,7 +256,7 @@ public partial class Form1
 
         _singleAntennaAnalyzeButton.Text = "Analyze Current Structure With Antenna";
         _singleAntennaAnalyzeButton.AutoSize = true;
-        _singleAntennaAnalyzeButton.Click += (_, _) => UpdateSingleFrequencySmallAntennaMode();
+        _singleAntennaAnalyzeButton.Click += (_, _) => RunSimulation();
         _singleAntennaOptimizeTerminalButton.Text = "Optimize Terminal Coupling Only";
         _singleAntennaOptimizeTerminalButton.AutoSize = true;
         _singleAntennaOptimizeTerminalButton.Click += (_, _) => OptimizeSingleAntennaTerminalCoupling();
@@ -274,7 +274,7 @@ public partial class Form1
         _singleAntennaExportTopResultsButton.AutoSize = true;
         _singleAntennaExportTopResultsButton.Click += (_, _) => ExportTopExplorationResults();
 
-        EventHandler updateAntennaLoad = (_, _) => UpdateSingleFrequencySmallAntennaMode();
+        EventHandler updateAntennaLoad = (_, _) => { if (_workflowReady && !_refreshingWorkspace) { InvalidateCandidates(); ScheduleCurrentRefresh(); } };
         _singleAntennaFrequencyMHzInput.ValueChanged += updateAntennaLoad;
         _singleAntennaLengthMInput.ValueChanged += updateAntennaLoad;
         _singleAntennaRlossInput.ValueChanged += updateAntennaLoad;
@@ -369,7 +369,7 @@ public partial class Form1
 
     private SingleFrequencyAntennaResult AnalyzeSingleFrequencyAntenna(IReadOnlyList<RfElement> structure)
     {
-        var frequencyHz = (double)_singleAntennaFrequencyMHzInput.Value * 1e6;
+        var frequencyHz = _resolvedMarkerMHz * 1e6;
         var lengthMeters = (double)_singleAntennaLengthMInput.Value;
         var lambda0 = SpeedOfLightMetersPerSecond / frequencyHz;
         var antenna = BuildShortAntennaModel(frequencyHz, lengthMeters, lambda0);
@@ -408,13 +408,13 @@ public partial class Form1
         var propagation = PropagationAnalysis.AnalyzeTerminated(
             structure,
             frequencyHz,
-            SmallAntennaMode.SourceResistanceOhms,
+            (double)_z0Input.Value,
             config.AntennaImpedance,
             spacingMeters,
             Array.Empty<SweepPoint>());
         var propagationWarning = propagation.Warning;
 
-        var z0 = SmallAntennaMode.SourceResistanceOhms;
+        var z0 = (double)_z0Input.Value;
         var availablePower = SmallAntennaMode.AvailableSourcePowerWatts;
         var sourceVoltageRms = Math.Sqrt(4.0 * z0 * availablePower);
         var antennaImpedance = config.AntennaImpedance;
@@ -654,7 +654,7 @@ public partial class Form1
         sb.AppendLine($"Zant: {FormatComplex(result.AntennaImpedance)} ohm");
         sb.AppendLine();
         sb.AppendLine("Debug network:");
-        sb.AppendLine($"Zsource: {SmallAntennaMode.SourceResistanceOhms:F4} ohm");
+        sb.AppendLine($"Zsource: {(double)_z0Input.Value:F4} ohm");
         sb.AppendLine($"Zin: {FormatComplex(result.InputImpedance)} ohm");
         sb.AppendLine($"Zant: {FormatComplex(result.AntennaImpedance)} ohm");
         sb.AppendLine($"Gamma: {FormatComplex(result.InputReflectionCoefficient)} |Gamma|={result.InputReflectionCoefficient.Magnitude:F6}");
@@ -1307,10 +1307,11 @@ public partial class Form1
                 return;
             }
 
-            var frequenciesMHz = BuildSweepValues(
-                (double)_singleAntennaExploreStartMHzInput.Value,
-                (double)_singleAntennaExploreStopMHzInput.Value,
-                (double)_singleAntennaExploreStepMHzInput.Value);
+            RunSimulation();
+            if (_lastSweep.Count == 0) throw new InvalidOperationException("Correct the shared frequency configuration first.");
+            var generation = _configurationGeneration;
+            var markerGeneration = _inspectionGeneration;
+            var frequenciesMHz = _workspace.Current!.Evaluate().Select(p => p.FrequencyHz / 1e6).ToList();
             var radiationResistances = BuildSweepValues(
                 (double)_singleAntennaExploreRradStartInput.Value,
                 (double)_singleAntennaExploreRradStopInput.Value,
@@ -1339,6 +1340,7 @@ public partial class Form1
 
             foreach (var frequencyMHz in frequenciesMHz)
             {
+                if (generation != _configurationGeneration || markerGeneration != _inspectionGeneration) throw new InvalidOperationException("Exploration discarded because settings changed.");
                 var frequencyHz = frequencyMHz * 1e6;
                 foreach (var rrad in radiationResistances)
                 {
@@ -1372,6 +1374,7 @@ public partial class Form1
                                 bestScoreSoFar,
                                 stopwatch.Elapsed);
                             Application.DoEvents();
+                            if (generation != _configurationGeneration || markerGeneration != _inspectionGeneration) throw new InvalidOperationException("Exploration discarded because settings changed.");
                         }
                     }
                 }
@@ -1388,17 +1391,10 @@ public partial class Form1
             var best = accepted.FirstOrDefault() ?? _lastExplorationCases.FirstOrDefault();
             if (best is not null)
             {
-                _lastSingleAntennaResult = best.Result;
-                RenderSingleAntennaResult(best.Result);
-                if (_singleAntennaExploreHeatmapInput.Checked)
-                {
-                    _singleAntennaPowerFlowPlot.Model = BuildExplorationHeatmapModel(_lastExplorationCases);
-                }
-                _antennaSummaryText.Text = FormatExplorationSummary(
-                    _lastExplorationCases,
-                    accepted,
-                    totalCases,
-                    null);
+                _candidatePreviewText.Text = "ANTENNA EXPLORATION — separate candidate loads; current circuit unchanged.\r\n" + FormatExplorationSummary(_lastExplorationCases, accepted, totalCases, null);
+                if (_singleAntennaExploreHeatmapInput.Checked) _candidateS11Preview.Model = BuildExplorationHeatmapModel(_lastExplorationCases);
+                _candidateDelayPreview.Model = null;
+                _singleAntennaExportTopResultsButton.Enabled = true;
             }
 
             _antennaStatusLabel.Text = accepted.Count > 0
@@ -1445,7 +1441,7 @@ public partial class Form1
             var outputFolder = Path.Combine(Environment.CurrentDirectory, "explore_results");
             var exportedFiles = ExportBestExplorationCases(topCases, outputFolder);
             var summaryPath = Path.Combine(outputFolder, "explore_summary.csv");
-            File.WriteAllText(summaryPath, BuildExplorationSummaryCsv(topCases, exportedFiles));
+            File.WriteAllText(summaryPath, AddCurrentContextToCsv(BuildExplorationSummaryCsv(topCases, exportedFiles)));
 
             _antennaSummaryText.Text = FormatExplorationSummary(
                 _lastExplorationCases,
@@ -1485,6 +1481,7 @@ public partial class Form1
         SingleAntennaExplorationCase? best = null;
         foreach (var structure in structures)
         {
+            if (_workspace.Current!.LockedIndices.Any(i => structure[i].Value != baseStructure[i].Value)) continue;
             var result = AnalyzeSingleFrequencyAntenna(
                 structure,
                 frequencyHz,
@@ -1729,6 +1726,7 @@ public partial class Form1
             var fileName = SanitizeCaseLabel($"best_{caseLabel}_score{scoreLabel}") + ".json";
             var path = Path.Combine(outputFolder, fileName);
             var export = SingleAntennaExplorationExport.FromCase(item, caseLabel);
+            export.Analysis.CurrentConfiguration = CurrentExportConfiguration();
             File.WriteAllText(
                 path,
                 JsonSerializer.Serialize(
@@ -2002,6 +2000,8 @@ public partial class Form1
     {
         try
         {
+            RunSimulation();
+            if (_lastSweep.Count == 0) throw new InvalidOperationException("Correct the shared frequency configuration first.");
             var initial = GetSingleAntennaStructure().ToList();
             if (initial.Count == 0)
             {
@@ -2020,6 +2020,7 @@ public partial class Form1
             var startIndex = Math.Max(0, initial.Count - scope);
             for (var index = startIndex; index < initial.Count; index++)
             {
+                if (_workspace.Current!.LockedIndices.Contains(index)) continue;
                 var element = initial[index];
                 var values = element.Type.Equals("SeriesL", StringComparison.OrdinalIgnoreCase)
                     ? OptimizerEngine.AvailableInductors
@@ -2042,8 +2043,7 @@ public partial class Form1
             _terminalCouplingCandidate = best;
             _singleAntennaApplyTerminalButton.Enabled = true;
             var result = AnalyzeSingleFrequencyAntenna(best);
-            _lastSingleAntennaResult = result;
-            RenderSingleAntennaResult(result);
+            _candidatePreviewText.Text = "TERMINAL CANDIDATE — current circuit unchanged. Use Apply Terminal Coupling.\r\n" + FormatSingleAntennaSummary(result);
             _antennaStatusLabel.Text = $"Terminal coupling candidate ready. Score: {bestScore:F4}";
         }
         catch (Exception ex)
@@ -2089,10 +2089,18 @@ public partial class Form1
     {
         if (_terminalCouplingCandidate is null)
             return;
-        _structureInput.Text = JsonSerializer.Serialize(_terminalCouplingCandidate, new JsonSerializerOptions { WriteIndented = true });
-        UpdateStructureSummary(_terminalCouplingCandidate);
-        SyncManualTuningFromStructure(_terminalCouplingCandidate);
-        UpdateSingleFrequencySmallAntennaMode();
+        var candidate = OptimizerEngine.CloneStructure(_terminalCouplingCandidate);
+        var locks = _workspace.Current!.LockedIndices;
+        _refreshingWorkspace = true;
+        try
+        {
+            SetManualStructure(candidate, false);
+            foreach (var index in locks) _manualElements[index].Locked = true;
+            RefreshManualElementsGrid();
+        }
+        finally { _refreshingWorkspace = false; }
+        ScheduleCurrentRefresh();
+        RunSimulation();
         _antennaStatusLabel.Text = "Terminal coupling candidate applied.";
     }
 
@@ -2100,9 +2108,12 @@ public partial class Form1
     {
         try
         {
-            var result = _lastSingleAntennaResult ?? AnalyzeSingleFrequencyAntenna(GetSingleAntennaStructure());
+            RunSimulation();
+            var result = _lastSingleAntennaResult ?? throw new InvalidOperationException("Current antenna analysis is unavailable.");
             var diagnostics = AnalyzeSingleAntennaPropagationDiagnostics(result);
             var caseLabel = BuildSingleAntennaCaseLabel(result, diagnostics);
+            var export = SingleFrequencyAntennaExport.FromResult(result, diagnostics, caseLabel);
+            export.CurrentConfiguration = CurrentExportConfiguration();
             using var dialog = new SaveFileDialog
             {
                 Filter = "JSON files (*.json)|*.json|CSV summary (*.csv)|*.csv|All files (*.*)|*.*",
@@ -2113,14 +2124,14 @@ public partial class Form1
                 return;
             if (Path.GetExtension(dialog.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
             {
-                File.WriteAllText(dialog.FileName, BuildSingleAntennaCsvSummary(result, diagnostics, caseLabel));
+                File.WriteAllText(dialog.FileName, AddCurrentContextToCsv(BuildSingleAntennaCsvSummary(result, diagnostics, caseLabel)));
             }
             else
             {
                 File.WriteAllText(
                     dialog.FileName,
                     JsonSerializer.Serialize(
-                        SingleFrequencyAntennaExport.FromResult(result, diagnostics, caseLabel),
+                        export,
                         new JsonSerializerOptions
                         {
                             WriteIndented = true,
@@ -2370,6 +2381,7 @@ public partial class Form1
 
     private sealed class SingleFrequencyAntennaExport
     {
+        public SimulationConfig? CurrentConfiguration { get; set; }
         public string CaseLabel { get; set; } = string.Empty;
         public double FrequencyHz { get; set; }
         public string AntennaType { get; set; } = string.Empty;
