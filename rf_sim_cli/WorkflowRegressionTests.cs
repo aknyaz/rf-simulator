@@ -27,6 +27,47 @@ internal static class WorkflowRegressionTests
             results.Add(new RegressionResult { Name = name, File = "workflow/" + name, Passed = failures.Count == 0, Failures = failures });
         }
 
+        Test("nanovna_segment_validation", () =>
+        {
+            NanoVnaSerial.ValidateSweep(new FrequencyConfiguration(10, 20, 401, 50));
+            Throws(() => NanoVnaSerial.ValidateSweep(new FrequencyConfiguration(10, 20, 402, 50)));
+            Throws(() => NanoVnaSerial.ValidateSweep(new FrequencyConfiguration(10, 20, 401, 75)));
+            var frequencies = Enumerable.Range(0, 101).Select(index => (10000000 + index * 25000).ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            var data = Enumerable.Repeat("0.5 -0.25", 101).ToArray();
+            var points = NanoVnaSerial.ParseSegment(frequencies, data, data, 10000000, 12500000);
+            Check(points.Count == 101, "Wrong segment size");
+            Near(points[50].S21.Real, 0.5, 0);
+            Near(points[50].S21.Imaginary, -0.25, 0);
+            Throws(() => NanoVnaSerial.ParseSegment(frequencies, data[..100], data, 10000000, 12500000));
+            frequencies[30] = frequencies[29];
+            Throws(() => NanoVnaSerial.ParseSegment(frequencies, data, data, 10000000, 12500000));
+        });
+
+        Test("touchstone_import_units_formats_and_delay", () =>
+        {
+            foreach (var format in new[] { "RI", "MA", "DB" })
+            foreach (var unit in new[] { ("HZ", 1.0), ("KHZ", 1e3), ("MHZ", 1e6), ("GHZ", 1e9) })
+            {
+                var lines = new List<string> { $"# {unit.Item1} S {format} R 75" };
+                for (var index = 0; index < 101; index++)
+                {
+                    var frequency = 10e6 + index * 1e5;
+                    var phase = -2 * Math.PI * frequency * 64e-9;
+                    var pair = format == "RI" ? FormattableString.Invariant($"{Math.Cos(phase):R} {Math.Sin(phase):R}")
+                        : FormattableString.Invariant($"{(format == "MA" ? 1 : 0)} {phase * 180 / Math.PI:R}");
+                    lines.Add(FormattableString.Invariant($"{frequency / unit.Item2:R} 0 0 {pair}\n0 0 0 0 ! wrapped record"));
+                }
+                var measurement = TouchstoneImporter.Parse(string.Join("\n", lines));
+                Near(measurement.ReferenceOhms, 75, 0);
+                Check(measurement.Points.Count == 101, "Incorrect record count");
+                foreach (var delay in RfMath.CalculateGroupDelayNs(measurement.Points)) Near(delay, 64, 1e-8);
+            }
+            foreach (var invalid in new[] { "", "# HZ Z RI R 50", "[Version] 2.0", "# HZ S RI R 0",
+                "# HZ S RI R 50\n1 0 0 1 0 0 0 0 0\n1 0 0 1 0 0 0 0 0",
+                "# HZ S RI R 50\n1 0 0 NaN 0 0 0 0 0\n2 0 0 1 0 0 0 0 0" })
+                Throws(() => TouchstoneImporter.Parse(invalid));
+        });
+
         Test("shared_configuration_and_snapshot_isolation", () =>
         {
             var frequency = new FrequencyConfiguration(10, 20, 401, 75);
@@ -276,6 +317,17 @@ internal static class WorkflowRegressionTests
         form.PerformLayout();
         form.DrawToBitmap(bitmap, new System.Drawing.Rectangle(0, 0, form.Width, form.Height));
         bitmap.Save(Path.Combine(artifactDirectory, "candidate-preview.png"));
+        var measurement = TouchstoneImporter.Parse("# MHZ S MA R 50\n10 0.1 0 0.8 -90 0 0 0 0\n15 0.1 0 0.8 -135 0 0 0 0\n20 0.1 0 0.8 -180 0 0 0 0");
+        typeof(Form1).GetField("_measurement", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(form, measurement);
+        var beforeMeasurement = Field<TextBox>("_structureInput").Text;
+        typeof(Form1).GetMethod("ShowMeasurement", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, new object[] { true });
+        Check(Field<TextBox>("_structureInput").Text == beforeMeasurement, "Measurement comparison changed circuit");
+        Check(Field<PlotView[]>("_measurementPlots").All(plot => plot.Model.Series.Count == 2), "Missing measured/model traces");
+        var measurementTab = Descendants(form).OfType<TabPage>().Single(page => page.Text == "Measurements");
+        ((TabControl)measurementTab.Parent!).SelectedTab = measurementTab;
+        form.PerformLayout();
+        form.DrawToBitmap(bitmap, new System.Drawing.Rectangle(0, 0, form.Width, form.Height));
+        bitmap.Save(Path.Combine(artifactDirectory, "measurement-preview.png"));
     }
 
     private static void Check(bool value, string message) { if (!value) throw new InvalidOperationException(message); }

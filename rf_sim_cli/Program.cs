@@ -22,6 +22,32 @@ internal static class Program
     {
         try
         {
+            if (args.Length > 0 && args[0] == "--inspect-s2p")
+            {
+                if (args.Length != 2) throw new InvalidOperationException("Usage: --inspect-s2p FILE");
+                var measurement = TouchstoneImporter.Read(args[1]);
+                var phase = RfMath.GetUnwrappedS21PhaseRadians(measurement.Points);
+                var delay = RfMath.CalculateGroupDelayNs(measurement.Points);
+                WriteJson(new
+                {
+                    measurement.Source,
+                    measurement.ReferenceOhms,
+                    Count = measurement.Points.Count,
+                    Calibration = "Unknown",
+                    ReverseParameters = "Not used or certified as measured",
+                    BandMeanDelayNs = -(phase[^1] - phase[0]) / (2 * Math.PI * (measurement.Points[^1].FrequencyHz - measurement.Points[0].FrequencyHz)) * 1e9,
+                    Samples = measurement.Points.Select((point, index) => new
+                    {
+                        point.FrequencyHz,
+                        S11Db = RfMath.ToDbMagnitude(point.S11),
+                        S21Db = RfMath.ToDbMagnitude(point.S21),
+                        PhaseDegrees = phase[index] * 180 / Math.PI,
+                        DelayNs = delay[index],
+                        TransmissionNullCaution = point.S21.Magnitude < 1e-6
+                    })
+                });
+                return 0;
+            }
             var options = CliOptions.Parse(args);
             if (options.ShowHelp)
             {

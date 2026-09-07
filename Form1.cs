@@ -198,6 +198,9 @@ public partial class Form1 : Form
         var preview = new TabPage("Candidate Preview");
         preview.Controls.Add(BuildCandidatePreviewPanel());
         tabs.TabPages.Add(preview);
+        var measurements = new TabPage("Measurements");
+        measurements.Controls.Add(BuildMeasurementsPanel());
+        tabs.TabPages.Add(measurements);
         tabs.SelectedTab = manualTuningTab;
         return tabs;
     }
