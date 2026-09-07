@@ -1,5 +1,11 @@
 # Experimental NanoVNA-F V2 acquisition
 
+## Updated persistent connection workflow
+
+The UI now uses Open device → Measure → Close device. Open verifies the shell and holds the serial port. Measure is disabled while disconnected. Close cancels in-flight work, waits for the bounded serial operation to stop, then disposes the port. During that interval the status says Closing, not Disconnected. Completion after cancellation does not publish a measurement. Errors close the session and retain previous data. Application shutdown also releases the session. Disconnect detection happens during I/O; there is no continuous background hardware polling.
+
+Load calibration selects software correction before measurement; successful hardware scans use that captured calibration automatically. See saver_calibration.md. Open device offers to load calibration when none is selected. Imported measurements are never automatically corrected. The following paragraphs describe the original one-shot API, which is retained internally; its per-operation port release no longer describes the UI session.
+
 Measurements now includes a COM selector, Ports refresh, Check F V2, Measure sweep, Cancel, and Save measured S2P. Close Saver before opening the port. The profile must be selected knowingly for the F V2, not the unrelated V2+/SAA binary protocol. Model identity is not automatically verified.
 
 Check opens at 115200 baud, synchronizes the text shell, requests `version` and `help`, then releases the port. Acquisition requires advertised `scan` support. On user confirmation it issues 101-point `scan start stop 101` segments and reads `frequencies`, `data 0`, and `data 1`. Overlapping segment boundaries are removed. Requests support 101, 201, 301, 401, ... 10001 points, 50 kHz to 3 GHz, with 50-ohm reference. Returned grid and channel counts are checked before publishing the complete measurement. A failed/cancelled scan leaves the previous measurement intact.

@@ -27,6 +27,23 @@ internal static class WorkflowRegressionTests
             results.Add(new RegressionResult { Name = name, File = "workflow/" + name, Passed = failures.Count == 0, Failures = failures });
         }
 
+        Test("saver_calibration_ideal_and_double_application", () =>
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(path, "# Ideal standards\n1000000 -1 0 1 0 0 0 1 0 0 0 0 0\n20000000 -1 0 1 0 0 0 1 0 0 0 0 0\n");
+                var calibration = new SaverCalibration(path);
+                var original = new MeasuredSweep("test", 50, new[] { new SweepPoint(10e6, new Complex(0.1, -0.2), new Complex(0.7, 0.1)) });
+                var corrected = calibration.Apply(original);
+                Near((corrected.Points[0].S11 - original.Points[0].S11).Magnitude, 0, 1e-12);
+                Near((corrected.Points[0].S21 - original.Points[0].S21).Magnitude, 0, 1e-12);
+                Throws(() => calibration.Apply(corrected));
+                Throws(() => calibration.Apply(original with { ReferenceOhms = 75 }));
+            }
+            finally { File.Delete(path); }
+        });
+
         Test("nanovna_segment_validation", () =>
         {
             NanoVnaSerial.ValidateSweep(new FrequencyConfiguration(10, 20, 401, 50));

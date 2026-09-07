@@ -8,6 +8,7 @@ namespace RfSimulator;
 public partial class Form1
 {
     private MeasuredSweep? _measurement;
+    private MeasuredSweep? _beforeCalibration;
     private readonly TextBox _measurementInfo = new() { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill, ScrollBars = ScrollBars.Vertical };
     private readonly PlotView[] _measurementPlots = Enumerable.Range(0, 4).Select(_ => new PlotView { Dock = DockStyle.Fill }).ToArray();
 
@@ -24,11 +25,21 @@ public partial class Form1
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill };
         var import = new Button { Text = "Import measured S2P", AutoSize = true };
         var compare = new Button { Text = "Compare with current model snapshot", AutoSize = true };
+        var calibrate = new Button { Text = "Load calibration…", AutoSize = true };
+        var restore = new Button { Text = "Undo CAL", AutoSize = true };
+        calibrate.Click += (_, _) => SelectHardwareCalibration();
+        restore.Click += (_, _) =>
+        {
+            if (_nanoCancellation is not null) return;
+            if (_beforeCalibration is null) { MessageBox.Show(this, "No uncorrected hardware scan available."); return; }
+            _measurement = _beforeCalibration; _beforeCalibration = null; ShowMeasurement(false);
+        };
         import.Click += (_, _) =>
         {
+            if (_nanoCancellation is not null) { MessageBox.Show(this, "Wait for acquisition to finish."); return; }
             using var dialog = new OpenFileDialog { Filter = "Touchstone two-port (*.s2p)|*.s2p" };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
-            try { _measurement = TouchstoneImporter.Read(dialog.FileName); ShowMeasurement(false); }
+            try { _measurement = TouchstoneImporter.Read(dialog.FileName); _beforeCalibration = null; ShowMeasurement(false); }
             catch (Exception ex) { MessageBox.Show(this, ex.Message, "Measurement import failed"); }
         };
         compare.Click += (_, _) =>
@@ -36,7 +47,19 @@ public partial class Form1
             try { ShowMeasurement(true); }
             catch (Exception ex) { MessageBox.Show(this, ex.Message, "Measurement comparison failed"); }
         };
-        buttons.Controls.AddRange(new Control[] { import, compare });
+        var extras = new Button { Text = "Files / advanced…", AutoSize = true };
+        var menu = new ContextMenuStrip();
+        menu.Items.Add("Import measured S2P…", null, (_, _) => import.PerformClick());
+        menu.Items.Add("Show uncorrected last scan", null, (_, _) => restore.PerformClick());
+        menu.Items.Add("Disable CAL for future scans", null, (_, _) =>
+        {
+            if (_nanoCancellation is not null) return;
+            _selectedCalibration = null;
+            _calibrationStatus.Text = "Software calibration: OFF (existing measurement unchanged)";
+        });
+        extras.Click += (_, _) => menu.Show(extras, new System.Drawing.Point(0, extras.Height));
+        Disposed += (_, _) => { menu.Dispose(); import.Dispose(); restore.Dispose(); };
+        buttons.Controls.AddRange(new Control[] { calibrate, compare, extras });
         panel.Controls.Add(buttons, 0, 0); panel.SetColumnSpan(buttons, 2);
         var hardware = BuildNanoVnaPanel();
         panel.Controls.Add(hardware, 0, 1); panel.SetColumnSpan(hardware, 2);

@@ -7,7 +7,11 @@ public sealed record MeasuredSweep(string Source, double ReferenceOhms, IReadOnl
 
 public static class TouchstoneImporter
 {
-    public static MeasuredSweep Read(string path) => Parse(File.ReadAllText(path), Path.GetFullPath(path));
+    public static MeasuredSweep Read(string path)
+    {
+        var text = File.ReadAllText(path);
+        return Parse(text, (text.Contains("[Saver CAL applied]", StringComparison.Ordinal) ? "[Saver CAL applied] " : "") + Path.GetFullPath(path));
+    }
 
     public static MeasuredSweep Parse(string text, string source = "Touchstone")
     {

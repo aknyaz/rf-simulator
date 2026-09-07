@@ -9,6 +9,27 @@ namespace RfSimulator;
 
 public static class NanoVnaSerial
 {
+    public sealed class Session : IDisposable
+    {
+        private readonly SerialPort _port;
+        public string Description { get; }
+        public bool IsOpen => _port.IsOpen;
+        public Session(string name, CancellationToken cancellation)
+        {
+            _port = Open(name);
+            try
+            {
+                Synchronize(_port, cancellation);
+                var version = Command(_port, "version", cancellation);
+                if (!HasScan(Command(_port, "help", cancellation))) throw new InvalidOperationException("Firmware does not advertise scan.");
+                Description = $"{name} | firmware {string.Join(" ", version)} | F V2 profile";
+            }
+            catch { _port.Dispose(); throw; }
+        }
+        public MeasuredSweep Measure(FrequencyConfiguration frequency, CancellationToken cancellation, IProgress<string>? progress) =>
+            AcquirePort(_port, frequency, cancellation, progress);
+        public void Dispose() => _port.Dispose();
+    }
     public static string Probe(string portName, CancellationToken cancellation)
     {
         using var port = Open(portName);
@@ -37,6 +58,12 @@ public static class NanoVnaSerial
         Synchronize(port, cancellation);
         if (!HasScan(Command(port, "help", cancellation)))
             throw new InvalidOperationException("This firmware does not advertise scan. No sweep settings were sent.");
+        return AcquirePort(port, frequency, cancellation, progress);
+    }
+
+    private static MeasuredSweep AcquirePort(SerialPort port, FrequencyConfiguration frequency, CancellationToken cancellation, IProgress<string>? progress)
+    {
+        ValidateSweep(frequency);
         var points = new List<SweepPoint>();
         var segments = (frequency.Points - 1) / 100;
         for (var segment = 0; segment < segments; segment++)
@@ -54,7 +81,7 @@ public static class NanoVnaSerial
             var part = ParseSegment(frequencies, channel0, channel1, start, stop);
             points.AddRange(segment == 0 ? part : part.Skip(1));
         }
-        return new MeasuredSweep($"NanoVNA F V2 profile | {portName} | {DateTimeOffset.Now:O} | calibration unverified", 50, points.AsReadOnly());
+        return new MeasuredSweep($"NanoVNA F V2 profile | {port.PortName} | {DateTimeOffset.Now:O} | device calibration unverified", 50, points.AsReadOnly());
     }
 
     public static IReadOnlyList<SweepPoint> ParseSegment(IReadOnlyList<string> frequencies, IReadOnlyList<string> channel0, IReadOnlyList<string> channel1, long start, long stop)

@@ -24,8 +24,9 @@ internal static class Program
         {
             if (args.Length > 0 && args[0] == "--inspect-s2p")
             {
-                if (args.Length != 2) throw new InvalidOperationException("Usage: --inspect-s2p FILE");
+                if (args.Length != 2 && args.Length != 3) throw new InvalidOperationException("Usage: --inspect-s2p FILE [SAVER_CAL_FILE]");
                 var measurement = TouchstoneImporter.Read(args[1]);
+                if (args.Length == 3) measurement = new SaverCalibration(args[2]).Apply(measurement);
                 var phase = RfMath.GetUnwrappedS21PhaseRadians(measurement.Points);
                 var delay = RfMath.CalculateGroupDelayNs(measurement.Points);
                 WriteJson(new
