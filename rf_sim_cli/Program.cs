@@ -22,6 +22,17 @@ internal static class Program
     {
         try
         {
+            if (args.Length > 0 && args[0] == "--tuning-wait")
+            {
+                if (args.Length is < 3 or > 4) throw new InvalidOperationException("Usage: --tuning-wait SESSION_FOLDER STEP_ID [SECONDS, default 600]");
+                var seconds = args.Length == 4 ? int.Parse(args[3], CultureInfo.InvariantCulture) : 600;
+                using var cancellation = new CancellationTokenSource();
+                ConsoleCancelEventHandler handler = (_, eventArgs) => { eventArgs.Cancel = true; cancellation.Cancel(); };
+                Console.CancelKeyPress += handler;
+                try { Console.WriteLine(TuningExchange.WaitAsync(args[1], args[2], TimeSpan.FromSeconds(seconds), cancellation.Token).GetAwaiter().GetResult()); }
+                finally { Console.CancelKeyPress -= handler; }
+                return 0;
+            }
             if (args.Length > 0 && args[0] == "--tuning-submit")
             {
                 if (args.Length != 3) throw new InvalidOperationException("Usage: --tuning-submit SESSION_FOLDER INSTRUCTION");

@@ -44,7 +44,20 @@ internal static class WorkflowRegressionTests
                 var queuedRejected = false;
                 try { TuningExchange.Submit(directory, "Second"); } catch (IOException) { queuedRejected = true; }
                 Check(queuedRejected, "Pending command overwritten");
+                var waiting = TuningExchange.WaitAsync(directory, id, TimeSpan.FromSeconds(5));
+                Check(TuningExchange.HasObserver(directory, id), "Observer heartbeat missing");
+                Check(!waiting.IsCompleted, "Wait completed before result");
                 TuningExchange.Result(step, "skipped", "No measurement");
+                Check(waiting.GetAwaiter().GetResult().Contains("skipped"), "Wait did not deliver result");
+                Check(!TuningExchange.HasObserver(directory, id), "Observer left behind");
+                var timeout = TuningExchange.WaitAsync(directory, Guid.NewGuid().ToString("N"), TimeSpan.FromMilliseconds(20)).GetAwaiter().GetResult();
+                Check(timeout.Contains("wait_timeout"), "Timeout not reported");
+                using var cancelled = new CancellationTokenSource();
+                cancelled.Cancel();
+                var didCancel = false;
+                try { TuningExchange.WaitAsync(directory, id, TimeSpan.FromSeconds(1), cancelled.Token).GetAwaiter().GetResult(); }
+                catch (OperationCanceledException) { didCancel = true; }
+                Check(didCancel && !TuningExchange.HasObserver(directory, id), "Cancellation did not clean up");
                 Check(File.ReadAllText(Path.Combine(step, "result.json")).Contains("skipped"), "Result missing");
                 Throws(() => TuningExchange.ValidateId("../escape"));
             }

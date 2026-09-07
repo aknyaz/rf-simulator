@@ -1,5 +1,9 @@
 # Guided tuning, local file protocol v1
 
+## Active result waiting
+
+After submitting, the assistant must call `--tuning-wait` with the returned ID and keep its tool operation active. It returns the terminal result JSON without another user message. Default timeout is 600 seconds, maximum 3600; timeout does not cancel the measurement and the same ID can be waited on again. Ctrl+C stops only the observer. The GUI displays whether a recent observer heartbeat exists, not whether an AI has actually analyzed the result. Heartbeats expire after three seconds if the observer exits unexpectedly. This is active local waiting, not automatic chat wakeup after the assistant ends its turn. Stopped/crashed sessions without terminal results eventually time out.
+
 Open the NanoVNA and load calibration in Measurements, then Start guided session. Choose a parent directory: the GUI creates and displays a unique session folder. Starting requires confirmation that Done triggers RF acquisition. Start does not adjust any component or run a scan. Instructions are plain text, never executable code.
 
 Send one instruction from the CLI:
@@ -7,6 +11,7 @@ Send one instruction from the CLI:
 ```
 rf_sim_cli --tuning-submit SESSION_FOLDER "Baseline: leave all components unchanged; remove tool and click Done."
 rf_sim_cli --tuning-status SESSION_FOLDER STEP_ID
+rf_sim_cli --tuning-wait SESSION_FOLDER STEP_ID 600
 ```
 
 Submit returns the new step ID. The GUI polls only while the user-enabled session is active. It displays the instruction and waits for Done — measure, Skip, or Stop session. Done uses the shared settings captured at click time and the selected calibration; acquisition and calibration coverage are validated before starting. Hardware scans use the same exclusively owned serial session as manual measurement. No second COM connection is opened.

@@ -16,6 +16,7 @@ public partial class Form1
         var done = new Button { Text = "Done — measure", AutoSize = true, Enabled = false };
         var skip = new Button { Text = "Skip", AutoSize = true, Enabled = false };
         var stop = new Button { Text = "Stop session", AutoSize = true, Enabled = false };
+        var observerStatus = new Label { AutoSize = true, Text = "Result observer: not connected (does not wake a chat automatically)." };
         var instruction = new TextBox { ReadOnly = true, Multiline = true, Width = 850, Height = 55, Text = "Guided tuning: start a session to receive local instructions. Measurement requires your Done click." };
         var timer = new System.Windows.Forms.Timer { Interval = 500 };
         void Finish(string state, string detail, object? metadata = null)
@@ -58,6 +59,13 @@ public partial class Form1
         };
         timer.Tick += (_, _) =>
         {
+            if (_tuningDirectory is not null)
+            {
+                try { observerStatus.Text = TuningExchange.HasObserver(_tuningDirectory, _tuningInstruction?.Id)
+                    ? "Result observer: actively waiting for completion."
+                    : "Result observer: not waiting. Files are saved, but automatic analysis is not active."; }
+                catch (IOException) { observerStatus.Text = "Result observer: session folder unavailable."; }
+            }
             if (_tuningDirectory is null || _tuningInstruction is not null || _nanoCancellation is not null) return;
             try
             {
@@ -138,7 +146,7 @@ public partial class Form1
         };
         FormClosing += (_, _) => { timer.Stop(); _tuningStopped = true; };
         Disposed += (_, _) => timer.Dispose();
-        panel.Controls.AddRange(new Control[] { start, done, skip, stop, instruction });
+        panel.Controls.AddRange(new Control[] { start, done, skip, stop, instruction, observerStatus });
         return panel;
     }
 }
