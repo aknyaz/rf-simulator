@@ -14,11 +14,12 @@ public partial class Form1
 
     private Control BuildMeasurementsPanel()
     {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6 };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 85));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 115));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
@@ -63,8 +64,10 @@ public partial class Form1
         panel.Controls.Add(buttons, 0, 0); panel.SetColumnSpan(buttons, 2);
         var hardware = BuildNanoVnaPanel();
         panel.Controls.Add(hardware, 0, 1); panel.SetColumnSpan(hardware, 2);
-        panel.Controls.Add(_measurementInfo, 0, 2); panel.SetColumnSpan(_measurementInfo, 2);
-        for (var index = 0; index < 4; index++) panel.Controls.Add(_measurementPlots[index], index % 2, 3 + index / 2);
+        var guided = BuildGuidedTuningPanel();
+        panel.Controls.Add(guided, 0, 2); panel.SetColumnSpan(guided, 2);
+        panel.Controls.Add(_measurementInfo, 0, 3); panel.SetColumnSpan(_measurementInfo, 2);
+        for (var index = 0; index < 4; index++) panel.Controls.Add(_measurementPlots[index], index % 2, 4 + index / 2);
         _measurementInfo.Text = "Import a measured S2P file. Circuit and shared simulation settings remain unchanged. No instrument connection is opened.";
         return panel;
     }

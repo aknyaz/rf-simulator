@@ -22,6 +22,20 @@ internal static class Program
     {
         try
         {
+            if (args.Length > 0 && args[0] == "--tuning-submit")
+            {
+                if (args.Length != 3) throw new InvalidOperationException("Usage: --tuning-submit SESSION_FOLDER INSTRUCTION");
+                WriteJson(new { id = TuningExchange.Submit(args[1], args[2]) });
+                return 0;
+            }
+            if (args.Length > 0 && args[0] == "--tuning-status")
+            {
+                if (args.Length != 3) throw new InvalidOperationException("Usage: --tuning-status SESSION_FOLDER STEP_ID");
+                TuningExchange.ValidateId(args[2]);
+                var resultPath = Path.Combine(args[1], args[2], "result.json");
+                Console.WriteLine(File.Exists(resultPath) ? File.ReadAllText(resultPath) : "{\"state\":\"queued\"}");
+                return 0;
+            }
             if (args.Length > 0 && args[0] == "--inspect-s2p")
             {
                 if (args.Length != 2 && args.Length != 3) throw new InvalidOperationException("Usage: --inspect-s2p FILE [SAVER_CAL_FILE]");

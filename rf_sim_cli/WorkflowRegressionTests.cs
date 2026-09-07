@@ -27,6 +27,30 @@ internal static class WorkflowRegressionTests
             results.Add(new RegressionResult { Name = name, File = "workflow/" + name, Passed = failures.Count == 0, Failures = failures });
         }
 
+        Test("guided_exchange_no_duplicate_or_overwrite", () =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "rf-guided-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                File.WriteAllText(Path.Combine(directory, "session.json"), "{}");
+                var id = TuningExchange.Submit(directory, "Baseline: do not adjust anything.");
+                var command = TuningExchange.Read(directory)!;
+                Check(command.Id == id, "Command changed");
+                var step = TuningExchange.Claim(directory, command);
+                var duplicateRejected = false;
+                try { TuningExchange.Claim(directory, command); } catch (IOException) { duplicateRejected = true; }
+                Check(duplicateRejected, "Duplicate step accepted");
+                var queuedRejected = false;
+                try { TuningExchange.Submit(directory, "Second"); } catch (IOException) { queuedRejected = true; }
+                Check(queuedRejected, "Pending command overwritten");
+                TuningExchange.Result(step, "skipped", "No measurement");
+                Check(File.ReadAllText(Path.Combine(step, "result.json")).Contains("skipped"), "Result missing");
+                Throws(() => TuningExchange.ValidateId("../escape"));
+            }
+            finally { Directory.Delete(directory, true); }
+        });
+
         Test("saver_calibration_ideal_and_double_application", () =>
         {
             var path = Path.GetTempFileName();

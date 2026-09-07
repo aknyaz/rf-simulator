@@ -7,6 +7,7 @@ public partial class Form1
 {
     private CancellationTokenSource? _nanoCancellation;
     private NanoVnaSerial.Session? _nanoSession;
+    private Action? _refreshNanoControls;
     private SaverCalibration? _selectedCalibration;
     private readonly Label _calibrationStatus = new() { AutoSize = true, Text = "Software calibration: OFF" };
 
@@ -42,6 +43,11 @@ public partial class Form1
             acquire.Enabled = !busy && connected;
             cancel.Enabled = busy || connected;
         }
+        _refreshNanoControls = () =>
+        {
+            UpdateButtons();
+            status.Text = _nanoCancellation is not null ? "Measuring guided step…" : _nanoSession is null ? "Disconnected — port released." : "Connected: " + _nanoSession.Description + ". Port held until Close device.";
+        };
         void Disconnect()
         {
             if (_nanoCancellation is not null)
