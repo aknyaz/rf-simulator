@@ -1,0 +1,93 @@
+{
+  "StartMHz": 10,
+  "StopMHz": 20,
+  "Points": 401,
+  "Z0": 50,
+  "Structure": [
+    {
+      "Type": "SeriesL",
+      "Value": 1E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 5.1E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.0088205277737279E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 5.190054869684499E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.033999125236915E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 5.44636488340192E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.0736113136025659E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 5.848148148148147E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.1257326140836857E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 6.374622770919066E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.1884385478932789E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 7.005006858710562E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.2598046362443505E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 7.718518518518518E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.337906400349905E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 8.494375857338819E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.4208193614229478E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 9.311796982167352E-11
+    },
+    {
+      "Type": "SeriesL",
+      "Value": 1.5066190406764834E-07
+    },
+    {
+      "Type": "ShuntC",
+      "Value": 1.0149999999999999E-10
+    }
+  ],
+  "CircuitId": "0E0F1A03FE47D1C2C37E1285A61738D43359B4F9131DAA0FFBDE91DE9C0FD7F1",
+  "Revision": 14,
+  "LockedIndices": [],
+  "ManualMarkerMHz": null,
+  "CellSpacingMm": 5
+}
