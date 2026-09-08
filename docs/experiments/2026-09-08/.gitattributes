@@ -1,0 +1,2 @@
+# Preserve archived measurement bytes for SHA-256 verification across checkouts.
+evidence/** -text whitespace=cr-at-eol

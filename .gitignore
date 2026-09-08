@@ -25,6 +25,9 @@ TestResults/
 # Logs
 *.log
 
+# Generated guided-tuning sessions
+/tuning-*/
+
 # OS files
 Thumbs.db
 .DS_Store

@@ -1,0 +1,23 @@
+{
+  "state": "complete",
+  "detail": "Measurement saved. Awaiting external analysis; no automatic recommendation.",
+  "timestamp": "2026-09-08T11:10:58.2388356-04:00",
+  "metadata": {
+    "frequency": {
+      "StartMHz": 5,
+      "StopMHz": 50,
+      "Points": 401,
+      "Z0": 50,
+      "StartHz": 5000000,
+      "StopHz": 50000000,
+      "MidpointMHz": 27.5
+    },
+    "calibration": "C:\\Users\\aknya\\MyProjects\\rf-simulator\\calibration2.cal",
+    "device": "COM3 | firmware 0.6.0 | F V2 profile",
+    "rawFile": "raw.s2p",
+    "correctedFile": "corrected.s2p",
+    "worstS11Db": -0.1670439074299818,
+    "worstS21Db": -53.801388560061135,
+    "bandMeanDelayNs": 85.05052984818185
+  }
+}
