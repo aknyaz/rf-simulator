@@ -252,6 +252,9 @@ for i,s in enumerate(steps,1):
     if 'error' in s:
         report+=f" · [Corrected sweep](evidence/{s['id']}/corrected.s2p) · [Raw sweep](evidence/{s['id']}/raw.s2p)"
     report+='\n\n'
+addendum = OUT/'screenshot-addendum.md'
+if addendum.exists():
+    report = report.replace('## Complete chronological adjustment record', addendum.read_text(encoding='utf-8').rstrip()+'\n\n## Complete chronological adjustment record', 1)
 (OUT/'report.md').write_text(report.rstrip()+'\n',encoding='utf-8')
 with (OUT/'evidence_sha256.csv').open('w',newline='',encoding='utf-8') as stream:
     writer=csv.writer(stream);writer.writerow(['file','bytes','sha256'])
