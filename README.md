@@ -4,6 +4,10 @@ A Windows desktop application and command-line toolkit for simulating, optimizin
 
 The research objective is to obtain a large electrical length in a short physical structure: increased phase accumulation and reduced effective wavelength with controlled reflection, loss, and dispersion. The LC ladder is a one-dimensional electrical analogue of a future graded medium interacting with an electrically small radiator.
 
+![RF simulator showing the ten-coil, nine-capacitor model with S21 phase, group delay, S-parameters, and interactive component controls](docs/images/simulator-phase-delay.png)
+
+*Desktop simulation of the [ten-coil, nine-capacitor example](board-10-cells-gentle-gradient-9%20capacitors.json) over 10–20 MHz. The live plots show transmission phase, group delay, reflection, and transmission magnitude. These are calculated model responses, not hardware measurements. To reproduce this view, load the example, select **Run Simulation**, and open **Manual RF Tuning → Live S-Parameters**.*
+
 ## Capabilities
 
 - Calculate two-port S-parameters using cascaded ABCD matrices for series and shunt L, C, and R elements.
@@ -60,6 +64,10 @@ The root launcher builds and runs the CLI through `dotnet run`:
 Analysis commands return exit code `0` when their pass flags pass and `2` when analysis completes but thresholds fail. See the [CLI guide](docs/rf_sim_cli.md) for optimization, incremental synthesis, refinement, and output formats.
 
 ## Physical tuning workflow
+
+![Assembled RF LC prototype board with ten adjustable coils and nine trimmer capacitors on a blue work mat](docs/images/assembled-board-retouched.png)
+
+*The assembled prototype. AI-assisted retouching of the project photograph removes background clutter and improves framing; fine visual details may differ from the original. This image illustrates the hardware, while the archived measurement files document its measured response.*
 
 Open the device and load the appropriate calibration in **Measurements**, then start a guided session. An external assistant submits one plain-text adjustment instruction to the displayed session folder. The operator makes the adjustment, removes the tool, and clicks **Done — measure**. The application acquires and saves the measurement; the assistant reads the result, compares it with the baseline and target, and chooses the next instruction.
 

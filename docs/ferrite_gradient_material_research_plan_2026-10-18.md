@@ -1,28 +1,28 @@
-# План исследования градиентной магнитодиэлектрической среды
+# Gradient Magnetodielectric Medium Research Plan
 
-Дата: 2026-10-18. Проект: Small Antenna / Gradient Artificial Medium with Embedded Radiator.
+Date: 2026-10-18. Project: Small Antenna / Gradient Artificial Medium with Embedded Radiator.
 
-## Цель и границы
+## Objective and scope
 
-Получить воспроизводимые образцы с управляемыми комплексными относительными проницаемостями εr(f) и μr(f), затем проверить послойный профиль и распространение волны. Механическое давление — отдельный завершающий эксперимент; его нельзя считать подтверждённым по задержке или КСВ.
+Produce reproducible samples with controllable complex relative permittivity εr(f) and permeability μr(f), then evaluate the layer-by-layer profile and wave propagation. Mechanical pressure is a separate, final experiment; delay or SWR measurements cannot establish it.
 
-10–12 МГц не являются целевой частотой. Предпочтительное начальное окно исследования — 0,5–1 МГц, с измерениями ниже и выше него, насколько позволяет выбранный метод. Частоту окончательно выбираем по свойствам образца, потерям и разрешению измерений. Большая начальная μ сама по себе не критерий выбора.
+10–12 MHz is not the target frequency range. The preferred initial research window is 0.5–1 MHz, with measurements below and above it as far as the selected method allows. The final frequency will be selected based on sample properties, losses, and measurement resolution. High initial permeability alone is not a selection criterion.
 
-Это план исследований, не утверждённая закупка и не проверенная рецептура. Запросы поставщикам не отправлялись. Наличие товара, минимальная партия, цена, доставка и доступность технической поддержки специализированных поставщиков требуют подтверждения.
+This is a research plan, not an approved purchase or a validated formulation. No supplier inquiries have been sent. Stock, minimum order quantities, prices, shipping, and the availability of technical support from specialist suppliers require confirmation.
 
-## 1. Проверенные направления поставки
+## 1. Reviewed supply options
 
-Проверены официальные страницы, перечисленные ниже. Наличие каталога означает, что поставщик предлагает соответствующий класс материалов; пригодность для нашей задачи ещё не подтверждена.
+The official pages listed below were reviewed. A catalog listing means that the supplier offers the relevant material class; suitability for this project has not yet been confirmed.
 
-| Поставщик | Подтверждённое предложение | Что нужно выяснить |
+| Supplier | Confirmed offering | Questions to resolve |
 |---|---|---|
-| Powder Processing & Technology, США | NiZn(Cu): ready-to-press с органическими добавками; низкотемпературная серия LSF; полностью спечённые loading powders для полимерных смол | Конкретные марки для 0,1–5 МГц, комплексные μ/ε образца, доступность малых проб, рецептуры и режимы |
-| Steward Advanced Materials, США | В опубликованном TDS указан MnZn loading powder 73399 для смол; возможны вариации состава и размеров частиц | Сохраняется ли поставка, доступны ли малые партии, параметры μ/ε и потерь; материал ориентирован на EMI-поглощение, пригодность для малопотерной среды не установлена |
-| NMD Metalpowders, Германия | NiZn ferrite powder, item 3244, поставка по запросу; публичное позиционирование выше 10 МГц | Данные на более низких частотах, марки, минимальная партия, измерительная методика; численных μ/ε на странице нет |
-| TODA Materials, Южная Корея | Серии MnZn порошков, включая материалы для сердечников и спечённые измельчённые порошки для композитов | Доступность лабораторных проб; какие таблицы относятся к спечённым сердечникам, а какие к композитам; комплексная ε |
-| Fair-Rite, США | Готовые спечённые порошки 68/77, в том числе образцы 100 г | Данные по порошкам и рекомендованным композитам; прежние μi=16/2000 относятся к стандартным цельным образцам, не к смеси |
+| Powder Processing & Technology, USA | NiZn(Cu): ready-to-press powders with organic additives; low-temperature LSF series; fully sintered loading powders for polymer resins | Specific grades for 0.1–5 MHz, complex sample μ/ε, availability of small samples, formulations and processing conditions |
+| Steward Advanced Materials, USA | The published TDS lists MnZn loading powder 73399 for resins; composition and particle-size variations are possible | Continued availability, small quantities, μ/ε and loss parameters; the material targets EMI absorption, and suitability for a low-loss medium is not established |
+| NMD Metalpowders, Germany | NiZn ferrite powder, item 3244, supplied on request; publicly positioned for frequencies above 10 MHz | Lower-frequency data, grades, minimum order quantity, measurement method; the page provides no numerical μ/ε values |
+| TODA Materials, South Korea | MnZn powder series, including core materials and sintered, milled powders for composites | Availability of laboratory samples; which tables describe sintered cores versus composites; complex ε |
+| Fair-Rite, USA | Sintered powders 68/77, including 100 g samples | Data for powders and recommended composites; previously cited μi=16/2000 values apply to standard solid samples, not a mixture |
 
-Источники:
+Sources:
 
 - https://www.pptechnology.com/soft-ferrite-powders
 - https://www.stewardmaterials.com/wp-content/uploads/Steward-Ceramic-Materials-Technical-Data-Sheet-1.pdf
@@ -31,98 +31,98 @@
 - https://fair-rite.com/product/sintered-ferrite-powder-0pm68sp100s/
 - https://fair-rite.com/product/sintered-ferrite-powder-0pm77sp100s/
 
-Первая очередь технического запроса: PPT и Fair-Rite; Steward — дополнительный кандидат для обсуждения свойств наполнителя. NMD и TODA — резервные направления. Это приоритет по соответствию опубликованного предложения, не рейтинг качества.
+First priorities for technical inquiries: PPT and Fair-Rite; Steward is an additional candidate for discussing filler properties. NMD and TODA are backup options. This priority reflects the relevance of their published offerings, not a quality ranking.
 
-## 2. Сначала выбрать технологическую ветку
+## 2. Select the processing route first
 
-### А. Ферритополимерный композит — рекомендуемая первая ветка
+### A. Ferrite-polymer composite — recommended initial route
 
-Готовый ферритовый наполнитель смешивается с известным связующим, формуется и отверждается по режиму связующего. Это не спекание. Цель — получить небольшие однородные образцы и измерить их свойства при разных объёмных концентрациях. Свойства связующего, пористость, осаждение частиц и контакт с электродами входят в эксперимент.
+A prepared ferrite filler is mixed with a characterized binder, molded, and cured according to the binder's specified schedule. This is not sintering. The aim is to produce small, homogeneous samples and measure their properties at different volume fractions. Binder properties, porosity, particle settling, and electrode contact are part of the experiment.
 
-PPT прямо предлагает полностью спечённые NiZn(Cu) loading powders для полимерных смол. Наличие такого процесса не гарантирует равенства μ и ε или малых потерь; это проверяется на полученном композите.
+PPT explicitly offers fully sintered NiZn(Cu) loading powders for polymer resins. The availability of this process does not guarantee equal μ and ε or low losses; these must be checked in the resulting composite.
 
-### Б. Спечённая керамика — отдельная последующая ветка
+### B. Sintered ceramics — a separate, subsequent route
 
-Прессование и спекание требует подходящего для этого порошка, удаления временного связующего, температурного цикла и, в зависимости от состава, управления атмосферой. Нельзя считать, что любой loading powder подходит для повторного спекания.
+Pressing and sintering require a suitable powder, removal of the temporary binder, a thermal cycle, and, depending on composition, atmosphere control. Do not assume that every loading powder is suitable for resintering.
 
-В описании типового производства Ferroxcube приведены температуры 1150–1300 °C, усадка до 20% по линейным размерам и контроль атмосферы. Это иллюстрация масштаба процесса, НЕ рецепт для наших порошков. У PPT имеются и специальные низкотемпературные серии; их режимы следует получать от производителя.
+Ferroxcube's description of typical manufacturing specifies temperatures of 1150–1300 °C, linear shrinkage of up to 20%, and atmosphere control. This illustrates the scale of the process; it is NOT a recipe for our powders. PPT also offers special low-temperature series; their processing conditions should be obtained from the manufacturer.
 
-Источник: https://www.ferroxcube.com/en-global/download/download/11
+Source: https://www.ferroxcube.com/en-global/download/download/11
 
-Не покупать печь до выбора состава и получения технологической карты. Первые керамические образцы целесообразно заказать у изготовителя или сделать с лабораторией. Первые слои лучше изготовить отдельно и собрать механически: совместное спекание добавляет вопросы разной усадки, трещин, межслойной диффузии и сохранения градиента.
+Do not buy a furnace before selecting the composition and obtaining a process specification. It is advisable to order the first ceramic samples from a manufacturer or produce them with a laboratory. The first layers are best manufactured separately and assembled mechanically: co-sintering adds concerns about differential shrinkage, cracking, interlayer diffusion, and preservation of the gradient.
 
-## 3. Этапы и условия перехода
+## 3. Stages and progression criteria
 
-| Этап | Работа | Результат / условие перехода |
+| Stage | Work | Result / progression criterion |
 |---|---|---|
-| 0. Требования | Зафиксировать геометрию будущего испытания, диапазон, цель по замедлению, допустимый размер/потери | Одностраничное техническое задание; численные пределы потерь и рассогласования выбираются под эксперимент |
-| 1. Данные поставщиков | Сопоставить марки, состояние порошка и данные измеренных образцов | Таблица 2–3 кандидатов, известные и отсутствующие параметры; список неизвестного не скрывается |
-| 2. Проверка измерений | Подготовить оснастки, измерить воздух, связующее и контрольные материалы | Оценены повторяемость, паразитные эффекты и разрешение; понятен предел различимости |
-| 3. Однородные образцы | Не более двух порошков; по три воспроизводимые концентрации плюс связующее без порошка | Геометрия, плотность, состав и комплексные свойства каждого образца зарегистрированы |
-| 4. Отбор | Проверить μ′, μ″, ε′, ε″ и их зависимость от частоты | Найдено полезное окно либо честно установлено, что кандидаты не подходят |
-| 5. Три слоя | Собрать из измеренных составов ступенчатый профиль в определённом направлении | Проверено отличие от однородного контроля и расчёта с учётом всех интерфейсов |
-| 6. Выбор изготовления | Сопоставить композит с данными доступной керамики | Решение продолжать композит или заказать спечённые образцы; печь не обязательна |
-| 7. Силовая модель и опыт | Рассчитать силы на всех частях и ожидаемый сигнал, подготовить контроль артефактов | Отдельное механическое измерение; увеличение силы и суммарная тяга всей установки различаются |
+| 0. Requirements | Define the future test geometry, frequency range, slowdown target, and acceptable size/losses | One-page technical specification; numerical loss and mismatch limits selected for the experiment |
+| 1. Supplier data | Compare grades, powder states, and measured sample data | Table of 2–3 candidates with known and missing parameters; unknowns are explicitly listed |
+| 2. Measurement validation | Prepare fixtures and measure air, binder, and reference materials | Repeatability, parasitic effects, and resolution assessed; detection limit understood |
+| 3. Homogeneous samples | No more than two powders; three reproducible volume fractions each, plus unfilled binder | Geometry, density, composition, and complex properties recorded for every sample |
+| 4. Selection | Check μ′, μ″, ε′, ε″ and their frequency dependence | A useful window identified, or an honest finding that the candidates are unsuitable |
+| 5. Three layers | Assemble a stepped profile in a defined direction using measured formulations | Differences from a homogeneous control and from calculations accounting for all interfaces evaluated |
+| 6. Manufacturing choice | Compare the composite with available ceramic data | Decision to continue with the composite or order sintered samples; a furnace is not required |
+| 7. Force model and experiment | Calculate forces on all parts and the expected signal; prepare artifact controls | Separate mechanical measurement; force enhancement distinguished from net thrust of the entire setup |
 
-У каждого этапа есть измеримый результат. Повторные общие сканы платы не заменяют эти результаты. Существующую плату и симулятор на этом этапе не перенастраивать.
+Each stage has a measurable result. Repeated general board sweeps do not replace these results. Do not retune the existing board or simulator at this stage.
 
-## 4. Что запросить у поставщиков
+## 4. Information to request from suppliers
 
-Запрос должен описывать лабораторное исследование среды, а не EMI-поглотитель: желательны большая действительная магнитная/электрическая реакция, контролируемое их отношение и небольшие потери. Запрашиваем данные по частоте вокруг 0,5–1 МГц, желательно 0,1–5 МГц, без жёсткой привязки к этому диапазону.
+The inquiry should describe laboratory research into a medium, rather than an EMI absorber: high real magnetic/electric response, a controllable ratio between them, and low losses are desirable. Request frequency-dependent data around 0.5–1 MHz, preferably 0.1–5 MHz, without treating this range as a rigid requirement.
 
-1. Точная марка, состав/семейство (MnZn, NiZn, NiZnCu), номер партии, текущее состояние: прекурсор, кальцинированный, полностью спечённый измельчённый или ready-to-press.
-2. μ′(f), μ″(f), ε′(f), ε″(f). Указать, к чему относятся числа: цельная керамика, уплотнённый порошок или композит.
-3. Метод измерения, геометрия, температура, уровень возбуждения, наличие подмагничивания, плотность, пористость и неопределённость.
-4. Для композита: связующее, его характеристики, объёмная доля феррита и режим отверждения. Массовая и объёмная доли не взаимозаменяемы.
-5. Распределение частиц d10/d50/d90, истинная и насыпная/уплотнённая плотности, покрытие, влага, SDS и сертификат анализа.
-6. Для керамической ветки: пригодность к прессованию, рекомендуемые давление/связующее, удаление органики, температура/выдержка/атмосфера/охлаждение, усадка и допустимость совместного обжига разных марок.
-7. Размер пробы, минимальная партия, стоимость, срок поставки, возможность готовых контрольных образцов или измерений как услуги.
+1. Exact grade, composition/family (MnZn, NiZn, NiZnCu), batch number, and current state: precursor, calcined, fully sintered and milled, or ready-to-press.
+2. μ′(f), μ″(f), ε′(f), ε″(f). Specify whether the values describe solid ceramics, compacted powder, or a composite.
+3. Measurement method, geometry, temperature, excitation level, magnetic bias, density, porosity, and uncertainty.
+4. For composites: binder, its properties, ferrite volume fraction, and curing schedule. Mass and volume fractions are not interchangeable.
+5. Particle-size distribution d10/d50/d90, true and bulk/compacted densities, coating, moisture, SDS, and certificate of analysis.
+6. For the ceramic route: suitability for pressing, recommended pressure/binder, organic removal, temperature/dwell time/atmosphere/cooling, shrinkage, and whether different grades can be co-fired.
+7. Sample size, minimum order quantity, cost, lead time, and availability of prepared reference samples or measurement services.
 
-Недостающая ε не доказывает непригодность, но запрещает объявлять материал изоимпедансным. Если поставщик не имеет данных, проба может быть куплена как заведомо исследовательская после подготовки методики измерения.
+Missing ε data do not prove unsuitability, but they rule out claiming that the material is impedance-matched. If the supplier has no data, a sample may be purchased explicitly for exploratory research after a measurement procedure has been prepared.
 
-## 5. Измерительная стратегия на низких частотах
+## 5. Low-frequency measurement strategy
 
-На 0,5–1 МГц целесообразно разделить магнитное и электрическое измерения:
+At 0.5–1 MHz, it is advisable to separate magnetic and electric measurements:
 
-- μ: кольцевой образец и индуктивная оснастка; учитывать сопротивление проводника, паразитную ёмкость, уровень поля и геометрию.
-- ε: плоский образец между электродами с известной площадью/толщиной; учитывать зазоры, краевые поля, проводимость, контакт и при необходимости охранные электроды.
-- Прибор: LCR/анализатор импеданса, покрывающий выбранные частоты и нужные импедансы/потери, либо внешняя лаборатория. Низкочастотный LCR на фиксированных 1–100 кГц не автоматически подходит для 1 МГц.
-- NanoVNA: возможен для предварительных импедансных проверок и последующего испытания линии, но его достаточность для извлечения четырёх свойств маленького образца надо проверить. Одного хорошего КСВ недостаточно.
+- μ: a toroidal sample and inductive fixture; account for conductor resistance, parasitic capacitance, field level, and geometry.
+- ε: a flat sample between electrodes with known area/thickness; account for gaps, fringing fields, conductivity, contact, and guard electrodes where needed.
+- Instrument: an LCR/impedance analyzer covering the selected frequencies and required impedance/loss ranges, or an external laboratory. A low-frequency LCR meter with fixed 1–100 kHz settings is not automatically suitable for 1 MHz.
+- NanoVNA: potentially useful for preliminary impedance checks and subsequent line testing, but its adequacy for extracting all four properties of a small sample must be verified. Good SWR alone is insufficient.
 
-Пример оценки разрешения, не прогноз для порошка: при длине образца 20 мм и недисперсионном n=10 дополнительная фаза относительно воздуха на 1 МГц составляет лишь около 0,216°. Поэтому прямое извлечение параметров по передаче короткого образца может быть плохо обусловлено. Калибровка и повторяемость должны различать ожидаемый эффект до закупки прибора.
+Resolution example, not a prediction for the powder: for a 20 mm sample length and nondispersive n=10, the additional phase relative to air at 1 MHz is only about 0.216°. Direct parameter extraction from transmission through a short sample may therefore be ill-conditioned. Before purchasing an instrument, establish that calibration and repeatability can resolve the expected effect.
 
-Методы параллельных пластин и индуктивной оснастки подтверждены документацией Keysight:
+The parallel-plate and inductive-fixture methods are supported by Keysight documentation:
 https://helpfiles.keysight.com/csg/N1500A/Opt._005_General_Overview.htm
 
-План проверки: повторная установка образца; второй образец того же состава; контроль чистого связующего; сравнение разных толщин/числа витков, где применимо; по возможности одно внешнее контрольное измерение. Пределы приемки назначаются после оценки неопределённости, а не произвольно по красивой кривой.
+Validation plan: reinstall the sample; test a second sample of the same composition; include an unfilled-binder control; compare different thicknesses/turn counts where applicable; and, if possible, obtain one independent laboratory reference measurement. Set acceptance limits after assessing uncertainty, rather than arbitrarily based on an attractive curve.
 
-## 6. Матрица первых образцов и оборудование
+## 6. Initial sample matrix and equipment
 
-Предварительная матрица: чистое связующее; порошок A в трёх объёмных концентрациях; порошок B в тех же трёх концентрациях. Итого семь составов, только если удалось отобрать два обоснованных кандидата; при одном кандидате — четыре. Значения концентраций выбираются после данных о плотности, вязкости и рекомендаций поставщика. Для каждого состава изготовить кольцо и плоский образец из одной смеси, с повторами для наиболее перспективного состава.
+Preliminary matrix: unfilled binder; powder A at three volume fractions; powder B at the same three volume fractions. This gives seven formulations only if two justified candidates can be selected; with one candidate, there are four. Select volume fractions after obtaining density and viscosity data and supplier recommendations. For each formulation, make a toroid and a flat sample from the same mixture, with replicates for the most promising formulation.
 
-Журнал: масса компонентов, истинные плотности, расчёт объёмной доли, форма, размеры, масса/объём готового образца, температура и время отверждения, номер партии, оснастка и калибровка, исходные комплексные измерения. Для будущего градиента регистрировать также порядок и толщины слоёв, клей и зазоры.
+Log: component masses, true densities, volume-fraction calculation, shape, dimensions, finished sample mass/volume, curing temperature and time, batch number, fixture and calibration, and raw complex measurements. For the future gradient, also record layer order and thicknesses, adhesive, and gaps.
 
-Начальное оборудование:
+Initial equipment:
 
-- весы с разрешением под выбранную навеску, штангенциркуль/микрометр;
-- формы для колец и плоских образцов, контролируемое смешивание;
-- связующее с известными электрическими свойствами и паспортом отверждения;
-- вытяжка/обращение с порошком по SDS; сухое распыление не использовать;
-- при необходимости вакуумная дегазация и отдельная термокамера/печь для отверждения по паспорту;
-- измерительная оснастка и доступ к подходящему прибору, возможно через аренду/лабораторию.
+- a balance with resolution appropriate for the selected batch mass, and a caliper/micrometer;
+- molds for toroids and flat samples, and controlled mixing;
+- a binder with known electrical properties and a specified curing schedule;
+- extraction ventilation/powder handling according to the SDS; do not use dry spraying;
+- vacuum degassing if needed, and a dedicated thermal chamber/oven for curing according to the specification;
+- measurement fixtures and access to a suitable instrument, possibly through rental or a laboratory.
 
-Для керамической ветки добавятся пресс с подходящей матрицей, оборудование для удаления связующего и высокотемпературная печь с требуемой атмосферой, огнеупорная оснастка и контроль усадки. Комплект и режим определяет выбранный процесс; бытовая печь не является заменой. На первом этапе эти работы предпочтительно отдавать подрядчику.
+The ceramic route additionally requires a press with a suitable die, debinding equipment, a high-temperature furnace with the required atmosphere, refractory fixtures, and shrinkage control. The selected process determines the equipment and schedule; a household oven is not a substitute. Outsourcing this work is preferable at the first stage.
 
-## 7. Проектирование градиента и критерий пользы
+## 7. Gradient design and usefulness criterion
 
-Для грубой оценки при малых потерях n≈sqrt(εr μr), Z≈377 sqrt(μr/εr) Ом. Эти скалярные выражения требуют проверки однородности и применимости модели, особенно для многослойного образца. Большие μ′ и ε′ при больших μ″/ε″ могут дать преимущественно поглощение.
+For a rough estimate at low losses, n≈sqrt(εr μr), Z≈377 sqrt(μr/εr) ohms. These scalar expressions require checks of homogeneity and model applicability, especially for a multilayer sample. High μ′ and ε′ accompanied by high μ″/ε″ may primarily produce absorption.
 
-Цель отбора: получить измеренную семейство составов, позволяющее менять n при контролируемом отношении μ/ε. Изменение концентрации одного порошка не гарантирует нужной траектории. Может понадобиться иной феррит, диэлектрический наполнитель или переход к металлическим ячейкам; ничего из этого не считать заранее доказанным.
+Selection objective: obtain a characterized family of formulations that allows n to vary while controlling the μ/ε ratio. Changing the concentration of one powder does not guarantee the required trajectory. A different ferrite, a dielectric filler, or a transition to metallic cells may be needed; none of these options should be considered proven in advance.
 
-Первая проверка градиента: три отдельно изготовленных однородных слоя с известными свойствами. Сравнение с однородным контролем той же общей толщины и сопоставимого среднего состава. Ориентация градиента — вдоль распространения либо поперёк него — должна следовать выбранной полевой задаче. Для направляющей линии согласование с 50 Ом и изоимпедансность материала относительно воздуха — разные условия.
+First gradient test: three separately manufactured homogeneous layers with known properties. Compare against a homogeneous control with the same total thickness and a comparable average composition. The gradient orientation — along or across propagation — must follow the selected electromagnetic field problem. For a guided line, matching to 50 ohms and matching the material impedance to air are different conditions.
 
-Силовой этап начинается только после расчёта напряжений/сил для реального образца с учётом источника, проводников, материала, поглотителя и границ. Нужны оценка чувствительности и контроль нагрева, механических усилий кабелей и магнитных взаимодействий. Показания мощности и задержки сами по себе не подтверждают давление или тягу.
+The force stage starts only after calculating stresses/forces for the actual sample, accounting for the source, conductors, material, absorber, and boundaries. Sensitivity assessment and controls for heating, mechanical cable forces, and magnetic interactions are required. Power and delay readings alone do not establish pressure or thrust.
 
-## Ближайший конкретный результат
+## Next concrete deliverable
 
-Подготовить единый технический запрос для PPT и Fair-Rite, затем получить данные/условия проб. Параллельно выбрать метод измерения и геометрию контрольных образцов. После этого сформировать небольшой обоснованный список закупки. До этой точки не закупать керамическую печь, пресс или большую партию порошка.
+Prepare a common technical inquiry for PPT and Fair-Rite, then obtain data and sample terms. In parallel, select the measurement method and reference-sample geometry. Then prepare a small, justified purchasing list. Do not purchase a ceramic furnace, press, or large powder batch before this point.
