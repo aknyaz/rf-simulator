@@ -4,6 +4,8 @@ A Windows desktop application and command-line toolkit for simulating, optimizin
 
 The research objective is to obtain a large electrical length in a short physical structure: increased phase accumulation and reduced effective wavelength with controlled reflection, loss, and dispersion. The LC ladder is a one-dimensional electrical analogue of a future graded medium interacting with an electrically small radiator.
 
+**Theoretical background.** This project is inspired by Arkadi Knyaz’s [*Isoimpedance Inhomogeneous Media*](https://aknyaz.com/pdf/media.pdf). We combine circuit simulation and physical LC prototypes to experimentally investigate slow-wave propagation, phase accumulation, and impedance matching. The current experiments examine these aspects through a one-dimensional circuit analogue; they do not yet validate the paper’s broader antenna or electromagnetic-force proposals.
+
 ![RF simulator showing the ten-coil, nine-capacitor model with S21 phase, group delay, S-parameters, and interactive component controls](docs/images/simulator-phase-delay.png)
 
 *Desktop simulation of the [ten-coil, nine-capacitor example](board-10-cells-gentle-gradient-9%20capacitors.json) over 10–20 MHz. The live plots show transmission phase, group delay, reflection, and transmission magnitude. These are calculated model responses, not hardware measurements. To reproduce this view, load the example, select **Run Simulation**, and open **Manual RF Tuning → Live S-Parameters**.*
